@@ -1,44 +1,39 @@
 import streamlit as st
+from supabase import create_client
 
-# 1. 页面配置
-st.set_page_config(page_title="Incremental Findings", page_icon="🔬", layout="centered")
+# 1. 建立连接
+# 确保在 Streamlit Settings -> Secrets 填好了 SUPABASE_URL 和 SUPABASE_KEY
+url = st.secrets["SUPABASE_URL"]
+key = st.secrets["SUPABASE_KEY"]
+supabase = create_client(url, key)
 
-# 2. 网站头部
 st.title("🔬 Incremental Findings")
-st.subheader("渐进式发现：收录被低估的研究价值")
-st.markdown("""
-本站旨在为科学界提供一个“避风港”。我们收录那些因为各种原因（如新颖性不足、负面结果等）未能在顶级期刊发表，
-但在实验数据、方法论或理论边界上对同行具有参考价值的研究成果。
-""")
+st.write("渐进式发现：为每一份科研价值留存空间")
 
-st.divider()
-
-# 3. 核心功能展示区
-tab1, tab2 = st.tabs(["📚 论文浏览", "📤 提交研究"])
-
-with tab1:
-    st.info("目前平台处于 Beta 测试阶段，暂无公开展示的论文。")
-    # 未来这里会从数据库读取数据并显示
-    st.write("待收录类别：")
-    st.write("- 阴性结果 (Negative Results)")
-    st.write("- 渐进式改进 (Incremental Improvements)")
-    st.write("- 实验数据集 (Datasets)")
-
-with tab2:
-    st.markdown("### 提交您的科研成果")
-    with st.form("upload_form"):
-        paper_title = st.text_input("论文标题")
-        original_journal = st.text_input("原投稿目标 (如：Nature, IEEE, PRL 等)")
-        rejection_review = st.text_area("被拒复盘 (请简述评审争议点及本研究的剩余价值)")
-        pdf_file = st.file_uploader("上传 PDF 论文", type=["pdf"])
-        
-        submitted = st.form_submit_button("确认提交")
-        if submitted:
-            if paper_title and pdf_file:
-                st.success("提交成功！我们将进行初步审核。")
-            else:
-                st.warning("请填写标题并上传文件。")
-
-# 4. 页脚
-st.divider()
-st.caption("© 2026 Incremental Findings Project | 倡导开放科学与科研诚信")
+# 2. 提交表单
+with st.form("upload_form", clear_on_submit=True):
+    title = st.text_input("论文/研究标题")
+    journal = st.text_input("原投递目标")
+    review = st.text_area("研究复盘说明")
+    pdf_file = st.file_uploader("上传 PDF 论文", type=["pdf"])
+    
+    if st.form_submit_button("确认提交"):
+        if title and pdf_file:
+            try:
+                # A. 上传 PDF 到存储桶
+                file_path = f"{pdf_file.name}"
+                supabase.storage.from_("papers").upload(file_path, pdf_file.getvalue())
+                
+                # B. 将信息写入数据库表 (对应你刚才建的 submission 表)
+                supabase.table("submission").insert({
+                    "title": title,
+                    "journal": journal,
+                    "review": review,
+                    "file_url": file_path
+                }).execute()
+                
+                st.success(f"🎉 提交成功！'{title}' 已存入云端数据库。")
+            except Exception as e:
+                st.error(f"处理出错：{e}。请确认数据库表名和存储桶名是否正确。")
+        else:
+            st.warning("请填写完整标题并上传文件。")
