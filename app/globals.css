@@ -1,0 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Source+Sans+3:wght@400;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply text-ink font-sans;
+  background: radial-gradient(circle at 15% 20%, #f3fff3 0%, #eef8ee 45%, #e6f3e6 100%);
+}
+
+.nature-heading {
+  @apply font-serif text-5xl md:text-6xl border-b-[3px] border-black pb-4;
+}
+
+.paper-card {
+  @apply border border-zinc-200 bg-white/75 rounded-lg p-5 transition duration-300 hover:bg-white hover:shadow-md;
+}
+
+.glass-panel {
+  @apply rounded-xl border border-white/60 bg-white/70 backdrop-blur;
+}
+
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition duration-200;
+}
+
+.btn-primary {
+  @apply btn bg-[#0f172a] text-white shadow-sm hover:-translate-y-0.5 hover:bg-black hover:shadow;
+}
+
+.btn-secondary {
+  @apply btn border border-zinc-300 bg-white/85 text-zinc-800 hover:border-zinc-400 hover:bg-white;
+}
+
+.btn-ghost {
+  @apply btn text-zinc-700 hover:bg-zinc-100/80;
+}
+
+.btn-danger {
+  @apply btn bg-red-700 text-white hover:bg-red-800;
+}
+
+.btn-sm {
+  @apply px-3 py-1.5 text-xs;
+}
+
+.btn-group {
+  @apply flex flex-wrap items-center gap-2;
+}
