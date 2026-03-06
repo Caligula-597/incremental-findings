@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { SiteHeader } from '@/components/header';
 import { PaperCard } from '@/components/paper-card';
 import { PandaRail } from '@/components/panda-rail';
+import { SectionTitle } from '@/components/ui-kit';
 import { listSubmissions } from '@/lib/submission-repository';
 import { ARTICLE_TYPES, DISCIPLINES } from '@/lib/taxonomy';
 
@@ -31,6 +32,8 @@ export default async function HomePage({
     <main>
       <PandaRail />
       <SiteHeader />
+
+      <SectionTitle title="Discover incremental research" subtitle="Filter by discipline and type to explore concise, high-signal findings." />
 
       <section id="taxonomy" className="glass-panel mb-8 p-5 shadow-sm">
         <div className="flex flex-wrap items-center gap-3">

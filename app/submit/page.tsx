@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { SiteHeader } from '@/components/header';
 import { TERMS_VERSION, AUTHOR_AGREEMENT_ITEMS } from '@/lib/legal';
 import { ARTICLE_TYPES, DISCIPLINES, TOPIC_MAP } from '@/lib/taxonomy';
+import { SectionTitle } from '@/components/ui-kit';
 
 const workflowSteps = [
   'Account login + optional ORCID linking',
@@ -75,16 +76,21 @@ export default function SubmitPage() {
   return (
     <main>
       <SiteHeader />
-      <h2 className="font-serif text-3xl">Submission Portal</h2>
-      <p className="mt-2 text-sm text-zinc-700">Simplified but complete workflow with identity, consent, and file package support.</p>
+      <SectionTitle
+        title="Submission Portal"
+        subtitle="A guided pipeline with identity, compliance and package integrity checks before editorial screening."
+      />
 
       <section className="mt-6 glass-panel p-6">
         <h3 className="font-serif text-2xl">Workflow overview</h3>
-        <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-zinc-700">
-          {workflowSteps.map((item) => (
-            <li key={item}>{item}</li>
+        <div className="mt-3 grid gap-2 md:grid-cols-2">
+          {workflowSteps.map((item, idx) => (
+            <div key={item} className="rounded-lg border border-zinc-200 bg-white/85 px-3 py-2 text-sm text-zinc-700">
+              <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-zinc-900 text-[11px] text-white">{idx + 1}</span>
+              {item}
+            </div>
           ))}
-        </ol>
+        </div>
       </section>
 
       <form className="mt-6 grid gap-5 glass-panel p-6" onSubmit={onSubmit}>
