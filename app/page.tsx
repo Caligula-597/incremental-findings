@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { SiteHeader } from '@/components/header';
 import { PaperCard } from '@/components/paper-card';
+import { PandaRail } from '@/components/panda-rail';
 import { listSubmissions } from '@/lib/submission-repository';
 import { ARTICLE_TYPES, DISCIPLINES } from '@/lib/taxonomy';
 
@@ -28,6 +29,7 @@ export default async function HomePage({
 
   return (
     <main>
+      <PandaRail />
       <SiteHeader />
 
       <section id="taxonomy" className="mb-8 rounded border border-zinc-300 p-5">

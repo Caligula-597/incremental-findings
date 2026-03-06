@@ -9,7 +9,7 @@
 }
 
 body {
-  @apply bg-white text-ink font-sans;
+  @apply bg-[#eef8ee] text-ink font-sans;
 }
 
 .nature-heading {
