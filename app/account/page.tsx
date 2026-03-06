@@ -117,13 +117,13 @@ export default function AccountPage() {
           <p className="mt-3 text-sm text-zinc-700">Email: {user?.email ?? 'Not logged in'}</p>
           <p className="mt-1 text-sm text-zinc-700">ORCID: {orcid ?? 'Not connected'}</p>
 
-          <button type="button" onClick={connectOrcid} className="mt-4 rounded bg-black px-4 py-2 text-sm text-white hover:bg-zinc-800">
+          <button type="button" onClick={connectOrcid} className="btn btn-primary mt-4">
             {orcid ? 'Reconnect ORCID' : 'Connect ORCID'}
           </button>
           <button
             type="button"
             onClick={logout}
-            className="ml-2 mt-4 rounded border border-zinc-400 px-4 py-2 text-sm hover:bg-zinc-100"
+            className="btn btn-secondary ml-2 mt-4"
           >
             Log out
           </button>
@@ -158,7 +158,7 @@ export default function AccountPage() {
               </a>
             </li>
           </ul>
-          <button type="button" onClick={runOrcidDiagnostics} className="mt-4 rounded border border-zinc-400 px-3 py-1 text-sm hover:bg-zinc-100">
+          <button type="button" onClick={runOrcidDiagnostics} className="btn btn-ghost mt-4">
             Run ORCID diagnostics
           </button>
           {diagnostics ? <p className="mt-3 text-xs text-zinc-600">{diagnostics}</p> : null}

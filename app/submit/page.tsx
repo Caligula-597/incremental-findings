@@ -107,7 +107,7 @@ export default function SubmitPage() {
                 Author ORCID: <span className="font-semibold">{orcidId}</span>
               </p>
             ) : (
-              <a className="rounded border border-zinc-400 px-3 py-2 text-sm text-center hover:bg-zinc-100" href="/account">
+              <a className="btn btn-secondary justify-center" href="/account">
                 Manage ORCID / Account
               </a>
             )}
@@ -207,7 +207,7 @@ export default function SubmitPage() {
           </div>
         </section>
 
-        <button type="submit" disabled={loading} className="w-fit rounded bg-black px-4 py-2 text-white disabled:opacity-60">
+        <button type="submit" disabled={loading} className="btn btn-primary w-fit disabled:opacity-60">
           {loading ? 'Submitting...' : 'Submit complete package'}
         </button>
 

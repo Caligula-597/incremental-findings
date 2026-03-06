@@ -77,13 +77,13 @@ export default function EditorPage() {
               <p className="mt-2 text-sm">{(item.abstract ?? 'No abstract provided.').slice(0, 200)}...</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
-                  className="rounded bg-zinc-700 px-3 py-1 text-sm text-white"
+                  className="btn btn-secondary btn-sm"
                   onClick={() => updateStatus(item.id, 'under_review')}
                 >
                   Move to under review
                 </button>
                 <button
-                  className="rounded bg-red-700 px-3 py-1 text-sm text-white"
+                  className="btn btn-danger btn-sm"
                   onClick={() => updateStatus(item.id, 'rejected')}
                 >
                   Reject
@@ -105,13 +105,13 @@ export default function EditorPage() {
               <TaxonomyMeta item={item} />
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
-                  className="rounded bg-black px-3 py-1 text-sm text-white"
+                  className="btn btn-primary btn-sm"
                   onClick={() => updateStatus(item.id, 'published')}
                 >
                   Publish
                 </button>
                 <button
-                  className="rounded bg-red-700 px-3 py-1 text-sm text-white"
+                  className="btn btn-danger btn-sm"
                   onClick={() => updateStatus(item.id, 'rejected')}
                 >
                   Reject

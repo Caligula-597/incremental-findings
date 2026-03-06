@@ -39,36 +39,32 @@ export function SiteHeader() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <Link className="rounded border border-black px-3 py-1 hover:bg-black hover:text-white" href="/">
+        <nav className="btn-group text-sm">
+          <Link className="btn btn-secondary" href="/">
             Main Page
           </Link>
-          <Link className="rounded border border-black px-3 py-1 hover:bg-black hover:text-white" href="/submit">
+          <Link className="btn btn-secondary" href="/submit">
             Submit Work
           </Link>
-          <Link className="rounded border border-black px-3 py-1 hover:bg-black hover:text-white" href="/editor">
+          <Link className="btn btn-secondary" href="/editor">
             Editorial Workspace
           </Link>
-          <Link className="rounded border border-black px-3 py-1 hover:bg-black hover:text-white" href="/account">
+          <Link className="btn btn-secondary" href="/account">
             Account
           </Link>
           {user ? (
             <>
-              <span className="px-1 text-zinc-600">{user.name}</span>
-              <button
-                type="button"
-                onClick={logout}
-                className="rounded border border-zinc-400 px-3 py-1 hover:bg-zinc-100"
-              >
+              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs text-zinc-600">{user.name}</span>
+              <button type="button" onClick={logout} className="btn btn-ghost">
                 Log out
               </button>
             </>
           ) : (
-            <Link className="rounded border border-zinc-400 px-3 py-1 hover:bg-zinc-100" href="/login">
+            <Link className="btn btn-primary" href="/login">
               Log in
             </Link>
           )}
-        </div>
+        </nav>
       </div>
     </header>
   );

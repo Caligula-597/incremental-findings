@@ -85,7 +85,7 @@ export default async function HomePage({
           </details>
 
           {(selectedDiscipline || selectedArticleType) && (
-            <Link className="rounded border border-black px-3 py-1 text-sm hover:bg-black hover:text-white" href="/">
+            <Link className="btn btn-secondary" href="/">
               Clear filters
             </Link>
           )}
@@ -121,7 +121,7 @@ export default async function HomePage({
               href={latest.file_url ?? '#'}
               target="_blank"
               rel="noreferrer"
-              className="mt-4 inline-flex rounded bg-black px-4 py-2 text-sm text-white hover:bg-zinc-800"
+              className="btn btn-primary mt-4"
             >
               Read PDF
             </a>

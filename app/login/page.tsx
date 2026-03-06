@@ -51,14 +51,14 @@ export default function LoginPage() {
 
       <div className="mt-5 flex gap-2 text-sm">
         <button
-          className={`rounded border px-3 py-1 ${mode === 'login' ? 'border-black bg-black text-white' : 'border-zinc-400'}`}
+          className={`btn ${mode === 'login' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setMode('login')}
           type="button"
         >
           Log in
         </button>
         <button
-          className={`rounded border px-3 py-1 ${mode === 'register' ? 'border-black bg-black text-white' : 'border-zinc-400'}`}
+          className={`btn ${mode === 'register' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setMode('register')}
           type="button"
         >
@@ -84,7 +84,7 @@ export default function LoginPage() {
           <input name="password" required type="password" className="rounded border border-zinc-300 px-3 py-2" placeholder="••••••••" />
         </label>
 
-        <button disabled={loading} className="mt-5 rounded bg-black px-4 py-2 text-sm text-white disabled:opacity-60" type="submit">
+        <button disabled={loading} className="btn btn-primary mt-5 disabled:opacity-60" type="submit">
           {loading ? 'Processing...' : mode === 'register' ? 'Create account' : 'Sign in'}
         </button>
 
