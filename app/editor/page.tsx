@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { SiteHeader } from '@/components/header';
 import { MetricCard, SectionTitle, StatusPill } from '@/components/ui-kit';
 import { DISCIPLINES } from '@/lib/taxonomy';
@@ -29,6 +30,7 @@ export default function EditorPage() {
   const [message, setMessage] = useState('');
   const [query, setQuery] = useState('');
   const [disciplineFilter, setDisciplineFilter] = useState('all');
+  const [isEditor, setIsEditor] = useState(false);
 
   async function loadData() {
     const [pendingRes, reviewRes, publishedRes] = await Promise.all([
@@ -65,7 +67,13 @@ export default function EditorPage() {
   }
 
   useEffect(() => {
-    void loadData();
+    const raw = localStorage.getItem('if_user');
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as { role?: string };
+    if (parsed.role === 'editor') {
+      setIsEditor(true);
+      void loadData();
+    }
   }, []);
 
   const filteredPending = useMemo(
@@ -82,6 +90,23 @@ export default function EditorPage() {
   );
 
   const totalActive = useMemo(() => pending.length + underReview.length, [pending.length, underReview.length]);
+
+  if (!isEditor) {
+    return (
+      <main>
+        <SiteHeader />
+        <section className="glass-panel p-8">
+          <h2 className="font-serif text-3xl">Editorial login required</h2>
+          <p className="mt-3 max-w-2xl text-sm text-zinc-700">
+            当前工作台仅开放给编辑账号。请通过登录页的 Editor Log in 使用编辑访问码进入审稿系统。
+          </p>
+          <Link className="btn btn-primary mt-5" href="/login">
+            Go to editor login
+          </Link>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main>

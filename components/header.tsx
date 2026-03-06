@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 interface SessionUser {
   email: string;
   name: string;
+  role?: 'author' | 'editor';
 }
 
 export function SiteHeader() {
@@ -54,7 +55,10 @@ export function SiteHeader() {
           </Link>
           {user ? (
             <>
-              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs text-zinc-600">{user.name}</span>
+              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs text-zinc-600">
+                {user.name}
+                {user.role === 'editor' ? ' · Editor' : ''}
+              </span>
               <button type="button" onClick={logout} className="btn btn-ghost">
                 Log out
               </button>

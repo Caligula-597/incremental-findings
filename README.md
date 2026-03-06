@@ -8,7 +8,7 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 ## Current product structure
 - Public homepage with discipline and article-type taxonomy filters (`/`)
 - Submission portal with complete package workflow (`/submit`)
-- Editorial workspace (`/editor`) covering in-progress, under-review and published flows
+- Editorial workspace (`/editor`) covering in-progress, under-review and published flows (editor login required)
 - Account center and login scaffolding (`/account`, `/login`)
 
 ## What is implemented now
@@ -29,6 +29,7 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 ## APIs
 - `POST /api/auth/register`
 - `POST /api/auth/login`
+- `POST /api/auth/editor-login`
 - `GET /api/orcid/start`
 - `GET /api/orcid/callback`
 - `GET /api/orcid/status`
@@ -160,6 +161,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 ORCID_CLIENT_ID=xxx
 ORCID_CLIENT_SECRET=xxx
 ORCID_REDIRECT_URI=http://localhost:3000/api/orcid/callback
+EDITOR_ACCESS_CODE=your_editor_access_code
 ```
 
 > Authentication persistence uses Supabase when any supported server key pair exists.
@@ -175,3 +177,9 @@ npm install
 npm run dev
 ```
 Open http://localhost:3000
+
+
+## Editor login
+- Use `/login` and choose **Editor Log in**.
+- In local demo mode (without env), default editor code is `review-demo`.
+- In production, set `EDITOR_ACCESS_CODE` in environment variables.

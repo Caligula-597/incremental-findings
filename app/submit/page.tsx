@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { SiteHeader } from '@/components/header';
-import { TERMS_VERSION, AUTHOR_AGREEMENT_ITEMS } from '@/lib/legal';
+import { TERMS_VERSION, AUTHOR_AGREEMENT_ITEMS, AUTHOR_PROTOCOL_BLOCKS } from '@/lib/legal';
 import { ARTICLE_TYPES, DISCIPLINES, TOPIC_MAP } from '@/lib/taxonomy';
 import { SectionTitle } from '@/components/ui-kit';
 
@@ -127,7 +127,21 @@ export default function SubmitPage() {
         <section className="rounded-xl border border-zinc-200 bg-white/80 p-4">
           <h3 className="font-semibold">2) Author agreement (required)</h3>
           <p className="mt-1 text-xs text-zinc-600">Terms version: {TERMS_VERSION}</p>
-          <div className="mt-2 grid gap-2 text-sm">
+
+          <div className="mt-3 grid gap-3 md:grid-cols-3">
+            {AUTHOR_PROTOCOL_BLOCKS.map((block) => (
+              <article key={block.title} className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
+                <p className="text-sm font-semibold text-zinc-900">{block.title}</p>
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-zinc-700">
+                  {block.points.map((point) => (
+                    <li key={point}>{point}</li>
+                  ))}
+                </ul>
+              </article>
+            ))}
+          </div>
+
+          <div className="mt-3 grid gap-2 text-sm">
             <label className="flex gap-2">
               <input required type="checkbox" name="author_warranty" value="true" />
               <span>{AUTHOR_AGREEMENT_ITEMS[0]}</span>
@@ -143,6 +157,10 @@ export default function SubmitPage() {
             <label className="flex gap-2">
               <input required type="checkbox" name="privacy_ack" value="true" />
               <span>{AUTHOR_AGREEMENT_ITEMS[3]}</span>
+            </label>
+            <label className="mt-1 flex gap-2 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2">
+              <input required type="checkbox" name="protocol_ack" value="true" />
+              <span>我已阅读并理解完整作者协议与审稿流程要求。</span>
             </label>
           </div>
         </section>
