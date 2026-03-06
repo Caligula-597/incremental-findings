@@ -19,6 +19,7 @@ export default function SubmitPage() {
   const [discipline, setDiscipline] = useState<string>(DISCIPLINES[0]);
   const [userEmail, setUserEmail] = useState('');
   const [userId, setUserId] = useState('');
+  const [orcidId, setOrcidId] = useState<string | null>(null);
 
   const topics = useMemo(() => TOPIC_MAP[discipline as (typeof DISCIPLINES)[number]] ?? [], [discipline]);
 
@@ -29,6 +30,18 @@ export default function SubmitPage() {
     if (parsed.email) setUserEmail(parsed.email);
     if (parsed.id) setUserId(parsed.id);
   }, []);
+
+  useEffect(() => {
+    async function loadOrcid() {
+      if (!userEmail && !userId) return;
+      const query = userId ? `user_id=${encodeURIComponent(userId)}` : `email=${encodeURIComponent(userEmail)}`;
+      const response = await fetch(`/api/orcid/status?${query}`);
+      const body = await response.json().catch(() => ({ data: null }));
+      setOrcidId(body.data?.orcid_id ?? null);
+    }
+
+    void loadOrcid();
+  }, [userEmail, userId]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -88,9 +101,16 @@ export default function SubmitPage() {
               className="rounded border border-zinc-300 px-3 py-2"
             />
             <input type="hidden" name="user_id" value={userId} readOnly />
-            <a className="rounded border border-zinc-400 px-3 py-2 text-sm text-center hover:bg-zinc-100" href="/account">
-              Manage ORCID / Account
-            </a>
+
+            {orcidId ? (
+              <p className="rounded border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                Author ORCID: <span className="font-semibold">{orcidId}</span>
+              </p>
+            ) : (
+              <a className="rounded border border-zinc-400 px-3 py-2 text-sm text-center hover:bg-zinc-100" href="/account">
+                Manage ORCID / Account
+              </a>
+            )}
           </div>
         </section>
 

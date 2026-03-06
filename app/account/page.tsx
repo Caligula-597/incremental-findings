@@ -49,13 +49,15 @@ export default function AccountPage() {
       }
     }
     void loadOrcid();
-  }, [user?.email]);
+  }, [user?.email, user?.id]);
 
   async function connectOrcid() {
     if (!user?.email) {
       setMessage('Please login first.');
       return;
     }
+
+    setMessage('Redirecting to ORCID… if this account already authorized before, ORCID may return directly.');
 
     const response = await fetch(
       `/api/orcid/start?email=${encodeURIComponent(user.email)}&user_id=${encodeURIComponent(user.id ?? '')}&force=true`

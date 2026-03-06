@@ -89,16 +89,32 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Could not resolve ORCID id or email from callback' }, { status: 400 });
   }
 
+  const normalizedEmail = emailFromState?.toLowerCase();
+
+  let resolvedUserId = userIdFromState || undefined;
+
+  const supabase = getSupabaseServerClient();
+  if (!resolvedUserId && supabase && normalizedEmail) {
+    const lookupByEmail = await supabase.from('user_accounts').select('id').eq('email', normalizedEmail).maybeSingle();
+    if (!lookupByEmail.error && lookupByEmail.data?.id) {
+      resolvedUserId = String(lookupByEmail.data.id);
+    } else {
+      const lookupByUsername = await supabase.from('user_accounts').select('id').eq('username', normalizedEmail).maybeSingle();
+      if (!lookupByUsername.error && lookupByUsername.data?.id) {
+        resolvedUserId = String(lookupByUsername.data.id);
+      }
+    }
+  }
+
   const record = {
-    user_email: emailFromState?.toLowerCase(),
-    user_id: userIdFromState || undefined,
+    user_email: normalizedEmail,
+    user_id: resolvedUserId,
     orcid_id: orcidId,
     verified: true,
     connected_at: new Date().toISOString(),
     verified_at: new Date().toISOString()
   };
 
-  const supabase = getSupabaseServerClient();
   if (supabase) {
     const insert = await supabase
       .from('orcid_links')
@@ -112,6 +128,13 @@ export async function GET(request: NextRequest) {
         { onConflict: 'user_email' }
       );
     if (insert.error) {
+      if (!record.user_id) {
+        if (!jsonMode) {
+          return NextResponse.redirect(getAccountRedirectUrl(request, 'error', 'ORCID returned but user_id could not be resolved'));
+        }
+        return NextResponse.json({ error: 'ORCID returned but user_id could not be resolved for current schema' }, { status: 400 });
+      }
+
       const insertV2 = await supabase
         .from('orcid_links')
         .upsert(
@@ -132,7 +155,7 @@ export async function GET(request: NextRequest) {
 
       runtimeOrcidLinks.push(record);
       if (!jsonMode) {
-        return NextResponse.redirect(getAccountRedirectUrl(request, 'success', 'ORCID linked in fallback memory mode'));
+        return NextResponse.redirect(getAccountRedirectUrl(request, 'error', 'Failed to persist ORCID link to Supabase'));
       }
       return NextResponse.json({ data: record, mode: 'memory-fallback', warning: insertV2.error.message });
     }
@@ -142,7 +165,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ data: record, mode: 'supabase' });
   }
 
-  const existing = runtimeOrcidLinks.find((item) => item.user_email === record.user_email);
+  const existing = runtimeOrcidLinks.find((item) => item.user_email === record.user_email || item.user_id === record.user_id);
   if (existing) {
     existing.orcid_id = record.orcid_id;
     existing.verified = true;
