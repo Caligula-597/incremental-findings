@@ -27,15 +27,15 @@ body {
 
 
 .btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition duration-200;
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold tracking-wide transition duration-200;
 }
 
 .btn-primary {
-  @apply btn bg-[#0f172a] text-white shadow-sm hover:-translate-y-0.5 hover:bg-black hover:shadow;
+  @apply btn border border-zinc-900 bg-zinc-900 text-white shadow-sm hover:-translate-y-0.5 hover:bg-black hover:shadow-md;
 }
 
 .btn-secondary {
-  @apply btn border border-zinc-300 bg-white/85 text-zinc-800 hover:border-zinc-400 hover:bg-white;
+  @apply btn border border-zinc-300 bg-white/90 text-zinc-800 shadow-sm hover:-translate-y-0.5 hover:border-zinc-400 hover:bg-white;
 }
 
 .btn-ghost {
@@ -43,7 +43,7 @@ body {
 }
 
 .btn-danger {
-  @apply btn bg-red-700 text-white hover:bg-red-800;
+  @apply btn border border-red-700 bg-red-700 text-white hover:-translate-y-0.5 hover:bg-red-800;
 }
 
 .btn-sm {

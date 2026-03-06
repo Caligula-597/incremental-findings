@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { SiteHeader } from '@/components/header';
 import { PaperCard } from '@/components/paper-card';
 import { PandaRail } from '@/components/panda-rail';
-import { SectionTitle } from '@/components/ui-kit';
+import { MetricCard, SectionTitle } from '@/components/ui-kit';
 import { listSubmissions } from '@/lib/submission-repository';
 import { ARTICLE_TYPES, DISCIPLINES } from '@/lib/taxonomy';
 
@@ -27,6 +27,16 @@ export default async function HomePage({
 
   const latest = filtered[0];
   const rest = filtered.slice(1);
+
+  const disciplineBreakdown = DISCIPLINES.map((discipline) => ({
+    label: discipline,
+    count: published.filter((entry) => entry.discipline === discipline).length
+  }))
+    .filter((entry) => entry.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 4);
+
+  const quickTopics = Array.from(new Set(published.map((item) => item.topic).filter(Boolean) as string[])).slice(0, 8);
 
   return (
     <main>
@@ -120,12 +130,7 @@ export default async function HomePage({
             <blockquote className="mt-4 border-l-2 border-black pl-4 text-zinc-700">
               {(latest.abstract ?? 'No abstract provided.').slice(0, 260)}...
             </blockquote>
-            <a
-              href={latest.file_url ?? '#'}
-              target="_blank"
-              rel="noreferrer"
-              className="btn btn-primary mt-4"
-            >
+            <a href={latest.file_url ?? '#'} target="_blank" rel="noreferrer" className="btn btn-primary mt-4">
               Read PDF
             </a>
           </div>
@@ -146,6 +151,61 @@ export default async function HomePage({
           ))}
         </section>
       ) : null}
+
+      <section className="mt-12 grid gap-4 md:grid-cols-4">
+        <MetricCard label="Published papers" value={published.length} />
+        <MetricCard label="Visible after filters" value={filtered.length} />
+        <MetricCard label="Disciplines active" value={disciplineBreakdown.length} />
+        <MetricCard label="Trending topics" value={quickTopics.length} />
+      </section>
+
+      <section className="mt-10 grid gap-5 lg:grid-cols-[1.25fr_1fr]">
+        <div className="glass-panel p-5">
+          <SectionTitle title="Trending topics" subtitle="Live snapshot based on currently published records." className="mb-3" />
+          <div className="flex flex-wrap gap-2">
+            {quickTopics.length === 0 ? (
+              <p className="text-sm text-zinc-600">Topics will appear after the first publications are indexed.</p>
+            ) : (
+              quickTopics.map((topic) => (
+                <span key={topic} className="rounded-full border border-zinc-300 bg-white/80 px-3 py-1 text-sm text-zinc-700">
+                  {topic}
+                </span>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="glass-panel p-5">
+          <SectionTitle title="Active disciplines" subtitle="Where incoming submissions are concentrated." className="mb-3" />
+          <div className="space-y-2">
+            {disciplineBreakdown.length === 0 ? (
+              <p className="text-sm text-zinc-600">Discipline metrics will appear once papers are published.</p>
+            ) : (
+              disciplineBreakdown.map((item) => (
+                <div key={item.label} className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white/80 px-3 py-2 text-sm">
+                  <span>{item.label}</span>
+                  <span className="font-semibold">{item.count}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-10 glass-panel p-6">
+        <SectionTitle title="Contribute your next finding" subtitle="Choose your path depending on where you are in the workflow." className="mb-3" />
+        <div className="btn-group">
+          <Link className="btn btn-primary" href="/submit">
+            Start a submission
+          </Link>
+          <Link className="btn btn-secondary" href="/account">
+            Manage account & ORCID
+          </Link>
+          <Link className="btn btn-secondary" href="/editor">
+            Open editorial workspace
+          </Link>
+        </div>
+      </section>
     </main>
   );
 }

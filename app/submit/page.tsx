@@ -83,20 +83,24 @@ export default function SubmitPage() {
 
       <section className="mt-6 glass-panel p-6">
         <h3 className="font-serif text-2xl">Workflow overview</h3>
-        <div className="mt-3 grid gap-2 md:grid-cols-2">
+        <div className="mt-4 grid gap-2 lg:grid-cols-5">
           {workflowSteps.map((item, idx) => (
-            <div key={item} className="rounded-lg border border-zinc-200 bg-white/85 px-3 py-2 text-sm text-zinc-700">
-              <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-zinc-900 text-[11px] text-white">{idx + 1}</span>
-              {item}
+            <div key={item} className="rounded-lg border border-zinc-200 bg-white/85 px-3 py-3 text-sm text-zinc-700">
+              <span className="mb-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 text-[11px] text-white">{idx + 1}</span>
+              <p className="leading-relaxed">{item}</p>
             </div>
           ))}
         </div>
       </section>
 
       <form className="mt-6 grid gap-5 glass-panel p-6" onSubmit={onSubmit}>
-        <section>
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 text-sm text-emerald-900">
+          Draft hint: your account identity is prefilled from local session. Complete all required file fields before submitting.
+        </div>
+
+        <section className="rounded-xl border border-zinc-200 bg-white/80 p-4">
           <h3 className="font-semibold">1) Author identity</h3>
-          <div className="mt-2 grid gap-3 md:grid-cols-2">
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
             <input
               required
               name="user_email"
@@ -104,12 +108,12 @@ export default function SubmitPage() {
               onChange={(event) => setUserEmail(event.target.value)}
               type="email"
               placeholder="Your account email"
-              className="rounded border border-zinc-300 px-3 py-2"
+              className="rounded-lg border border-zinc-300 px-3 py-2"
             />
             <input type="hidden" name="user_id" value={userId} readOnly />
 
             {orcidId ? (
-              <p className="rounded border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+              <p className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
                 Author ORCID: <span className="font-semibold">{orcidId}</span>
               </p>
             ) : (
@@ -120,7 +124,7 @@ export default function SubmitPage() {
           </div>
         </section>
 
-        <section>
+        <section className="rounded-xl border border-zinc-200 bg-white/80 p-4">
           <h3 className="font-semibold">2) Author agreement (required)</h3>
           <p className="mt-1 text-xs text-zinc-600">Terms version: {TERMS_VERSION}</p>
           <div className="mt-2 grid gap-2 text-sm">
@@ -143,18 +147,18 @@ export default function SubmitPage() {
           </div>
         </section>
 
-        <section>
+        <section className="rounded-xl border border-zinc-200 bg-white/80 p-4">
           <h3 className="font-semibold">3) Manuscript metadata</h3>
           <div className="mt-2 grid gap-3">
-            <input required name="title" placeholder="Title" className="rounded border border-zinc-300 px-3 py-2" />
-            <input required name="authors" placeholder="Authors (comma-separated)" className="rounded border border-zinc-300 px-3 py-2" />
+            <input required name="title" placeholder="Title" className="rounded-lg border border-zinc-300 px-3 py-2" />
+            <input required name="authors" placeholder="Authors (comma-separated)" className="rounded-lg border border-zinc-300 px-3 py-2" />
 
             <div className="grid gap-3 md:grid-cols-3">
               <label className="grid gap-1 text-sm">
                 Discipline
                 <select
                   name="discipline"
-                  className="rounded border border-zinc-300 px-3 py-2"
+                  className="rounded-lg border border-zinc-300 px-3 py-2"
                   value={discipline}
                   onChange={(event) => setDiscipline(event.target.value)}
                 >
@@ -168,7 +172,7 @@ export default function SubmitPage() {
 
               <label className="grid gap-1 text-sm">
                 Topic
-                <select name="topic" className="rounded border border-zinc-300 px-3 py-2" defaultValue={topics[0]}>
+                <select name="topic" className="rounded-lg border border-zinc-300 px-3 py-2" defaultValue={topics[0]}>
                   {topics.map((item) => (
                     <option key={item} value={item}>
                       {item}
@@ -179,7 +183,7 @@ export default function SubmitPage() {
 
               <label className="grid gap-1 text-sm">
                 Article type
-                <select name="article_type" className="rounded border border-zinc-300 px-3 py-2" defaultValue={ARTICLE_TYPES[0]}>
+                <select name="article_type" className="rounded-lg border border-zinc-300 px-3 py-2" defaultValue={ARTICLE_TYPES[0]}>
                   {ARTICLE_TYPES.map((item) => (
                     <option key={item} value={item}>
                       {item}
@@ -189,33 +193,36 @@ export default function SubmitPage() {
               </label>
             </div>
 
-            <textarea name="abstract" placeholder="Abstract" rows={5} className="rounded border border-zinc-300 px-3 py-2" />
+            <textarea name="abstract" placeholder="Abstract" rows={5} className="rounded-lg border border-zinc-300 px-3 py-2" />
           </div>
         </section>
 
-        <section>
+        <section className="rounded-xl border border-zinc-200 bg-white/80 p-4">
           <h3 className="font-semibold">4) File package upload</h3>
           <div className="mt-2 grid gap-3">
             <label className="grid gap-1 text-sm">
               Manuscript PDF (required)
-              <input required name="manuscript" type="file" accept="application/pdf" className="rounded border border-zinc-300 px-3 py-2" />
+              <input required name="manuscript" type="file" accept="application/pdf" className="rounded-lg border border-zinc-300 px-3 py-2" />
             </label>
 
             <label className="grid gap-1 text-sm">
               Cover letter (required)
-              <input required name="cover_letter" type="file" accept="application/pdf,.doc,.docx,.txt" className="rounded border border-zinc-300 px-3 py-2" />
+              <input required name="cover_letter" type="file" accept="application/pdf,.doc,.docx,.txt" className="rounded-lg border border-zinc-300 px-3 py-2" />
             </label>
 
             <label className="grid gap-1 text-sm">
               Supporting materials (optional, multiple)
-              <input name="supporting_files" multiple type="file" className="rounded border border-zinc-300 px-3 py-2" />
+              <input name="supporting_files" multiple type="file" className="rounded-lg border border-zinc-300 px-3 py-2" />
             </label>
           </div>
         </section>
 
-        <button type="submit" disabled={loading} className="btn btn-primary w-fit disabled:opacity-60">
-          {loading ? 'Submitting...' : 'Submit complete package'}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="submit" disabled={loading} className="btn btn-primary w-fit disabled:opacity-60">
+            {loading ? 'Submitting...' : 'Submit complete package'}
+          </button>
+          <p className="text-xs text-zinc-500">Estimated editorial triage feedback: within 5–7 business days.</p>
+        </div>
 
         {message ? <p className="text-sm text-zinc-700">{message}</p> : null}
       </form>

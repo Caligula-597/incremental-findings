@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { SiteHeader } from '@/components/header';
 import { MetricCard, SectionTitle, StatusPill } from '@/components/ui-kit';
+import { DISCIPLINES } from '@/lib/taxonomy';
 import { Submission, SubmissionStatus } from '@/lib/types';
 
 function TaxonomyMeta({ item }: { item: Submission }) {
@@ -13,11 +14,21 @@ function TaxonomyMeta({ item }: { item: Submission }) {
   );
 }
 
+function matchesFilter(item: Submission, query: string, discipline: string) {
+  const normalizedQuery = query.trim().toLowerCase();
+  const content = `${item.title} ${item.authors} ${item.abstract ?? ''} ${item.topic ?? ''}`.toLowerCase();
+  const queryMatch = normalizedQuery ? content.includes(normalizedQuery) : true;
+  const disciplineMatch = discipline === 'all' ? true : item.discipline === discipline;
+  return queryMatch && disciplineMatch;
+}
+
 export default function EditorPage() {
   const [pending, setPending] = useState<Submission[]>([]);
   const [underReview, setUnderReview] = useState<Submission[]>([]);
   const [published, setPublished] = useState<Submission[]>([]);
   const [message, setMessage] = useState('');
+  const [query, setQuery] = useState('');
+  const [disciplineFilter, setDisciplineFilter] = useState('all');
 
   async function loadData() {
     const [pendingRes, reviewRes, publishedRes] = await Promise.all([
@@ -57,6 +68,19 @@ export default function EditorPage() {
     void loadData();
   }, []);
 
+  const filteredPending = useMemo(
+    () => pending.filter((item) => matchesFilter(item, query, disciplineFilter)),
+    [pending, query, disciplineFilter]
+  );
+  const filteredUnderReview = useMemo(
+    () => underReview.filter((item) => matchesFilter(item, query, disciplineFilter)),
+    [underReview, query, disciplineFilter]
+  );
+  const filteredPublished = useMemo(
+    () => published.filter((item) => matchesFilter(item, query, disciplineFilter)),
+    [published, query, disciplineFilter]
+  );
+
   const totalActive = useMemo(() => pending.length + underReview.length, [pending.length, underReview.length]);
 
   return (
@@ -74,13 +98,46 @@ export default function EditorPage() {
         <MetricCard label="Active queue" value={totalActive} />
       </section>
 
+      <section className="glass-panel mb-6 p-4">
+        <div className="grid gap-3 md:grid-cols-[2fr_1fr_auto]">
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search title, authors, abstract, topic"
+            className="rounded-lg border border-zinc-300 px-3 py-2"
+          />
+          <select
+            value={disciplineFilter}
+            onChange={(event) => setDisciplineFilter(event.target.value)}
+            className="rounded-lg border border-zinc-300 px-3 py-2"
+          >
+            <option value="all">All disciplines</option>
+            {DISCIPLINES.map((discipline) => (
+              <option key={discipline} value={discipline}>
+                {discipline}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => {
+              setQuery('');
+              setDisciplineFilter('all');
+            }}
+            className="btn btn-secondary"
+          >
+            Reset filters
+          </button>
+        </div>
+      </section>
+
       {message ? <p className="mb-4 text-sm text-zinc-700">{message}</p> : null}
 
       <section className="mt-8">
         <SectionTitle title="Submissions in progress" />
         <div className="mt-4 grid gap-4">
-          {pending.length === 0 ? <p>No pending submissions.</p> : null}
-          {pending.map((item) => (
+          {filteredPending.length === 0 ? <p>No pending submissions.</p> : null}
+          {filteredPending.map((item) => (
             <article key={item.id} className="glass-panel p-4">
               <div className="flex items-start justify-between gap-3">
                 <h4 className="font-serif text-xl">{item.title}</h4>
@@ -105,8 +162,8 @@ export default function EditorPage() {
       <section className="mt-10">
         <SectionTitle title="Peer review queue" />
         <div className="mt-4 grid gap-4">
-          {underReview.length === 0 ? <p>No submissions under review.</p> : null}
-          {underReview.map((item) => (
+          {filteredUnderReview.length === 0 ? <p>No submissions under review.</p> : null}
+          {filteredUnderReview.map((item) => (
             <article key={item.id} className="glass-panel p-4">
               <div className="flex items-start justify-between gap-3">
                 <h4 className="font-serif text-xl">{item.title}</h4>
@@ -130,8 +187,8 @@ export default function EditorPage() {
       <section className="mt-10">
         <SectionTitle title="Published work" />
         <div className="mt-4 grid gap-4">
-          {published.length === 0 ? <p>No published submissions.</p> : null}
-          {published.map((item) => (
+          {filteredPublished.length === 0 ? <p>No published submissions.</p> : null}
+          {filteredPublished.map((item) => (
             <article key={item.id} className="glass-panel p-4">
               <div className="flex items-start justify-between gap-3">
                 <h4 className="font-serif text-xl">{item.title}</h4>
