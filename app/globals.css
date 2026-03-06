@@ -1,0 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Source+Sans+3:wght@400;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-white text-ink font-sans;
+}
+
+.nature-heading {
+  @apply font-serif text-5xl md:text-6xl border-b-[3px] border-black pb-4;
+}
+
+.paper-card {
+  @apply border-t border-zinc-200 pt-6 transition duration-300 hover:bg-zinc-50;
+}
