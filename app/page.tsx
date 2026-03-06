@@ -1,18 +1,78 @@
 import Image from 'next/image';
+import Link from 'next/link';
 import { SiteHeader } from '@/components/header';
 import { PaperCard } from '@/components/paper-card';
 import { listSubmissions } from '@/lib/submission-repository';
+import { ARTICLE_TYPES, DISCIPLINES } from '@/lib/taxonomy';
 
 export const revalidate = 60;
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams
+}: {
+  searchParams?: { discipline?: string; article_type?: string };
+}) {
   const published = await listSubmissions('published');
-  const latest = published[0];
-  const rest = published.slice(1);
+
+  const selectedDiscipline = searchParams?.discipline;
+  const selectedArticleType = searchParams?.article_type;
+
+  const filtered = published.filter((entry) => {
+    const byDiscipline = selectedDiscipline ? entry.discipline === selectedDiscipline : true;
+    const byArticleType = selectedArticleType ? entry.article_type === selectedArticleType : true;
+    return byDiscipline && byArticleType;
+  });
+
+  const latest = filtered[0];
+  const rest = filtered.slice(1);
 
   return (
     <main>
       <SiteHeader />
+
+      <section id="taxonomy" className="mb-8 grid gap-6 rounded border border-zinc-300 p-5 md:grid-cols-[2fr_1fr]">
+        <div>
+          <h2 className="font-serif text-2xl">Explore by discipline</h2>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link className="rounded-full border border-zinc-400 px-3 py-1 text-sm hover:bg-zinc-100" href="/">
+              All disciplines
+            </Link>
+            {DISCIPLINES.map((discipline) => (
+              <Link
+                key={discipline}
+                className="rounded-full border border-zinc-400 px-3 py-1 text-sm hover:bg-zinc-100"
+                href={`/?discipline=${encodeURIComponent(discipline)}${
+                  selectedArticleType ? `&article_type=${encodeURIComponent(selectedArticleType)}` : ''
+                }`}
+              >
+                {discipline}
+              </Link>
+            ))}
+          </div>
+        </div>
+        <div>
+          <h3 className="font-serif text-xl">Research format</h3>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link
+              className="rounded-full border border-zinc-400 px-3 py-1 text-xs uppercase tracking-wide hover:bg-zinc-100"
+              href={selectedDiscipline ? `/?discipline=${encodeURIComponent(selectedDiscipline)}` : '/'}
+            >
+              All types
+            </Link>
+            {ARTICLE_TYPES.map((articleType) => (
+              <Link
+                key={articleType}
+                className="rounded-full border border-zinc-400 px-3 py-1 text-xs uppercase tracking-wide hover:bg-zinc-100"
+                href={`/?article_type=${encodeURIComponent(articleType)}${
+                  selectedDiscipline ? `&discipline=${encodeURIComponent(selectedDiscipline)}` : ''
+                }`}
+              >
+                {articleType}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {latest ? (
         <section className="grid gap-6 md:grid-cols-[1.5fr_1fr]">
@@ -31,6 +91,11 @@ export default async function HomePage() {
             <p className="mt-3 text-sm text-zinc-600">
               <span className="font-semibold">Authors:</span> {latest.authors}
             </p>
+            <div className="mt-2 flex flex-wrap gap-2 text-xs">
+              {latest.discipline ? <span className="rounded-full border border-zinc-300 px-2 py-0.5">{latest.discipline}</span> : null}
+              {latest.topic ? <span className="rounded-full border border-zinc-300 px-2 py-0.5">{latest.topic}</span> : null}
+              {latest.article_type ? <span className="rounded-full border border-zinc-300 px-2 py-0.5">{latest.article_type}</span> : null}
+            </div>
             <blockquote className="mt-4 border-l-2 border-black pl-4 text-zinc-700">
               {(latest.abstract ?? 'No abstract provided.').slice(0, 260)}...
             </blockquote>
@@ -46,10 +111,9 @@ export default async function HomePage() {
         </section>
       ) : (
         <section className="rounded border border-zinc-300 p-8">
-          <h2 className="font-serif text-3xl">No published submissions yet</h2>
+          <h2 className="font-serif text-3xl">No published submissions for this filter</h2>
           <p className="mt-3 max-w-2xl text-zinc-700">
-            This archive only displays real approved submissions. You can submit your manuscript from the Submit page,
-            then publish it in the Editor panel after review.
+            We only display real reviewed submissions. Try another discipline or format, or submit a new manuscript.
           </p>
         </section>
       )}
