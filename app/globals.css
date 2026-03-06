@@ -1,0 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Source+Sans+3:wght@400;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply text-ink font-sans;
+  background: radial-gradient(circle at 15% 20%, #f3fff3 0%, #eef8ee 45%, #e6f3e6 100%);
+}
+
+.nature-heading {
+  @apply font-serif text-5xl md:text-6xl border-b-[3px] border-black pb-4;
+}
+
+.paper-card {
+  @apply border border-zinc-200 bg-white/75 rounded-lg p-5 transition duration-300 hover:bg-white hover:shadow-md;
+}
+
+.glass-panel {
+  @apply rounded-xl border border-white/60 bg-white/70 backdrop-blur;
+}
