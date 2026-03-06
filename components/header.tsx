@@ -15,6 +15,9 @@ export function SiteHeader() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-sm">
+          <Link className="rounded border border-black px-3 py-1 hover:bg-black hover:text-white" href="/">
+            Main Page
+          </Link>
           <Link className="rounded border border-black px-3 py-1 hover:bg-black hover:text-white" href="/submit">
             Submit Work
           </Link>

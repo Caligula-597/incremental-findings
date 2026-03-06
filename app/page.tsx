@@ -30,47 +30,63 @@ export default async function HomePage({
     <main>
       <SiteHeader />
 
-      <section id="taxonomy" className="mb-8 grid gap-6 rounded border border-zinc-300 p-5 md:grid-cols-[2fr_1fr]">
-        <div>
-          <h2 className="font-serif text-2xl">Explore by discipline</h2>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Link className="rounded-full border border-zinc-400 px-3 py-1 text-sm hover:bg-zinc-100" href="/">
-              All disciplines
-            </Link>
-            {DISCIPLINES.map((discipline) => (
+      <section id="taxonomy" className="mb-8 rounded border border-zinc-300 p-5">
+        <div className="flex flex-wrap items-center gap-3">
+          <details className="group rounded border border-zinc-400 px-3 py-1">
+            <summary className="cursor-pointer list-none text-sm font-semibold">
+              Discipline{selectedDiscipline ? `: ${selectedDiscipline}` : ''}
+            </summary>
+            <div className="mt-3 flex max-w-4xl flex-wrap gap-2 pb-2">
               <Link
-                key={discipline}
-                className="rounded-full border border-zinc-400 px-3 py-1 text-sm hover:bg-zinc-100"
-                href={`/?discipline=${encodeURIComponent(discipline)}${
-                  selectedArticleType ? `&article_type=${encodeURIComponent(selectedArticleType)}` : ''
-                }`}
+                className="rounded-full border border-zinc-300 px-3 py-1 text-sm hover:bg-zinc-100"
+                href={selectedArticleType ? `/?article_type=${encodeURIComponent(selectedArticleType)}` : '/'}
               >
-                {discipline}
+                All disciplines
               </Link>
-            ))}
-          </div>
-        </div>
-        <div>
-          <h3 className="font-serif text-xl">Research format</h3>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Link
-              className="rounded-full border border-zinc-400 px-3 py-1 text-xs uppercase tracking-wide hover:bg-zinc-100"
-              href={selectedDiscipline ? `/?discipline=${encodeURIComponent(selectedDiscipline)}` : '/'}
-            >
-              All types
-            </Link>
-            {ARTICLE_TYPES.map((articleType) => (
+              {DISCIPLINES.map((discipline) => (
+                <Link
+                  key={discipline}
+                  className="rounded-full border border-zinc-300 px-3 py-1 text-sm hover:bg-zinc-100"
+                  href={`/?discipline=${encodeURIComponent(discipline)}${
+                    selectedArticleType ? `&article_type=${encodeURIComponent(selectedArticleType)}` : ''
+                  }`}
+                >
+                  {discipline}
+                </Link>
+              ))}
+            </div>
+          </details>
+
+          <details className="group rounded border border-zinc-400 px-3 py-1">
+            <summary className="cursor-pointer list-none text-sm font-semibold">
+              Type{selectedArticleType ? `: ${selectedArticleType}` : ''}
+            </summary>
+            <div className="mt-3 flex max-w-4xl flex-wrap gap-2 pb-2">
               <Link
-                key={articleType}
-                className="rounded-full border border-zinc-400 px-3 py-1 text-xs uppercase tracking-wide hover:bg-zinc-100"
-                href={`/?article_type=${encodeURIComponent(articleType)}${
-                  selectedDiscipline ? `&discipline=${encodeURIComponent(selectedDiscipline)}` : ''
-                }`}
+                className="rounded-full border border-zinc-300 px-3 py-1 text-sm hover:bg-zinc-100"
+                href={selectedDiscipline ? `/?discipline=${encodeURIComponent(selectedDiscipline)}` : '/'}
               >
-                {articleType}
+                All types
               </Link>
-            ))}
-          </div>
+              {ARTICLE_TYPES.map((articleType) => (
+                <Link
+                  key={articleType}
+                  className="rounded-full border border-zinc-300 px-3 py-1 text-sm hover:bg-zinc-100"
+                  href={`/?article_type=${encodeURIComponent(articleType)}${
+                    selectedDiscipline ? `&discipline=${encodeURIComponent(selectedDiscipline)}` : ''
+                  }`}
+                >
+                  {articleType}
+                </Link>
+              ))}
+            </div>
+          </details>
+
+          {(selectedDiscipline || selectedArticleType) && (
+            <Link className="rounded border border-black px-3 py-1 text-sm hover:bg-black hover:text-white" href="/">
+              Clear filters
+            </Link>
+          )}
         </div>
       </section>
 
