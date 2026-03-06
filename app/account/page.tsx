@@ -23,6 +23,20 @@ export default function AccountPage() {
   }, []);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get('orcid');
+    const tip = params.get('message');
+
+    if (status === 'success') {
+      setMessage(tip ? `ORCID connected. ${tip}` : 'ORCID connected successfully.');
+    }
+
+    if (status === 'error') {
+      setMessage(tip ? `ORCID connection failed: ${tip}` : 'ORCID connection failed.');
+    }
+  }, []);
+
+  useEffect(() => {
     async function loadOrcid() {
       if (!user?.email) return;
       const response = await fetch(`/api/orcid/status?email=${encodeURIComponent(user.email)}`);

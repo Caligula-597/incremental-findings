@@ -3,11 +3,29 @@ import { getSupabaseServerClient } from '@/lib/supabase';
 import { runtimeOrcidLinks } from '@/lib/runtime-store';
 import { buildOrcidEnvDiagnostics, buildOrcidRuntimeChecks } from '@/lib/orcid-debug';
 
+function getAccountRedirectUrl(request: NextRequest, status: 'success' | 'error', details?: string) {
+  const accountUrl = new URL('/account', request.url);
+  accountUrl.searchParams.set('orcid', status);
+  if (details) {
+    accountUrl.searchParams.set('message', details.slice(0, 200));
+  }
+  return accountUrl;
+}
+
+function shouldReturnJson(request: NextRequest) {
+  return request.nextUrl.searchParams.get('format') === 'json';
+}
+
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get('code');
   const state = request.nextUrl.searchParams.get('state');
 
+  const jsonMode = shouldReturnJson(request);
+
   if (!code || !state) {
+    if (!jsonMode) {
+      return NextResponse.redirect(getAccountRedirectUrl(request, 'error', 'Missing ORCID callback parameters'));
+    }
     return NextResponse.json({ error: 'Missing ORCID callback parameters' }, { status: 400 });
   }
 
@@ -17,6 +35,9 @@ export async function GET(request: NextRequest) {
   const redirectUri = process.env.ORCID_REDIRECT_URI;
 
   if (!clientId || !clientSecret || !redirectUri) {
+    if (!jsonMode) {
+      return NextResponse.redirect(getAccountRedirectUrl(request, 'error', 'ORCID credentials are not configured on server'));
+    }
     return NextResponse.json(
       {
         error:
@@ -42,6 +63,9 @@ export async function GET(request: NextRequest) {
 
   if (!tokenRes.ok) {
     const text = await tokenRes.text();
+    if (!jsonMode) {
+      return NextResponse.redirect(getAccountRedirectUrl(request, 'error', 'ORCID token exchange failed'));
+    }
     return NextResponse.json(
       {
         error: `ORCID token exchange failed: ${text}`,
@@ -59,6 +83,9 @@ export async function GET(request: NextRequest) {
   const [emailFromState] = Buffer.from(state, 'base64url').toString('utf8').split('|');
 
   if (!orcidId || !emailFromState) {
+    if (!jsonMode) {
+      return NextResponse.redirect(getAccountRedirectUrl(request, 'error', 'Could not resolve ORCID identity'));
+    }
     return NextResponse.json({ error: 'Could not resolve ORCID id or email from callback' }, { status: 400 });
   }
 
@@ -74,7 +101,13 @@ export async function GET(request: NextRequest) {
     const insert = await supabase.from('orcid_links').upsert(record, { onConflict: 'user_email' });
     if (insert.error) {
       runtimeOrcidLinks.push(record);
+      if (!jsonMode) {
+        return NextResponse.redirect(getAccountRedirectUrl(request, 'success', 'ORCID linked in fallback memory mode'));
+      }
       return NextResponse.json({ data: record, mode: 'memory-fallback', warning: insert.error.message });
+    }
+    if (!jsonMode) {
+      return NextResponse.redirect(getAccountRedirectUrl(request, 'success'));
     }
     return NextResponse.json({ data: record, mode: 'supabase' });
   }
@@ -86,6 +119,10 @@ export async function GET(request: NextRequest) {
     existing.connected_at = record.connected_at;
   } else {
     runtimeOrcidLinks.push(record);
+  }
+
+  if (!jsonMode) {
+    return NextResponse.redirect(getAccountRedirectUrl(request, 'success', 'ORCID linked in memory mode'));
   }
 
   return NextResponse.json({ data: record, mode: 'memory' });
