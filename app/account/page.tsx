@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SiteHeader } from '@/components/header';
+import { SectionTitle } from '@/components/ui-kit';
 
 interface SessionUser {
   id?: string;
@@ -107,8 +108,11 @@ export default function AccountPage() {
       <SiteHeader />
 
       <section className="rounded bg-[#084f74] px-6 py-8 text-white">
-        <h2 className="font-serif text-4xl">Welcome back{user?.name ? `, ${user.name}` : ''}</h2>
-        <p className="mt-2 text-white/90">Identity, ORCID and consent records are managed here before submissions.</p>
+        <SectionTitle
+          title={`Welcome back${user?.name ? `, ${user.name}` : ''}`}
+          subtitle="Identity, ORCID and consent records are managed here before submissions."
+          className="mb-0 text-white [&_p]:text-white/90 [&_h3]:text-4xl"
+        />
       </section>
 
       <section className="mt-8 grid gap-6 md:grid-cols-[2fr_1fr]">
