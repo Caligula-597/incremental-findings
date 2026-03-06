@@ -110,6 +110,13 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 );
 ```
 
+
+
+## Secret handling (important)
+- Put real credentials in `.env.local` (already gitignored) or `secrets/orcid.local` (gitignored).
+- Commit only `.env.example` with empty placeholders.
+- If a secret was ever exposed publicly, rotate it immediately in ORCID/Supabase console.
+
 ## Environment variables
 Create `.env.local`:
 ```bash
