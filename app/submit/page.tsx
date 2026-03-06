@@ -3,8 +3,6 @@
 import { FormEvent, useState } from 'react';
 import { SiteHeader } from '@/components/header';
 
-const categories = ['Mathematics', 'Physics', 'Computer Science', 'Life Science', 'Other'];
-
 export default function SubmitPage() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,10 +15,9 @@ export default function SubmitPage() {
     const formData = new FormData(event.currentTarget);
     const payload = {
       title: String(formData.get('title') ?? ''),
-      journal: String(formData.get('journal') ?? ''),
-      category: String(formData.get('category') ?? 'Other'),
-      review: String(formData.get('review') ?? ''),
-      fileUrl: String(formData.get('fileUrl') ?? '#')
+      authors: String(formData.get('authors') ?? ''),
+      abstract: String(formData.get('abstract') ?? ''),
+      file_url: String(formData.get('file_url') ?? '')
     };
 
     const response = await fetch('/api/submissions', {
@@ -30,7 +27,8 @@ export default function SubmitPage() {
     });
 
     if (!response.ok) {
-      setMessage('提交失败，请检查字段后重试。');
+      const body = await response.json().catch(() => ({ error: 'Unknown error' }));
+      setMessage(`提交失败: ${body.error ?? '请检查字段后重试。'}`);
       setLoading(false);
       return;
     }
@@ -47,25 +45,18 @@ export default function SubmitPage() {
 
       <form className="mt-6 grid gap-4 rounded border border-zinc-300 p-6" onSubmit={onSubmit}>
         <input required name="title" placeholder="论文标题" className="rounded border border-zinc-300 px-3 py-2" />
-        <input required name="journal" placeholder="原投稿期刊" className="rounded border border-zinc-300 px-3 py-2" />
-
-        <select name="category" className="rounded border border-zinc-300 px-3 py-2">
-          {categories.map((c) => (
-            <option key={c}>{c}</option>
-          ))}
-        </select>
+        <input required name="authors" placeholder="作者（例如: A. Li, B. Chen）" className="rounded border border-zinc-300 px-3 py-2" />
 
         <textarea
-          required
-          name="review"
-          placeholder="研究价值复盘"
+          name="abstract"
+          placeholder="摘要（可选）"
           rows={6}
           className="rounded border border-zinc-300 px-3 py-2"
         />
 
         <input
-          name="fileUrl"
-          placeholder="PDF 链接（低配版先用 URL 代替上传）"
+          name="file_url"
+          placeholder="PDF 链接（例如 Supabase Storage 公共链接）"
           className="rounded border border-zinc-300 px-3 py-2"
         />
 

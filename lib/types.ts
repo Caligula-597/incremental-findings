@@ -1,20 +1,18 @@
-export type SubmissionStatus = 'pending' | 'published';
+export type SubmissionStatus = 'pending' | 'under_review' | 'published' | 'rejected';
 
 export interface Submission {
   id: string;
   title: string;
-  journal: string;
-  category: string;
-  review: string;
-  fileUrl: string;
+  authors: string;
+  abstract: string | null;
   status: SubmissionStatus;
-  createdAt: string;
+  file_url: string | null;
+  created_at: string;
 }
 
 export interface SubmissionInput {
   title: string;
-  journal: string;
-  category: string;
-  review: string;
-  fileUrl: string;
+  authors: string;
+  abstract?: string;
+  file_url?: string;
 }

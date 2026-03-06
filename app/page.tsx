@@ -28,14 +28,13 @@ export default async function HomePage() {
           <div>
             <h2 className="font-serif text-3xl leading-tight">{latest.title}</h2>
             <p className="mt-3 text-sm text-zinc-600">
-              <span className="font-semibold">Origin:</span> {latest.journal} |{' '}
-              <span className="font-semibold">Field:</span> {latest.category}
+              <span className="font-semibold">Authors:</span> {latest.authors}
             </p>
             <blockquote className="mt-4 border-l-2 border-black pl-4 text-zinc-700">
-              {latest.review.slice(0, 220)}...
+              {(latest.abstract ?? 'No abstract provided.').slice(0, 260)}...
             </blockquote>
             <a
-              href={latest.fileUrl}
+              href={latest.file_url ?? '#'}
               target="_blank"
               rel="noreferrer"
               className="mt-4 inline-flex rounded bg-black px-4 py-2 text-sm text-white hover:bg-zinc-800"
