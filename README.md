@@ -111,6 +111,34 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 );
 ```
 
+Alternative minimal schema (also supported by current code):
+```sql
+CREATE TABLE user_accounts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  username TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE orcid_links (
+  user_id UUID REFERENCES user_accounts(id) ON DELETE CASCADE,
+  orcid_id TEXT UNIQUE NOT NULL,
+  verified_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  PRIMARY KEY (user_id)
+);
+
+CREATE TABLE submissions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  author_id UUID REFERENCES user_accounts(id),
+  title TEXT NOT NULL,
+  abstract TEXT,
+  status TEXT DEFAULT 'pending',
+  category TEXT,
+  file_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
 
 
 ## Secret handling (important)

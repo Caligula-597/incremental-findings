@@ -47,7 +47,7 @@ export default function LoginPage() {
     <main>
       <SiteHeader />
       <h2 className="font-serif text-3xl">Author account access</h2>
-      <p className="mt-2 text-sm text-zinc-600">Use email login now; ORCID linking is available inside Account settings.</p>
+      <p className="mt-2 text-sm text-zinc-600">Use email or username to sign in; ORCID linking is available inside Account settings.</p>
 
       <div className="mt-5 flex gap-2 text-sm">
         <button
@@ -66,7 +66,7 @@ export default function LoginPage() {
         </button>
       </div>
 
-      <form className="mt-6 max-w-lg rounded border border-zinc-300 bg-white/80 p-6" onSubmit={onSubmit}>
+      <form className="mt-6 max-w-lg glass-panel p-6" onSubmit={onSubmit}>
         {mode === 'register' ? (
           <label className="grid gap-1 text-sm">
             Name
@@ -75,8 +75,8 @@ export default function LoginPage() {
         ) : null}
 
         <label className="mt-4 grid gap-1 text-sm">
-          Email
-          <input name="email" required type="email" className="rounded border border-zinc-300 px-3 py-2" placeholder="you@research.org" />
+          Email or username
+          <input name="email" required className="rounded border border-zinc-300 px-3 py-2" placeholder="you@research.org or your_username" />
         </label>
 
         <label className="mt-4 grid gap-1 text-sm">

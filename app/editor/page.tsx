@@ -70,7 +70,7 @@ export default function EditorPage() {
         <div className="mt-4 grid gap-4">
           {pending.length === 0 ? <p>No pending submissions.</p> : null}
           {pending.map((item) => (
-            <article key={item.id} className="rounded border border-zinc-300 p-4">
+            <article key={item.id} className="glass-panel p-4">
               <h4 className="font-serif text-xl">{item.title}</h4>
               <p className="mt-1 text-sm text-zinc-600">{item.authors}</p>
               <TaxonomyMeta item={item} />
@@ -99,7 +99,7 @@ export default function EditorPage() {
         <div className="mt-4 grid gap-4">
           {underReview.length === 0 ? <p>No submissions under review.</p> : null}
           {underReview.map((item) => (
-            <article key={item.id} className="rounded border border-zinc-300 p-4">
+            <article key={item.id} className="glass-panel p-4">
               <h4 className="font-serif text-xl">{item.title}</h4>
               <p className="mt-1 text-sm text-zinc-600">{item.authors}</p>
               <TaxonomyMeta item={item} />
@@ -127,7 +127,7 @@ export default function EditorPage() {
         <div className="mt-4 grid gap-4">
           {published.length === 0 ? <p>No published submissions.</p> : null}
           {published.map((item) => (
-            <article key={item.id} className="rounded border border-zinc-300 p-4">
+            <article key={item.id} className="glass-panel p-4">
               <h4 className="font-serif text-xl">{item.title}</h4>
               <p className="mt-1 text-sm text-zinc-600">{item.authors}</p>
               <TaxonomyMeta item={item} />

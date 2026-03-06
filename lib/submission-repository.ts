@@ -9,17 +9,21 @@ function sortByCreatedDesc(items: Submission[]) {
 }
 
 function normalizeSubmission(data: Partial<Submission>): Submission {
+  const category = (data as { category?: string | null }).category ?? null;
+  const authorId = (data as { author_id?: string | null }).author_id ?? null;
   return {
     id: String(data.id ?? ''),
     title: String(data.title ?? ''),
-    authors: String(data.authors ?? ''),
+    authors: String(data.authors ?? (authorId ? `Author ${authorId.slice(0, 8)}` : 'Unknown author')),
     abstract: data.abstract ?? null,
-    discipline: data.discipline ?? null,
+    discipline: data.discipline ?? category,
     topic: data.topic ?? null,
     article_type: data.article_type ?? null,
     status: (data.status as SubmissionStatus) ?? 'pending',
     file_url: data.file_url ?? null,
-    created_at: data.created_at ?? new Date().toISOString()
+    created_at: data.created_at ?? new Date().toISOString(),
+    author_id: authorId,
+    category
   };
 }
 
@@ -29,6 +33,7 @@ async function listWithFlexibleColumns(status?: SubmissionStatus): Promise<Submi
 
   const preferredSelect = 'id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at';
   const legacySelect = 'id,title,authors,abstract,status,file_url,created_at';
+  const v2Select = 'id,title,abstract,status,category,file_url,created_at,author_id';
 
   let query = supabase.from('submissions').select(preferredSelect).order('created_at', { ascending: false });
   if (status) query = query.eq('status', status);
@@ -42,11 +47,19 @@ async function listWithFlexibleColumns(status?: SubmissionStatus): Promise<Submi
   if (status) fallbackQuery = fallbackQuery.eq('status', status);
 
   const fallback = await fallbackQuery;
-  if (fallback.error) {
-    throw new Error(`Failed to list submissions: ${fallback.error.message}`);
+  if (!fallback.error) {
+    return (fallback.data ?? []).map((row) => normalizeSubmission(row as Partial<Submission>));
   }
 
-  return (fallback.data ?? []).map((row) => normalizeSubmission(row as Partial<Submission>));
+  let v2Query = supabase.from('submissions').select(v2Select).order('created_at', { ascending: false });
+  if (status) v2Query = v2Query.eq('status', status);
+
+  const v2 = await v2Query;
+  if (v2.error) {
+    throw new Error(`Failed to list submissions: ${v2.error.message}`);
+  }
+
+  return (v2.data ?? []).map((row) => normalizeSubmission(row as Partial<Submission>));
 }
 
 export async function listSubmissions(status?: SubmissionStatus): Promise<Submission[]> {
@@ -68,7 +81,7 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
   if (supabase) {
     const insertPayload = {
       title: input.title,
-      authors: input.authors,
+      authors: input.authors ?? null,
       abstract: input.abstract ?? null,
       discipline: input.discipline ?? null,
       topic: input.topic ?? null,
@@ -91,7 +104,7 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
       .from('submissions')
       .insert({
         title: input.title,
-        authors: input.authors,
+        authors: input.authors ?? null,
         abstract: input.abstract ?? null,
         file_url: input.file_url ?? null,
         status: 'pending'
@@ -100,7 +113,24 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
       .single();
 
     if (legacy.error) {
-      throw new Error(`Failed to create submission: ${legacy.error.message}`);
+      const v2 = await supabase
+        .from('submissions')
+        .insert({
+          title: input.title,
+          abstract: input.abstract ?? null,
+          file_url: input.file_url ?? null,
+          status: 'pending',
+          category: input.category ?? input.discipline ?? null,
+          author_id: input.author_id ?? null
+        })
+        .select('id,title,abstract,status,category,file_url,created_at,author_id')
+        .single();
+
+      if (v2.error) {
+        throw new Error(`Failed to create submission: ${v2.error.message}`);
+      }
+
+      return normalizeSubmission(v2.data as Partial<Submission>);
     }
 
     return normalizeSubmission(legacy.data as Partial<Submission>);
@@ -109,14 +139,16 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
   const created: Submission = {
     id: `s-${crypto.randomUUID()}`,
     title: input.title,
-    authors: input.authors,
+    authors: input.authors ?? (input.author_id ? `Author ${input.author_id.slice(0, 8)}` : 'Unknown author'),
     abstract: input.abstract ?? null,
-    discipline: input.discipline ?? null,
+    discipline: input.discipline ?? input.category ?? null,
     topic: input.topic ?? null,
     article_type: input.article_type ?? null,
     file_url: input.file_url ?? null,
     status: 'pending',
-    created_at: new Date().toISOString()
+    created_at: new Date().toISOString(),
+    author_id: input.author_id ?? null,
+    category: input.category ?? input.discipline ?? null
   };
 
   memoryStore.unshift(created);

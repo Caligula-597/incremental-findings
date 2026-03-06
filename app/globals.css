@@ -9,7 +9,8 @@
 }
 
 body {
-  @apply bg-[#eef8ee] text-ink font-sans;
+  @apply text-ink font-sans;
+  background: radial-gradient(circle at 15% 20%, #f3fff3 0%, #eef8ee 45%, #e6f3e6 100%);
 }
 
 .nature-heading {
@@ -17,5 +18,9 @@ body {
 }
 
 .paper-card {
-  @apply border-t border-zinc-200 pt-6 transition duration-300 hover:bg-zinc-50;
+  @apply border border-zinc-200 bg-white/75 rounded-lg p-5 transition duration-300 hover:bg-white hover:shadow-md;
+}
+
+.glass-panel {
+  @apply rounded-xl border border-white/60 bg-white/70 backdrop-blur;
 }

@@ -32,7 +32,7 @@ export default async function HomePage({
       <PandaRail />
       <SiteHeader />
 
-      <section id="taxonomy" className="mb-8 rounded border border-zinc-300 p-5">
+      <section id="taxonomy" className="glass-panel mb-8 p-5 shadow-sm">
         <div className="flex flex-wrap items-center gap-3">
           <details className="group rounded border border-zinc-400 px-3 py-1">
             <summary className="cursor-pointer list-none text-sm font-semibold">
@@ -93,7 +93,7 @@ export default async function HomePage({
       </section>
 
       {latest ? (
-        <section className="grid gap-6 md:grid-cols-[1.5fr_1fr]">
+        <section className="glass-panel grid gap-6 p-4 md:grid-cols-[1.5fr_1fr] md:p-6">
           <div className="relative min-h-72 overflow-hidden rounded-sm">
             <Image
               src="https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=1200"
@@ -128,7 +128,7 @@ export default async function HomePage({
           </div>
         </section>
       ) : (
-        <section className="rounded border border-zinc-300 p-8">
+        <section className="glass-panel p-8">
           <h2 className="font-serif text-3xl">No published submissions for this filter</h2>
           <p className="mt-3 max-w-2xl text-zinc-700">
             We only display real reviewed submissions. Try another discipline or format, or submit a new manuscript.

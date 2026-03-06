@@ -18,14 +18,16 @@ export default function SubmitPage() {
   const [loading, setLoading] = useState(false);
   const [discipline, setDiscipline] = useState<string>(DISCIPLINES[0]);
   const [userEmail, setUserEmail] = useState('');
+  const [userId, setUserId] = useState('');
 
   const topics = useMemo(() => TOPIC_MAP[discipline as (typeof DISCIPLINES)[number]] ?? [], [discipline]);
 
   useEffect(() => {
     const raw = localStorage.getItem('if_user');
     if (!raw) return;
-    const parsed = JSON.parse(raw) as { email?: string };
+    const parsed = JSON.parse(raw) as { email?: string; id?: string };
     if (parsed.email) setUserEmail(parsed.email);
+    if (parsed.id) setUserId(parsed.id);
   }, []);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -63,7 +65,7 @@ export default function SubmitPage() {
       <h2 className="font-serif text-3xl">Submission Portal</h2>
       <p className="mt-2 text-sm text-zinc-700">Simplified but complete workflow with identity, consent, and file package support.</p>
 
-      <section className="mt-6 rounded border border-zinc-300 bg-white/85 p-6">
+      <section className="mt-6 glass-panel p-6">
         <h3 className="font-serif text-2xl">Workflow overview</h3>
         <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-zinc-700">
           {workflowSteps.map((item) => (
@@ -72,7 +74,7 @@ export default function SubmitPage() {
         </ol>
       </section>
 
-      <form className="mt-6 grid gap-5 rounded border border-zinc-300 bg-white/85 p-6" onSubmit={onSubmit}>
+      <form className="mt-6 grid gap-5 glass-panel p-6" onSubmit={onSubmit}>
         <section>
           <h3 className="font-semibold">1) Author identity</h3>
           <div className="mt-2 grid gap-3 md:grid-cols-2">
@@ -85,6 +87,7 @@ export default function SubmitPage() {
               placeholder="Your account email"
               className="rounded border border-zinc-300 px-3 py-2"
             />
+            <input type="hidden" name="user_id" value={userId} readOnly />
             <a className="rounded border border-zinc-400 px-3 py-2 text-sm text-center hover:bg-zinc-100" href="/account">
               Manage ORCID / Account
             </a>

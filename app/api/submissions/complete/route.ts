@@ -32,11 +32,12 @@ export async function POST(request: Request) {
     const form = await request.formData();
 
     const userEmail = String(form.get('user_email') ?? '').trim().toLowerCase();
+    const userId = String(form.get('user_id') ?? '').trim();
     const title = String(form.get('title') ?? '').trim();
     const authors = String(form.get('authors') ?? '').trim();
 
-    if (!userEmail || !title || !authors) {
-      return NextResponse.json({ error: 'user_email, title, and authors are required' }, { status: 400 });
+    if (!title) {
+      return NextResponse.json({ error: 'title is required' }, { status: 400 });
     }
 
     const consent = {
@@ -70,12 +71,14 @@ export async function POST(request: Request) {
 
     const created = await createSubmission({
       title,
-      authors,
+      authors: authors || userEmail || (userId ? `Author ${userId.slice(0, 8)}` : 'Unknown author'),
       abstract: String(form.get('abstract') ?? ''),
       discipline: String(form.get('discipline') ?? ''),
+      category: String(form.get('discipline') ?? ''),
       topic: String(form.get('topic') ?? ''),
       article_type: String(form.get('article_type') ?? ''),
-      file_url: manuscriptUpload.path
+      file_url: manuscriptUpload.path,
+      author_id: userId || undefined
     });
 
     const filesToRecord: Array<{ file: File; kind: 'manuscript' | 'cover_letter' | 'supporting'; path: string }> = [

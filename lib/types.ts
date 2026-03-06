@@ -11,16 +11,20 @@ export interface Submission {
   status: SubmissionStatus;
   file_url: string | null;
   created_at: string;
+  author_id?: string | null;
+  category?: string | null;
 }
 
 export interface SubmissionInput {
   title: string;
-  authors: string;
+  authors?: string;
   abstract?: string;
   discipline?: string;
   topic?: string;
   article_type?: string;
   file_url?: string;
+  author_id?: string;
+  category?: string;
 }
 
 export interface AuthUser {
@@ -32,10 +36,12 @@ export interface AuthUser {
 }
 
 export interface OrcidLink {
-  user_email: string;
+  user_email?: string;
+  user_id?: string;
   orcid_id: string;
   verified: boolean;
-  connected_at: string;
+  connected_at?: string;
+  verified_at?: string;
 }
 
 export interface ConsentPayload {

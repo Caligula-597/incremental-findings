@@ -80,9 +80,9 @@ export async function GET(request: NextRequest) {
 
   const tokenData = (await tokenRes.json()) as { orcid?: string };
   const orcidId = tokenData.orcid;
-  const [emailFromState] = Buffer.from(state, 'base64url').toString('utf8').split('|');
+  const [userIdFromState, emailFromState] = Buffer.from(state, 'base64url').toString('utf8').split('|');
 
-  if (!orcidId || !emailFromState) {
+  if (!orcidId || (!emailFromState && !userIdFromState)) {
     if (!jsonMode) {
       return NextResponse.redirect(getAccountRedirectUrl(request, 'error', 'Could not resolve ORCID identity'));
     }
@@ -90,21 +90,51 @@ export async function GET(request: NextRequest) {
   }
 
   const record = {
-    user_email: emailFromState.toLowerCase(),
+    user_email: emailFromState?.toLowerCase(),
+    user_id: userIdFromState || undefined,
     orcid_id: orcidId,
     verified: true,
-    connected_at: new Date().toISOString()
+    connected_at: new Date().toISOString(),
+    verified_at: new Date().toISOString()
   };
 
   const supabase = getSupabaseServerClient();
   if (supabase) {
-    const insert = await supabase.from('orcid_links').upsert(record, { onConflict: 'user_email' });
+    const insert = await supabase
+      .from('orcid_links')
+      .upsert(
+        {
+          user_email: record.user_email,
+          orcid_id: record.orcid_id,
+          verified: true,
+          connected_at: record.connected_at
+        },
+        { onConflict: 'user_email' }
+      );
     if (insert.error) {
+      const insertV2 = await supabase
+        .from('orcid_links')
+        .upsert(
+          {
+            user_id: record.user_id,
+            orcid_id: record.orcid_id,
+            verified_at: record.verified_at
+          },
+          { onConflict: 'user_id' }
+        );
+
+      if (!insertV2.error) {
+        if (!jsonMode) {
+          return NextResponse.redirect(getAccountRedirectUrl(request, 'success'));
+        }
+        return NextResponse.json({ data: record, mode: 'supabase-v2' });
+      }
+
       runtimeOrcidLinks.push(record);
       if (!jsonMode) {
         return NextResponse.redirect(getAccountRedirectUrl(request, 'success', 'ORCID linked in fallback memory mode'));
       }
-      return NextResponse.json({ data: record, mode: 'memory-fallback', warning: insert.error.message });
+      return NextResponse.json({ data: record, mode: 'memory-fallback', warning: insertV2.error.message });
     }
     if (!jsonMode) {
       return NextResponse.redirect(getAccountRedirectUrl(request, 'success'));

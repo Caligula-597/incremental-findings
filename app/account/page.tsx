@@ -40,8 +40,9 @@ export default function AccountPage() {
 
   useEffect(() => {
     async function loadOrcid() {
-      if (!user?.email) return;
-      const response = await fetch(`/api/orcid/status?email=${encodeURIComponent(user.email)}`);
+      if (!user?.email && !user?.id) return;
+      const query = user?.id ? `user_id=${encodeURIComponent(user.id)}` : `email=${encodeURIComponent(user?.email ?? '')}`;
+      const response = await fetch(`/api/orcid/status?${query}`);
       const body = await response.json().catch(() => ({ data: null }));
       if (body.data?.orcid_id) {
         setOrcid(body.data.orcid_id);
@@ -56,7 +57,9 @@ export default function AccountPage() {
       return;
     }
 
-    const response = await fetch(`/api/orcid/start?email=${encodeURIComponent(user.email)}&force=true`);
+    const response = await fetch(
+      `/api/orcid/start?email=${encodeURIComponent(user.email)}&user_id=${encodeURIComponent(user.id ?? '')}&force=true`
+    );
     const body = await response.json().catch(() => ({ error: 'Unknown error' }));
 
     if (!response.ok) {
@@ -107,7 +110,7 @@ export default function AccountPage() {
       </section>
 
       <section className="mt-8 grid gap-6 md:grid-cols-[2fr_1fr]">
-        <div className="rounded border border-zinc-300 bg-white/85 p-6">
+        <div className="glass-panel p-6">
           <h3 className="font-serif text-3xl">Identity and research profile</h3>
           <p className="mt-3 text-sm text-zinc-700">Email: {user?.email ?? 'Not logged in'}</p>
           <p className="mt-1 text-sm text-zinc-700">ORCID: {orcid ?? 'Not connected'}</p>
@@ -134,7 +137,7 @@ export default function AccountPage() {
           </div>
         </div>
 
-        <aside className="rounded border border-zinc-300 bg-white/85 p-6">
+        <aside className="glass-panel p-6">
           <h3 className="font-serif text-2xl">Quick actions</h3>
           <ul className="mt-4 space-y-2 text-sm">
             <li>
