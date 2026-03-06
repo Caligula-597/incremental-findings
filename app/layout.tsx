@@ -3,7 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Incremental Findings',
-  description: 'The world\'s leading rejected research platform.'
+  description: 'Independent archive for incremental and overlooked research contributions.'
 };
 
 export default function RootLayout({

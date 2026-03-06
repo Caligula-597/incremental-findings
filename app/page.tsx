@@ -19,14 +19,15 @@ export default async function HomePage() {
           <div className="relative min-h-72 overflow-hidden rounded-sm">
             <Image
               src="https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=1200"
-              alt="research visual"
+              alt="abstract research visual"
               fill
               className="object-cover"
               priority
             />
           </div>
           <div>
-            <h2 className="font-serif text-3xl leading-tight">{latest.title}</h2>
+            <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Latest published</p>
+            <h2 className="mt-2 font-serif text-3xl leading-tight">{latest.title}</h2>
             <p className="mt-3 text-sm text-zinc-600">
               <span className="font-semibold">Authors:</span> {latest.authors}
             </p>
@@ -39,19 +40,27 @@ export default async function HomePage() {
               rel="noreferrer"
               className="mt-4 inline-flex rounded bg-black px-4 py-2 text-sm text-white hover:bg-zinc-800"
             >
-              Read Full PDF
+              Read PDF
             </a>
           </div>
         </section>
       ) : (
-        <p>No research published today.</p>
+        <section className="rounded border border-zinc-300 p-8">
+          <h2 className="font-serif text-3xl">No published submissions yet</h2>
+          <p className="mt-3 max-w-2xl text-zinc-700">
+            This archive only displays real approved submissions. You can submit your manuscript from the Submit page,
+            then publish it in the Editor panel after review.
+          </p>
+        </section>
       )}
 
-      <section className="mt-12 grid gap-6 md:grid-cols-3">
-        {rest.map((paper) => (
-          <PaperCard key={paper.id} paper={paper} />
-        ))}
-      </section>
+      {rest.length > 0 ? (
+        <section className="mt-12 grid gap-6 md:grid-cols-3">
+          {rest.map((paper) => (
+            <PaperCard key={paper.id} paper={paper} />
+          ))}
+        </section>
+      ) : null}
     </main>
   );
 }

@@ -6,19 +6,23 @@ import { Submission, SubmissionStatus } from '@/lib/types';
 
 export default function EditorPage() {
   const [pending, setPending] = useState<Submission[]>([]);
+  const [underReview, setUnderReview] = useState<Submission[]>([]);
   const [published, setPublished] = useState<Submission[]>([]);
   const [message, setMessage] = useState('');
 
   async function loadData() {
-    const [pendingRes, publishedRes] = await Promise.all([
+    const [pendingRes, reviewRes, publishedRes] = await Promise.all([
       fetch('/api/submissions?status=pending', { cache: 'no-store' }),
+      fetch('/api/submissions?status=under_review', { cache: 'no-store' }),
       fetch('/api/submissions?status=published', { cache: 'no-store' })
     ]);
 
     const pendingJson = await pendingRes.json();
+    const reviewJson = await reviewRes.json();
     const publishedJson = await publishedRes.json();
 
     setPending(pendingJson.data ?? []);
+    setUnderReview(reviewJson.data ?? []);
     setPublished(publishedJson.data ?? []);
   }
 
@@ -48,6 +52,9 @@ export default function EditorPage() {
     <main>
       <SiteHeader />
       <h2 className="font-serif text-3xl">Editor Management System</h2>
+      <p className="mt-2 text-sm text-zinc-600">
+        Pending: {pending.length} · Under review: {underReview.length} · Published: {published.length}
+      </p>
       {message ? <p className="mt-3 text-sm text-zinc-700">{message}</p> : null}
 
       <section className="mt-8">
@@ -59,7 +66,7 @@ export default function EditorPage() {
               <h4 className="font-serif text-xl">{item.title}</h4>
               <p className="mt-1 text-sm text-zinc-600">{item.authors}</p>
               <p className="mt-2 text-sm">{(item.abstract ?? 'No abstract provided.').slice(0, 200)}...</p>
-              <div className="mt-3 flex gap-2">
+              <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   className="rounded bg-zinc-700 px-3 py-1 text-sm text-white"
                   onClick={() => updateStatus(item.id, 'under_review')}
@@ -85,8 +92,36 @@ export default function EditorPage() {
       </section>
 
       <section className="mt-10">
+        <h3 className="font-serif text-2xl">Under Review</h3>
+        <div className="mt-4 grid gap-4">
+          {underReview.length === 0 ? <p>No submissions under review.</p> : null}
+          {underReview.map((item) => (
+            <article key={item.id} className="rounded border border-zinc-300 p-4">
+              <h4 className="font-serif text-xl">{item.title}</h4>
+              <p className="mt-1 text-sm text-zinc-600">{item.authors}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  className="rounded bg-black px-3 py-1 text-sm text-white"
+                  onClick={() => updateStatus(item.id, 'published')}
+                >
+                  Publish
+                </button>
+                <button
+                  className="rounded bg-red-700 px-3 py-1 text-sm text-white"
+                  onClick={() => updateStatus(item.id, 'rejected')}
+                >
+                  Reject
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-10">
         <h3 className="font-serif text-2xl">Published Submissions</h3>
         <div className="mt-4 grid gap-4">
+          {published.length === 0 ? <p>No published submissions.</p> : null}
           {published.map((item) => (
             <article key={item.id} className="rounded border border-zinc-300 p-4">
               <h4 className="font-serif text-xl">{item.title}</h4>
