@@ -124,13 +124,18 @@ Create `.env.local`:
 SUPABASE_URL=your_project_url
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
+# If service key is not provided, server will fallback to:
+NEXT_PUBLIC_SUPABASE_URL=your_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+
 # Optional ORCID OAuth (needed for real ORCID token exchange)
 ORCID_CLIENT_ID=xxx
 ORCID_CLIENT_SECRET=xxx
 ORCID_REDIRECT_URI=http://localhost:3000/api/orcid/callback
 ```
 
-> If env vars/tables are missing, app continues with memory fallback and returns warnings for skipped persistence.
+> Authentication persistence uses Supabase when any supported server key pair exists.
+> Memory fallback is only used when Supabase is completely unconfigured.
 
 ## ORCID troubleshooting
 - Open `/api/orcid/diagnostics` to verify callback/credential wiring without exposing secrets.

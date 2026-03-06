@@ -27,12 +27,23 @@ export async function POST(request: Request) {
         .eq('email', email)
         .maybeSingle();
 
-      if (!result.error && result.data && result.data.password_hash === passwordHash) {
+      if (result.error) {
+        return NextResponse.json(
+          {
+            error: `Failed to query account from Supabase: ${result.error.message}`
+          },
+          { status: 500 }
+        );
+      }
+
+      if (result.data && result.data.password_hash === passwordHash) {
         return NextResponse.json({
           data: { id: result.data.id, email: result.data.email, name: result.data.name, session_token: randomUUID() },
           mode: 'supabase'
         });
       }
+
+      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
     const user = runtimeUsers.find((item) => item.email === email && item.password_hash === passwordHash);

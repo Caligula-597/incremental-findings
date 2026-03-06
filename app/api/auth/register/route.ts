@@ -23,15 +23,42 @@ export async function POST(request: Request) {
     const supabase = getSupabaseServerClient();
 
     if (supabase) {
+      const existing = await supabase.from('user_accounts').select('id').eq('email', email).maybeSingle();
+      if (existing.error) {
+        return NextResponse.json(
+          {
+            error: `Failed to check existing account in Supabase: ${existing.error.message}`
+          },
+          { status: 500 }
+        );
+      }
+
+      if (existing.data) {
+        return NextResponse.json({ error: 'User already exists' }, { status: 409 });
+      }
+
       const insert = await supabase
         .from('user_accounts')
         .insert({ email, name, password_hash: passwordHash, created_at: now })
-        .select('id,email,name,created_at')
+        .select('id,email,name,created_at,password_hash')
         .single();
 
       if (!insert.error) {
-        return NextResponse.json({ data: insert.data, mode: 'supabase' }, { status: 201 });
+        return NextResponse.json(
+          {
+            data: { id: insert.data.id, email: insert.data.email, name: insert.data.name, created_at: insert.data.created_at },
+            mode: 'supabase'
+          },
+          { status: 201 }
+        );
       }
+
+      return NextResponse.json(
+        {
+          error: `Failed to create account in Supabase: ${insert.error.message}`
+        },
+        { status: 500 }
+      );
     }
 
     const exists = runtimeUsers.find((item) => item.email === email);
