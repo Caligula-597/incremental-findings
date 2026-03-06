@@ -5,6 +5,7 @@ export async function GET(request: NextRequest) {
   const redirectUri = process.env.ORCID_REDIRECT_URI;
   const scope = '/authenticate';
   const email = request.nextUrl.searchParams.get('email') ?? '';
+  const forceAuth = request.nextUrl.searchParams.get('force') === 'true';
 
   if (!clientId || !redirectUri) {
     return NextResponse.json(
@@ -17,7 +18,8 @@ export async function GET(request: NextRequest) {
   const authorizationUrl =
     `https://orcid.org/oauth/authorize?client_id=${encodeURIComponent(clientId)}` +
     `&response_type=code&scope=${encodeURIComponent(scope)}` +
-    `&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`;
+    `&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}` +
+    (forceAuth ? '&show_login=true' : '');
 
-  return NextResponse.json({ data: { authorization_url: authorizationUrl, state } });
+  return NextResponse.json({ data: { authorization_url: authorizationUrl, state, force_auth: forceAuth } });
 }

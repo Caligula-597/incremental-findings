@@ -1,6 +1,31 @@
+'use client';
+
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+
+interface SessionUser {
+  email: string;
+  name: string;
+}
 
 export function SiteHeader() {
+  const router = useRouter();
+  const [user, setUser] = useState<SessionUser | null>(null);
+
+  useEffect(() => {
+    const raw = localStorage.getItem('if_user');
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as SessionUser;
+    setUser(parsed);
+  }, []);
+
+  function logout() {
+    localStorage.removeItem('if_user');
+    setUser(null);
+    router.push('/login');
+  }
+
   return (
     <header className="mb-10 border-b border-zinc-200 pb-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -27,9 +52,22 @@ export function SiteHeader() {
           <Link className="rounded border border-black px-3 py-1 hover:bg-black hover:text-white" href="/account">
             Account
           </Link>
-          <Link className="rounded border border-zinc-400 px-3 py-1 hover:bg-zinc-100" href="/login">
-            Log in
-          </Link>
+          {user ? (
+            <>
+              <span className="px-1 text-zinc-600">{user.name}</span>
+              <button
+                type="button"
+                onClick={logout}
+                className="rounded border border-zinc-400 px-3 py-1 hover:bg-zinc-100"
+              >
+                Log out
+              </button>
+            </>
+          ) : (
+            <Link className="rounded border border-zinc-400 px-3 py-1 hover:bg-zinc-100" href="/login">
+              Log in
+            </Link>
+          )}
         </div>
       </div>
     </header>

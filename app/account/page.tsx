@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { SiteHeader } from '@/components/header';
 
 interface SessionUser {
@@ -10,6 +11,7 @@ interface SessionUser {
 }
 
 export default function AccountPage() {
+  const router = useRouter();
   const [user, setUser] = useState<SessionUser | null>(null);
   const [orcid, setOrcid] = useState<string | null>(null);
   const [message, setMessage] = useState('');
@@ -54,7 +56,7 @@ export default function AccountPage() {
       return;
     }
 
-    const response = await fetch(`/api/orcid/start?email=${encodeURIComponent(user.email)}`);
+    const response = await fetch(`/api/orcid/start?email=${encodeURIComponent(user.email)}&force=true`);
     const body = await response.json().catch(() => ({ error: 'Unknown error' }));
 
     if (!response.ok) {
@@ -63,6 +65,14 @@ export default function AccountPage() {
     }
 
     window.location.href = body.data.authorization_url;
+  }
+
+  function logout() {
+    localStorage.removeItem('if_user');
+    setUser(null);
+    setOrcid(null);
+    setMessage('You have been logged out.');
+    router.push('/login');
   }
 
 
@@ -104,6 +114,13 @@ export default function AccountPage() {
 
           <button type="button" onClick={connectOrcid} className="mt-4 rounded bg-black px-4 py-2 text-sm text-white hover:bg-zinc-800">
             {orcid ? 'Reconnect ORCID' : 'Connect ORCID'}
+          </button>
+          <button
+            type="button"
+            onClick={logout}
+            className="ml-2 mt-4 rounded border border-zinc-400 px-4 py-2 text-sm hover:bg-zinc-100"
+          >
+            Log out
           </button>
 
           <div className="mt-6 rounded border border-zinc-200 bg-white p-4 text-sm">
