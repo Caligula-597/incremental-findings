@@ -16,6 +16,35 @@ function shouldReturnJson(request: NextRequest) {
   return request.nextUrl.searchParams.get('format') === 'json';
 }
 
+async function resolveExistingUserId(
+  userIdCandidate: string | undefined,
+  accountKey: string | undefined,
+  supabase: ReturnType<typeof getSupabaseServerClient>
+) {
+  if (!supabase) return undefined;
+
+  if (userIdCandidate) {
+    const byId = await supabase.from('user_accounts').select('id').eq('id', userIdCandidate).maybeSingle();
+    if (!byId.error && byId.data?.id) {
+      return String(byId.data.id);
+    }
+  }
+
+  if (!accountKey) return undefined;
+
+  const byUsername = await supabase.from('user_accounts').select('id').eq('username', accountKey).maybeSingle();
+  if (!byUsername.error && byUsername.data?.id) {
+    return String(byUsername.data.id);
+  }
+
+  const byEmail = await supabase.from('user_accounts').select('id').eq('email', accountKey).maybeSingle();
+  if (!byEmail.error && byEmail.data?.id) {
+    return String(byEmail.data.id);
+  }
+
+  return undefined;
+}
+
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get('code');
   const state = request.nextUrl.searchParams.get('state');
@@ -80,7 +109,9 @@ export async function GET(request: NextRequest) {
 
   const tokenData = (await tokenRes.json()) as { orcid?: string };
   const orcidId = tokenData.orcid;
-  const [userIdFromState, emailFromState] = Buffer.from(state, 'base64url').toString('utf8').split('|');
+  const stateParts = Buffer.from(state, 'base64url').toString('utf8').split('|');
+  const userIdFromState = stateParts[0] || undefined;
+  const emailFromState = stateParts[1] || undefined;
 
   if (!orcidId || (!emailFromState && !userIdFromState)) {
     if (!jsonMode) {
@@ -89,22 +120,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Could not resolve ORCID id or email from callback' }, { status: 400 });
   }
 
-  const normalizedEmail = emailFromState?.toLowerCase();
-
-  let resolvedUserId = userIdFromState || undefined;
-
   const supabase = getSupabaseServerClient();
-  if (!resolvedUserId && supabase && normalizedEmail) {
-    const lookupByEmail = await supabase.from('user_accounts').select('id').eq('email', normalizedEmail).maybeSingle();
-    if (!lookupByEmail.error && lookupByEmail.data?.id) {
-      resolvedUserId = String(lookupByEmail.data.id);
-    } else {
-      const lookupByUsername = await supabase.from('user_accounts').select('id').eq('username', normalizedEmail).maybeSingle();
-      if (!lookupByUsername.error && lookupByUsername.data?.id) {
-        resolvedUserId = String(lookupByUsername.data.id);
-      }
-    }
-  }
+  const normalizedEmail = emailFromState?.toLowerCase();
+  const resolvedUserId = await resolveExistingUserId(userIdFromState, normalizedEmail, supabase);
 
   const record = {
     user_email: normalizedEmail,
@@ -130,7 +148,9 @@ export async function GET(request: NextRequest) {
     if (insert.error) {
       if (!record.user_id) {
         if (!jsonMode) {
-          return NextResponse.redirect(getAccountRedirectUrl(request, 'error', 'ORCID returned but user_id could not be resolved'));
+          return NextResponse.redirect(
+            getAccountRedirectUrl(request, 'error', 'ORCID returned but account not found. Please log in again and retry.')
+          );
         }
         return NextResponse.json({ error: 'ORCID returned but user_id could not be resolved for current schema' }, { status: 400 });
       }
@@ -155,7 +175,9 @@ export async function GET(request: NextRequest) {
 
       runtimeOrcidLinks.push(record);
       if (!jsonMode) {
-        return NextResponse.redirect(getAccountRedirectUrl(request, 'error', 'Failed to persist ORCID link to Supabase'));
+        return NextResponse.redirect(
+          getAccountRedirectUrl(request, 'error', `Failed to persist ORCID link to Supabase: ${insertV2.error.message}`)
+        );
       }
       return NextResponse.json({ data: record, mode: 'memory-fallback', warning: insertV2.error.message });
     }
