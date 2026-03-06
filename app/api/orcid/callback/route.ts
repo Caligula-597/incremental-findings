@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@/lib/supabase';
 import { runtimeOrcidLinks } from '@/lib/runtime-store';
+import { buildOrcidEnvDiagnostics, buildOrcidRuntimeChecks } from '@/lib/orcid-debug';
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get('code');
@@ -41,7 +42,16 @@ export async function GET(request: NextRequest) {
 
   if (!tokenRes.ok) {
     const text = await tokenRes.text();
-    return NextResponse.json({ error: `ORCID token exchange failed: ${text}` }, { status: 502 });
+    return NextResponse.json(
+      {
+        error: `ORCID token exchange failed: ${text}`,
+        diagnostics: {
+          env: buildOrcidEnvDiagnostics(),
+          runtime: buildOrcidRuntimeChecks(request.url)
+        }
+      },
+      { status: 502 }
+    );
   }
 
   const tokenData = (await tokenRes.json()) as { orcid?: string };

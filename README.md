@@ -32,6 +32,7 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - `GET /api/orcid/start`
 - `GET /api/orcid/callback`
 - `GET /api/orcid/status`
+- `GET /api/orcid/diagnostics` (safe env/runtime checks for ORCID troubleshooting)
 - `GET/POST /api/submissions`
 - `POST /api/submissions/complete` (metadata + agreements + files)
 - `PATCH /api/submissions/:id/status`
@@ -130,6 +131,10 @@ ORCID_REDIRECT_URI=http://localhost:3000/api/orcid/callback
 ```
 
 > If env vars/tables are missing, app continues with memory fallback and returns warnings for skipped persistence.
+
+## ORCID troubleshooting
+- Open `/api/orcid/diagnostics` to verify callback/credential wiring without exposing secrets.
+- When token exchange fails, `/api/orcid/callback` returns diagnostic metadata (fingerprints + callback match checks).
 
 ## Run locally
 ```bash

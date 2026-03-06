@@ -13,6 +13,7 @@ export default function AccountPage() {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [orcid, setOrcid] = useState<string | null>(null);
   const [message, setMessage] = useState('');
+  const [diagnostics, setDiagnostics] = useState<string>('');
 
   useEffect(() => {
     const raw = localStorage.getItem('if_user');
@@ -50,6 +51,28 @@ export default function AccountPage() {
     window.location.href = body.data.authorization_url;
   }
 
+
+  async function runOrcidDiagnostics() {
+    const response = await fetch('/api/orcid/diagnostics');
+    const body = await response.json().catch(() => ({ data: null }));
+    if (!response.ok || !body.data) {
+      setDiagnostics('Could not load diagnostics.');
+      return;
+    }
+
+    const d = body.data;
+    setDiagnostics(
+      [
+        `client_id_present=${d.env.client_id_present}`,
+        `client_secret_present=${d.env.client_secret_present}`,
+        `client_id_prefix=${d.env.client_id_prefix ?? 'null'}`,
+        `secret_len=${d.env.client_secret_length}`,
+        `configured_callback=${d.runtime.configured_callback ?? 'null'}`,
+        `expected_callback=${d.runtime.expected_callback_from_request}`,
+        `callback_match=${d.runtime.callback_matches_request_host}`
+      ].join(' | ')
+    );
+  }
   return (
     <main>
       <SiteHeader />
@@ -99,6 +122,10 @@ export default function AccountPage() {
               </a>
             </li>
           </ul>
+          <button type="button" onClick={runOrcidDiagnostics} className="mt-4 rounded border border-zinc-400 px-3 py-1 text-sm hover:bg-zinc-100">
+            Run ORCID diagnostics
+          </button>
+          {diagnostics ? <p className="mt-3 text-xs text-zinc-600">{diagnostics}</p> : null}
           {message ? <p className="mt-4 text-sm text-zinc-700">{message}</p> : null}
         </aside>
       </section>
