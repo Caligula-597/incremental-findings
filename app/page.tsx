@@ -131,9 +131,14 @@ export default async function HomePage({
             <blockquote className="mt-4 border-l-2 border-black pl-4 text-zinc-700">
               {(latest.abstract ?? 'No abstract provided.').slice(0, 260)}...
             </blockquote>
-            <a href={latest.file_url ?? '#'} target="_blank" rel="noreferrer" className="btn btn-primary mt-4">
-              Read PDF
-            </a>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link className="btn btn-primary" href={`/papers/${latest.id}`}>
+                Open article page
+              </Link>
+              <a href={latest.file_url ?? '#'} target="_blank" rel="noreferrer" className="btn btn-secondary">
+                Read PDF
+              </a>
+            </div>
           </div>
         </section>
       ) : (

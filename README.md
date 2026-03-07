@@ -42,6 +42,8 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - `POST /api/submissions/:id/publish` (compat alias)
 - `POST /api/submissions/:id/doi` (assign DOI for published submissions)
 - `GET /api/public/journal-profile` (public mission + live metrics)
+- `GET /api/public/submissions` (public article index feed)
+- `GET /api/public/submissions/:id/citation?format=bibtex` (citation export)
 
 ## Required Supabase table
 Base submissions table:
@@ -211,3 +213,9 @@ Open http://localhost:3000
 ## Public journal plan
 - `/community` publishes mission, public-facing programs, and measurable annual targets.
 - `GET /api/public/journal-profile` exposes roadmap and live operational metrics for transparency.
+
+
+## Single-site modular architecture
+- This project keeps one website entrypoint, while splitting functionality by bounded modules (auth, submissions, editorial, DOI, public profile, citation export).
+- This mirrors how many journal platforms evolve: one domain for users, modular services/routes behind it.
+- Added `app/sitemap.ts` and `app/robots.ts` for publication discoverability and crawler control.
