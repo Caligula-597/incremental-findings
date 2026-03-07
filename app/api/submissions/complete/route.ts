@@ -4,6 +4,7 @@ import { TERMS_VERSION } from '@/lib/legal';
 import { runtimeAuditLogs, runtimeSubmissionFiles } from '@/lib/runtime-store';
 import { createSubmission } from '@/lib/submission-repository';
 import { getSupabaseServerClient } from '@/lib/supabase';
+import { getServerSessionUser } from '@/lib/session';
 
 async function uploadToStorage(file: File, pathPrefix: string) {
   const supabase = getSupabaseServerClient();
@@ -31,8 +32,19 @@ export async function POST(request: Request) {
   try {
     const form = await request.formData();
 
-    const userEmail = String(form.get('user_email') ?? '').trim().toLowerCase();
-    const userId = String(form.get('user_id') ?? '').trim();
+    const sessionUser = getServerSessionUser();
+    if (!sessionUser) {
+      return NextResponse.json({ error: 'Login required before submission' }, { status: 401 });
+    }
+
+    const userEmailInput = String(form.get('user_email') ?? '').trim().toLowerCase();
+    const userIdInput = String(form.get('user_id') ?? '').trim();
+    const userEmail = userEmailInput || sessionUser.email;
+    const userId = userIdInput || sessionUser.id;
+    if (userEmail !== sessionUser.email || userId !== sessionUser.id) {
+      return NextResponse.json({ error: 'Submission identity does not match active session' }, { status: 403 });
+    }
+
     const title = String(form.get('title') ?? '').trim();
     const authors = String(form.get('authors') ?? '').trim();
 

@@ -73,7 +73,8 @@ export default function AccountPage() {
     window.location.href = body.data.authorization_url;
   }
 
-  function logout() {
+  async function logout() {
+    await fetch('/api/auth/logout', { method: 'POST' });
     localStorage.removeItem('if_user');
     setUser(null);
     setOrcid(null);

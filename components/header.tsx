@@ -21,7 +21,8 @@ export function SiteHeader() {
     setUser(parsed);
   }, []);
 
-  function logout() {
+  async function logout() {
+    await fetch('/api/auth/logout', { method: 'POST' });
     localStorage.removeItem('if_user');
     setUser(null);
     router.push('/login');

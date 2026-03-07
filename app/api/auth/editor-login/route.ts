@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
+import { buildSessionToken, setSessionCookie } from '@/lib/session';
 
 const DEFAULT_EDITOR_CODE = 'review-demo';
 
@@ -19,12 +20,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid editor access code' }, { status: 401 });
     }
 
+    const sessionUser = {
+      id: randomUUID(),
+      email,
+      name,
+      role: 'editor' as const
+    };
+
+    setSessionCookie(buildSessionToken(sessionUser));
     return NextResponse.json({
       data: {
-        id: randomUUID(),
-        email,
-        name,
-        role: 'editor',
+        ...sessionUser,
         session_token: randomUUID()
       },
       mode: process.env.EDITOR_ACCESS_CODE ? 'env' : 'demo-default'

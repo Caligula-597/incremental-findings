@@ -162,6 +162,7 @@ ORCID_CLIENT_ID=xxx
 ORCID_CLIENT_SECRET=xxx
 ORCID_REDIRECT_URI=http://localhost:3000/api/orcid/callback
 EDITOR_ACCESS_CODE=your_editor_access_code
+SESSION_SECRET=at_least_32_chars_random_secret
 ```
 
 > Authentication persistence uses Supabase when any supported server key pair exists.
@@ -183,3 +184,10 @@ Open http://localhost:3000
 - Use `/login` and choose **Editor Log in**.
 - In local demo mode (without env), default editor code is `review-demo`.
 - In production, set `EDITOR_ACCESS_CODE` in environment variables.
+
+
+## Session and authorization baseline
+- Login/register/editor-login now issue a signed HttpOnly session cookie (`if_session`).
+- `PATCH /api/submissions/:id/status` and `POST /api/submissions/:id/publish` require editor role from server-side session.
+- `POST /api/submissions/complete` requires a logged-in session and enforces submission identity match.
+- Password hashing uses `scrypt` with backward-compatible migration for existing SHA-256 hashes.

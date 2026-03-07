@@ -1,11 +1,9 @@
-import { createHash, randomUUID } from 'crypto';
+import { randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@/lib/supabase';
 import { runtimeUsers } from '@/lib/runtime-store';
-
-function hashPassword(value: string) {
-  return createHash('sha256').update(value).digest('hex');
-}
+import { hashPassword } from '@/lib/auth-security';
+import { buildSessionToken, setSessionCookie } from '@/lib/session';
 
 export async function POST(request: Request) {
   try {
@@ -42,12 +40,18 @@ export async function POST(request: Request) {
         .single();
 
       if (!insert.error) {
+        const sessionUser = {
+          id: insert.data.id,
+          email: insert.data.email ?? accountKey,
+          name: insert.data.name ?? name ?? accountKey,
+          role: 'author' as const
+        };
+
+        setSessionCookie(buildSessionToken(sessionUser));
         return NextResponse.json(
           {
             data: {
-              id: insert.data.id,
-              email: insert.data.email ?? accountKey,
-              name: insert.data.name ?? name ?? accountKey,
+              ...sessionUser,
               created_at: insert.data.created_at
             },
             mode: 'supabase'
@@ -63,12 +67,18 @@ export async function POST(request: Request) {
         .single();
 
       if (!insertV2.error) {
+        const sessionUser = {
+          id: insertV2.data.id,
+          email: insertV2.data.username,
+          name: name || insertV2.data.username,
+          role: 'author' as const
+        };
+
+        setSessionCookie(buildSessionToken(sessionUser));
         return NextResponse.json(
           {
             data: {
-              id: insertV2.data.id,
-              email: insertV2.data.username,
-              name: name || insertV2.data.username,
+              ...sessionUser,
               created_at: insertV2.data.created_at
             },
             mode: 'supabase-v2'
@@ -87,7 +97,16 @@ export async function POST(request: Request) {
 
     const created = { id: randomUUID(), email: accountKey, name: name || accountKey, password_hash: passwordHash, created_at: now };
     runtimeUsers.push(created);
-    return NextResponse.json({ data: { id: created.id, email: created.email, name: created.name }, mode: 'memory' }, { status: 201 });
+
+    const sessionUser = {
+      id: created.id,
+      email: created.email,
+      name: created.name,
+      role: 'author' as const
+    };
+
+    setSessionCookie(buildSessionToken(sessionUser));
+    return NextResponse.json({ data: sessionUser, mode: 'memory' }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
     return NextResponse.json({ error: message }, { status: 500 });
