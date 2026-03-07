@@ -1,0 +1,206 @@
+# Incremental Findings
+
+Independent research archive website with editorial-style visual design.
+
+## Positioning
+This project is **not affiliated with Nature**. It only borrows a clean, publication-like aesthetic.
+
+## Current product structure
+- Public homepage with discipline and article-type taxonomy filters (`/`)
+- Submission portal with complete package workflow (`/submit`)
+- Editorial workspace (`/editor`) covering in-progress, under-review and published flows (editor login required)
+- Account center and login scaffolding (`/account`, `/login`)
+
+## What is implemented now
+- Email account register/login API (memory fallback if DB table unavailable)
+- ORCID connect flow scaffolding (`/api/orcid/start`, `/api/orcid/callback`, `/api/orcid/status`)
+- Author agreements + terms version capture in submission flow
+- Package upload support: manuscript PDF + cover letter + optional supporting files
+- Compliance records:
+  - `submission_files`
+  - `consent_logs`
+  - `audit_logs`
+
+## Stack
+- Next.js (App Router) + TypeScript
+- Tailwind CSS
+- Next API routes + Supabase (Postgres/Storage)
+
+## APIs
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/editor-login`
+- `GET /api/auth/session`
+- `GET /api/orcid/start`
+- `GET /api/orcid/callback`
+- `GET /api/orcid/status`
+- `GET /api/orcid/diagnostics` (safe env/runtime checks for ORCID troubleshooting)
+- `GET/POST /api/submissions`
+- `POST /api/submissions/complete` (metadata + agreements + files)
+- `PATCH /api/submissions/:id/status`
+- `POST /api/submissions/:id/publish` (compat alias)
+- `POST /api/submissions/:id/doi` (assign DOI for published submissions)
+
+## Required Supabase table
+Base submissions table:
+```sql
+CREATE TABLE submissions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title TEXT NOT NULL,
+  authors TEXT NOT NULL,
+  abstract TEXT,
+  status TEXT DEFAULT 'pending',
+  file_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+Recommended taxonomy extension:
+```sql
+ALTER TABLE submissions
+  ADD COLUMN IF NOT EXISTS discipline TEXT,
+  ADD COLUMN IF NOT EXISTS topic TEXT,
+  ADD COLUMN IF NOT EXISTS article_type TEXT;
+```
+
+## Compliance/identity tables (recommended)
+```sql
+CREATE TABLE IF NOT EXISTS user_accounts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  password_hash TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS orcid_links (
+  user_email TEXT PRIMARY KEY,
+  orcid_id TEXT NOT NULL,
+  verified BOOLEAN DEFAULT FALSE,
+  connected_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS submission_files (
+  id UUID PRIMARY KEY,
+  submission_id UUID NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+  file_kind TEXT NOT NULL,
+  file_name TEXT NOT NULL,
+  file_path TEXT NOT NULL,
+  content_type TEXT,
+  size_bytes BIGINT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS consent_logs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  submission_id UUID NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+  user_email TEXT NOT NULL,
+  terms_version TEXT NOT NULL,
+  author_warranty BOOLEAN NOT NULL,
+  originality_warranty BOOLEAN NOT NULL,
+  ethics_warranty BOOLEAN NOT NULL,
+  privacy_ack BOOLEAN NOT NULL,
+  consented_at TIMESTAMPTZ DEFAULT NOW(),
+  ip_hash TEXT
+);
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id UUID PRIMARY KEY,
+  submission_id UUID NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+  action TEXT NOT NULL,
+  actor_email TEXT,
+  detail TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+Alternative minimal schema (also supported by current code):
+```sql
+CREATE TABLE user_accounts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  username TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE orcid_links (
+  user_id UUID REFERENCES user_accounts(id) ON DELETE CASCADE,
+  orcid_id TEXT UNIQUE NOT NULL,
+  verified_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  PRIMARY KEY (user_id)
+);
+
+CREATE TABLE submissions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  author_id UUID REFERENCES user_accounts(id),
+  title TEXT NOT NULL,
+  abstract TEXT,
+  status TEXT DEFAULT 'pending',
+  category TEXT,
+  file_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+
+
+## Secret handling (important)
+- Put real credentials in `.env.local` (already gitignored) or `secrets/orcid.local` (gitignored).
+- Commit only `.env.example` with empty placeholders.
+- If a secret was ever exposed publicly, rotate it immediately in ORCID/Supabase console.
+
+## Environment variables
+Create `.env.local`:
+```bash
+SUPABASE_URL=your_project_url
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# If service key is not provided, server will fallback to:
+NEXT_PUBLIC_SUPABASE_URL=your_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+
+# Optional ORCID OAuth (needed for real ORCID token exchange)
+ORCID_CLIENT_ID=xxx
+ORCID_CLIENT_SECRET=xxx
+ORCID_REDIRECT_URI=http://localhost:3000/api/orcid/callback
+EDITOR_ACCESS_CODE=your_editor_access_code
+SESSION_SECRET=at_least_32_chars_random_secret
+DOI_PREFIX=10.5555
+DOI_REGISTRANT=incremental-findings
+CROSSREF_API_BASE=
+```
+
+> Authentication persistence uses Supabase when any supported server key pair exists.
+> Memory fallback is only used when Supabase is completely unconfigured.
+
+## ORCID troubleshooting
+- Open `/api/orcid/diagnostics` to verify callback/credential wiring without exposing secrets.
+- When token exchange fails, `/api/orcid/callback` returns diagnostic metadata (fingerprints + callback match checks).
+
+## Run locally
+```bash
+npm install
+npm run dev
+```
+Open http://localhost:3000
+
+
+## Editor login
+- Use `/login` and choose **Editor Log in**.
+- In local demo mode (without env), default editor code is `review-demo`.
+- In production, set `EDITOR_ACCESS_CODE` in environment variables.
+
+
+## Session and authorization baseline
+- Login/register/editor-login now issue a signed HttpOnly session cookie (`if_session`).
+- `PATCH /api/submissions/:id/status` and `POST /api/submissions/:id/publish` require editor role from server-side session.
+- `POST /api/submissions/complete` requires a logged-in session and enforces submission identity match.
+- Password hashing uses `scrypt` with backward-compatible migration for existing SHA-256 hashes.
+
+- Editorial workflow transition validation is now enforced server-side (e.g., prevents invalid direct transitions).
+
+
+## DOI assignment baseline
+- DOI can only be assigned when a submission is already `published`.
+- `POST /api/submissions/:id/doi` requires editor session and writes DOI back into submission record.
+- Current implementation provides deterministic DOI generation and keeps a provider flag (`mock` or `crossref-ready`) for later real registry handoff.
