@@ -11,6 +11,8 @@ export interface Submission {
   status: SubmissionStatus;
   file_url: string | null;
   created_at: string;
+  doi?: string | null;
+  doi_registered_at?: string | null;
   author_id?: string | null;
   category?: string | null;
 }
@@ -25,6 +27,15 @@ export interface SubmissionInput {
   file_url?: string;
   author_id?: string;
   category?: string;
+  doi?: string;
+  doi_registered_at?: string;
+}
+
+export interface DoiRegistrationResult {
+  submission_id: string;
+  doi: string;
+  registered_at: string;
+  provider: 'mock' | 'crossref-ready';
 }
 
 export interface AuthUser {

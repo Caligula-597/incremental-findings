@@ -39,6 +39,7 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - `POST /api/submissions/complete` (metadata + agreements + files)
 - `PATCH /api/submissions/:id/status`
 - `POST /api/submissions/:id/publish` (compat alias)
+- `POST /api/submissions/:id/doi` (assign DOI for published submissions)
 
 ## Required Supabase table
 Base submissions table:
@@ -164,6 +165,9 @@ ORCID_CLIENT_SECRET=xxx
 ORCID_REDIRECT_URI=http://localhost:3000/api/orcid/callback
 EDITOR_ACCESS_CODE=your_editor_access_code
 SESSION_SECRET=at_least_32_chars_random_secret
+DOI_PREFIX=10.5555
+DOI_REGISTRANT=incremental-findings
+CROSSREF_API_BASE=
 ```
 
 > Authentication persistence uses Supabase when any supported server key pair exists.
@@ -194,3 +198,9 @@ Open http://localhost:3000
 - Password hashing uses `scrypt` with backward-compatible migration for existing SHA-256 hashes.
 
 - Editorial workflow transition validation is now enforced server-side (e.g., prevents invalid direct transitions).
+
+
+## DOI assignment baseline
+- DOI can only be assigned when a submission is already `published`.
+- `POST /api/submissions/:id/doi` requires editor session and writes DOI back into submission record.
+- Current implementation provides deterministic DOI generation and keeps a provider flag (`mock` or `crossref-ready`) for later real registry handoff.

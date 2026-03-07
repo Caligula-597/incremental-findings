@@ -80,6 +80,22 @@ export default function EditorPage() {
     await loadData();
   }
 
+
+  async function assignDoi(id: string) {
+    setMessage('');
+    const response = await fetch(`/api/submissions/${id}/doi`, { method: 'POST' });
+
+    const body = await response.json().catch(() => ({ error: 'Unknown error' }));
+    if (!response.ok) {
+      setMessage(`DOI 分配失败: ${body.error ?? ''}`);
+      return;
+    }
+
+    const doiValue = body?.data?.doi as string | undefined;
+    setMessage(doiValue ? `DOI assigned: ${doiValue}` : 'DOI assignment completed.');
+    await loadData();
+  }
+
   useEffect(() => {
     async function boot() {
       const sessionRes = await fetch('/api/auth/session', { cache: 'no-store' });
@@ -251,9 +267,25 @@ export default function EditorPage() {
               </div>
               <p className="mt-1 text-sm text-zinc-600">{item.authors}</p>
               <TaxonomyMeta item={item} />
-              <a className="mt-2 inline-block text-sm underline" href={item.file_url ?? '#'} target="_blank" rel="noreferrer">
-                View PDF
-              </a>
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <a className="inline-block text-sm underline" href={item.file_url ?? '#'} target="_blank" rel="noreferrer">
+                  View PDF
+                </a>
+                {item.doi ? (
+                  <a
+                    className="text-xs font-semibold text-zinc-700 underline"
+                    href={`https://doi.org/${item.doi}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    DOI: {item.doi}
+                  </a>
+                ) : (
+                  <button className="btn btn-secondary btn-sm" onClick={() => assignDoi(item.id)}>
+                    Assign DOI
+                  </button>
+                )}
+              </div>
             </article>
           ))}
         </div>

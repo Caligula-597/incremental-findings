@@ -13,6 +13,7 @@ export function PaperCard({ paper }: { paper: Submission }) {
       </div>
 
       <p className="mt-2 text-sm text-zinc-600">{paper.authors}</p>
+      {paper.doi ? <p className="mt-1 text-xs text-zinc-500">DOI: {paper.doi}</p> : null}
       <p className="mt-3 text-sm text-zinc-700">{(paper.abstract ?? 'No abstract provided.').slice(0, 160)}...</p>
       <a
         className="mt-4 inline-flex text-sm font-semibold underline underline-offset-4"

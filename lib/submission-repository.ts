@@ -2,7 +2,7 @@ import { mockSubmissions } from '@/lib/mock-data';
 import { getSupabaseServerClient } from '@/lib/supabase';
 import { Submission, SubmissionInput, SubmissionStatus } from '@/lib/types';
 
-const memoryStore = [...mockSubmissions];
+const memoryStore = [...mockSubmissions] as Submission[];
 
 function sortByCreatedDesc(items: Submission[]) {
   return [...items].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
@@ -11,6 +11,7 @@ function sortByCreatedDesc(items: Submission[]) {
 function normalizeSubmission(data: Partial<Submission>): Submission {
   const category = (data as { category?: string | null }).category ?? null;
   const authorId = (data as { author_id?: string | null }).author_id ?? null;
+
   return {
     id: String(data.id ?? ''),
     title: String(data.title ?? ''),
@@ -22,6 +23,8 @@ function normalizeSubmission(data: Partial<Submission>): Submission {
     status: (data.status as SubmissionStatus) ?? 'pending',
     file_url: data.file_url ?? null,
     created_at: data.created_at ?? new Date().toISOString(),
+    doi: (data as { doi?: string | null }).doi ?? null,
+    doi_registered_at: (data as { doi_registered_at?: string | null }).doi_registered_at ?? null,
     author_id: authorId,
     category
   };
@@ -31,21 +34,19 @@ async function listWithFlexibleColumns(status?: SubmissionStatus): Promise<Submi
   const supabase = getSupabaseServerClient();
   if (!supabase) return [];
 
-  const preferredSelect = 'id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at';
+  const preferredSelect = 'id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at,doi,doi_registered_at';
   const legacySelect = 'id,title,authors,abstract,status,file_url,created_at';
   const v2Select = 'id,title,abstract,status,category,file_url,created_at,author_id';
 
   let query = supabase.from('submissions').select(preferredSelect).order('created_at', { ascending: false });
   if (status) query = query.eq('status', status);
   const preferred = await query;
-
   if (!preferred.error) {
     return (preferred.data ?? []).map((row) => normalizeSubmission(row as Partial<Submission>));
   }
 
   let fallbackQuery = supabase.from('submissions').select(legacySelect).order('created_at', { ascending: false });
   if (status) fallbackQuery = fallbackQuery.eq('status', status);
-
   const fallback = await fallbackQuery;
   if (!fallback.error) {
     return (fallback.data ?? []).map((row) => normalizeSubmission(row as Partial<Submission>));
@@ -53,7 +54,6 @@ async function listWithFlexibleColumns(status?: SubmissionStatus): Promise<Submi
 
   let v2Query = supabase.from('submissions').select(v2Select).order('created_at', { ascending: false });
   if (status) v2Query = v2Query.eq('status', status);
-
   const v2 = await v2Query;
   if (v2.error) {
     throw new Error(`Failed to list submissions: ${v2.error.message}`);
@@ -64,14 +64,9 @@ async function listWithFlexibleColumns(status?: SubmissionStatus): Promise<Submi
 
 export async function listSubmissions(status?: SubmissionStatus): Promise<Submission[]> {
   const supabase = getSupabaseServerClient();
+  if (supabase) return listWithFlexibleColumns(status);
 
-  if (supabase) {
-    return listWithFlexibleColumns(status);
-  }
-
-  if (!status) {
-    return sortByCreatedDesc(memoryStore);
-  }
+  if (!status) return sortByCreatedDesc(memoryStore);
   return sortByCreatedDesc(memoryStore.filter((entry) => entry.status === status));
 }
 
@@ -79,21 +74,21 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
   const supabase = getSupabaseServerClient();
 
   if (supabase) {
-    const insertPayload = {
-      title: input.title,
-      authors: input.authors ?? null,
-      abstract: input.abstract ?? null,
-      discipline: input.discipline ?? null,
-      topic: input.topic ?? null,
-      article_type: input.article_type ?? null,
-      file_url: input.file_url ?? null,
-      status: 'pending'
-    };
-
     const preferred = await supabase
       .from('submissions')
-      .insert(insertPayload)
-      .select('id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at')
+      .insert({
+        title: input.title,
+        authors: input.authors ?? null,
+        abstract: input.abstract ?? null,
+        discipline: input.discipline ?? null,
+        topic: input.topic ?? null,
+        article_type: input.article_type ?? null,
+        file_url: input.file_url ?? null,
+        status: 'pending',
+        doi: input.doi ?? null,
+        doi_registered_at: input.doi_registered_at ?? null
+      })
+      .select('id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at,doi,doi_registered_at')
       .single();
 
     if (!preferred.error) {
@@ -112,28 +107,34 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
       .select('id,title,authors,abstract,status,file_url,created_at')
       .single();
 
-    if (legacy.error) {
-      const v2 = await supabase
-        .from('submissions')
-        .insert({
-          title: input.title,
-          abstract: input.abstract ?? null,
-          file_url: input.file_url ?? null,
-          status: 'pending',
-          category: input.category ?? input.discipline ?? null,
-          author_id: input.author_id ?? null
-        })
-        .select('id,title,abstract,status,category,file_url,created_at,author_id')
-        .single();
-
-      if (v2.error) {
-        throw new Error(`Failed to create submission: ${v2.error.message}`);
-      }
-
-      return normalizeSubmission(v2.data as Partial<Submission>);
+    if (!legacy.error) {
+      const normalized = normalizeSubmission(legacy.data as Partial<Submission>);
+      normalized.doi = input.doi ?? null;
+      normalized.doi_registered_at = input.doi_registered_at ?? null;
+      return normalized;
     }
 
-    return normalizeSubmission(legacy.data as Partial<Submission>);
+    const v2 = await supabase
+      .from('submissions')
+      .insert({
+        title: input.title,
+        abstract: input.abstract ?? null,
+        file_url: input.file_url ?? null,
+        status: 'pending',
+        category: input.category ?? input.discipline ?? null,
+        author_id: input.author_id ?? null
+      })
+      .select('id,title,abstract,status,category,file_url,created_at,author_id')
+      .single();
+
+    if (v2.error) {
+      throw new Error(`Failed to create submission: ${v2.error.message}`);
+    }
+
+    const normalizedV2 = normalizeSubmission(v2.data as Partial<Submission>);
+    normalizedV2.doi = input.doi ?? null;
+    normalizedV2.doi_registered_at = input.doi_registered_at ?? null;
+    return normalizedV2;
   }
 
   const created: Submission = {
@@ -144,9 +145,11 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
     discipline: input.discipline ?? input.category ?? null,
     topic: input.topic ?? null,
     article_type: input.article_type ?? null,
-    file_url: input.file_url ?? null,
     status: 'pending',
+    file_url: input.file_url ?? null,
     created_at: new Date().toISOString(),
+    doi: input.doi ?? null,
+    doi_registered_at: input.doi_registered_at ?? null,
     author_id: input.author_id ?? null,
     category: input.category ?? input.discipline ?? null
   };
@@ -155,14 +158,13 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
   return created;
 }
 
-
 export async function getSubmissionById(id: string): Promise<Submission | null> {
   const supabase = getSupabaseServerClient();
 
   if (supabase) {
     const preferred = await supabase
       .from('submissions')
-      .select('id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at')
+      .select('id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at,doi,doi_registered_at')
       .eq('id', id)
       .maybeSingle();
 
@@ -183,8 +185,7 @@ export async function getSubmissionById(id: string): Promise<Submission | null> 
     return legacy.data ? normalizeSubmission(legacy.data as Partial<Submission>) : null;
   }
 
-  const local = memoryStore.find((item) => item.id === id);
-  return local ?? null;
+  return memoryStore.find((item) => item.id === id) ?? null;
 }
 
 export async function updateSubmissionStatus(id: string, status: SubmissionStatus): Promise<Submission | null> {
@@ -195,7 +196,7 @@ export async function updateSubmissionStatus(id: string, status: SubmissionStatu
       .from('submissions')
       .update({ status })
       .eq('id', id)
-      .select('id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at')
+      .select('id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at,doi,doi_registered_at')
       .maybeSingle();
 
     if (!preferred.error) {
@@ -217,11 +218,42 @@ export async function updateSubmissionStatus(id: string, status: SubmissionStatu
   }
 
   const entry = memoryStore.find((item) => item.id === id);
-  if (!entry) {
-    return null;
+  if (!entry) return null;
+  entry.status = status;
+  return entry;
+}
+
+export async function assignSubmissionDoi(id: string, doi: string, registeredAt: string): Promise<Submission | null> {
+  const supabase = getSupabaseServerClient();
+
+  if (supabase) {
+    const preferred = await supabase
+      .from('submissions')
+      .update({ doi, doi_registered_at: registeredAt })
+      .eq('id', id)
+      .select('id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at,doi,doi_registered_at')
+      .maybeSingle();
+
+    if (!preferred.error) {
+      return preferred.data ? normalizeSubmission(preferred.data as Partial<Submission>) : null;
+    }
+
+    const legacy = await supabase.from('submissions').update({ doi }).eq('id', id).select('id,title,authors,abstract,status,file_url,created_at').maybeSingle();
+    if (legacy.error) {
+      throw new Error(`Failed to assign DOI: ${legacy.error.message}`);
+    }
+
+    if (!legacy.data) return null;
+    const normalized = normalizeSubmission(legacy.data as Partial<Submission>);
+    normalized.doi = doi;
+    normalized.doi_registered_at = registeredAt;
+    return normalized;
   }
 
-  entry.status = status;
+  const entry = memoryStore.find((item) => item.id === id);
+  if (!entry) return null;
+  entry.doi = doi;
+  entry.doi_registered_at = registeredAt;
   return entry;
 }
 

@@ -122,6 +122,7 @@ export default async function HomePage({
             <p className="mt-3 text-sm text-zinc-600">
               <span className="font-semibold">Authors:</span> {latest.authors}
             </p>
+            {latest.doi ? <p className="mt-1 text-xs text-zinc-500">DOI: {latest.doi}</p> : null}
             <div className="mt-2 flex flex-wrap gap-2 text-xs">
               {latest.discipline ? <span className="rounded-full border border-zinc-300 px-2 py-0.5">{latest.discipline}</span> : null}
               {latest.topic ? <span className="rounded-full border border-zinc-300 px-2 py-0.5">{latest.topic}</span> : null}
