@@ -96,3 +96,16 @@ export interface NotificationJobRecord {
   actor_email: string;
   created_at: string;
 }
+
+
+export interface SubmissionVersionRecord {
+  id: string;
+  submission_id: string;
+  version_index: number;
+  status_snapshot: SubmissionStatus;
+  file_url: string | null;
+  revision_summary: string;
+  actor_email: string;
+  metadata_json?: string | null;
+  created_at: string;
+}

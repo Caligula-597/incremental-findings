@@ -26,16 +26,6 @@ export const FEATURE_ROADMAP: FeatureModule[] = [
     nextMilestone: '先实现编辑端分配审稿人与意见汇总，再做多轮修回流程。'
   },
   {
-    id: 'versioning',
-    module: 'Submission Versioning',
-    goal: '论文修订版本可追踪、可比对、可回滚。',
-    currentState: 'partial',
-    priority: 'p0',
-    requiredApis: ['POST /api/submissions/:id/revisions', 'GET /api/submissions/:id/revisions'],
-    dataContracts: ['submission_versions', 'version_files', 'change_log_entries'],
-    nextMilestone: '在现有 complete 上传基础上抽象版本层，建立 v1/v2/v3 关系。'
-  },
-  {
     id: 'production-pipeline',
     module: 'Production & Publication',
     goal: '录用后进入排版、校对、上线与 DOI 注册回执链路。',
@@ -82,6 +72,7 @@ export const FEATURE_ROADMAP: FeatureModule[] = [
 
 export const COMPLETED_FOUNDATION_ITEMS = [
   'Notification system baseline: templates + preview + send queue APIs',
+  'Submission versioning baseline: create/list revision history APIs'
 ];
 
 export function getRoadmapSummary() {

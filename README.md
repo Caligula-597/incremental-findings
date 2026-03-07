@@ -44,6 +44,7 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - `PATCH /api/submissions/:id/status`
 - `POST /api/submissions/:id/publish` (compat alias)
 - `POST /api/submissions/:id/doi` (assign DOI for published submissions)
+- `GET/POST /api/submissions/:id/revisions` (submission version history baseline)
 - `GET /api/public/journal-profile` (public mission + live metrics)
 - `GET /api/public/submissions` (public article index feed)
 - `GET /api/public/submissions/:id/citation?format=bibtex` (citation export)
@@ -119,6 +120,19 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   action TEXT NOT NULL,
   actor_email TEXT,
   detail TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+CREATE TABLE IF NOT EXISTS submission_versions (
+  id UUID PRIMARY KEY,
+  submission_id UUID NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+  version_index INT NOT NULL,
+  status_snapshot TEXT NOT NULL,
+  file_url TEXT,
+  revision_summary TEXT NOT NULL,
+  actor_email TEXT NOT NULL,
+  metadata_json TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 ```
@@ -243,7 +257,6 @@ Open http://localhost:3000
 
 ## What is still missing before "real-journal" readiness
 - **P0**: Peer review lifecycle (assignment/invitation/report/decision).
-- **P0**: Submission versioning and revision comparison.
 - **P1**: Production workflow (copyedit/proof/publish package) with DOI handoff receipts.
 - **P1**: Security hardening (rate limits, risk events, abuse controls).
 - **P1**: Metadata exports (RIS/CSL-JSON and indexing export jobs).
@@ -255,4 +268,7 @@ Open http://localhost:3000
   - template list: `GET /api/notifications/templates`
   - render preview: `POST /api/notifications/preview`
   - send/read jobs: `GET/POST /api/notifications/send`
+- ✅ Submission versioning baseline is now implemented:
+  - revision list/create: `GET/POST /api/submissions/:id/revisions`
+  - stores `revision_summary`, `version_index`, status snapshot, optional metadata/file URL
 - Current provider mode is `log-only` by default and switches to `resend-ready` when `RESEND_API_KEY` exists.
