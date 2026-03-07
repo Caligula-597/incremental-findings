@@ -59,6 +59,9 @@ export function SiteHeader() {
           <Link className="btn btn-secondary" href="/submit">
             Submit Work
           </Link>
+          <Link className="btn btn-secondary" href="/community">
+            Mission & Plan
+          </Link>
           <Link className="btn btn-secondary" href="/editor">
             Editorial Workspace
           </Link>

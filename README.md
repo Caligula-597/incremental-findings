@@ -10,6 +10,7 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - Submission portal with complete package workflow (`/submit`)
 - Editorial workspace (`/editor`) covering in-progress, under-review and published flows (editor login required)
 - Account center and login scaffolding (`/account`, `/login`)
+- Public mission and community roadmap page (`/community`)
 
 ## What is implemented now
 - Email account register/login API (memory fallback if DB table unavailable)
@@ -36,10 +37,11 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - `GET /api/orcid/status`
 - `GET /api/orcid/diagnostics` (safe env/runtime checks for ORCID troubleshooting)
 - `GET/POST /api/submissions`
-- `POST /api/submissions/complete` (metadata + agreements + files)
+- `POST /api/submissions/complete` (metadata + agreements + files + SHA-256 integrity manifest)
 - `PATCH /api/submissions/:id/status`
 - `POST /api/submissions/:id/publish` (compat alias)
 - `POST /api/submissions/:id/doi` (assign DOI for published submissions)
+- `GET /api/public/journal-profile` (public mission + live metrics)
 
 ## Required Supabase table
 Base submissions table:
@@ -204,3 +206,8 @@ Open http://localhost:3000
 - DOI can only be assigned when a submission is already `published`.
 - `POST /api/submissions/:id/doi` requires editor session and writes DOI back into submission record.
 - Current implementation provides deterministic DOI generation and keeps a provider flag (`mock` or `crossref-ready`) for later real registry handoff.
+
+
+## Public journal plan
+- `/community` publishes mission, public-facing programs, and measurable annual targets.
+- `GET /api/public/journal-profile` exposes roadmap and live operational metrics for transparency.

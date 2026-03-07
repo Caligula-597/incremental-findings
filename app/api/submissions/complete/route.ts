@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
 import { TERMS_VERSION } from '@/lib/legal';
 import { runtimeAuditLogs, runtimeSubmissionFiles } from '@/lib/runtime-store';
@@ -25,6 +25,12 @@ function validateUploadedFile(file: File, kind: 'manuscript' | 'cover_letter' | 
   return null;
 }
 
+
+
+async function digestFileSha256(file: File) {
+  const bytes = Buffer.from(await file.arrayBuffer());
+  return createHash('sha256').update(bytes).digest('hex');
+}
 
 async function uploadToStorage(file: File, pathPrefix: string) {
   const supabase = getSupabaseServerClient();
@@ -146,6 +152,14 @@ export async function POST(request: Request) {
     }
 
     const now = new Date().toISOString();
+    const fileIntegrity = await Promise.all(
+      filesToRecord.map(async (entry) => ({
+        file_name: entry.file.name,
+        file_kind: entry.kind,
+        sha256: await digestFileSha256(entry.file)
+      }))
+    );
+
     const fileRows = filesToRecord.map((entry) => ({
       id: randomUUID(),
       submission_id: created.id,
@@ -164,7 +178,7 @@ export async function POST(request: Request) {
       submission_id: created.id,
       action: 'submission_created',
       actor_email: userEmail,
-      detail: `Submission created with ${fileRows.length} files and terms ${consent.terms_version}`,
+      detail: `Submission created with ${fileRows.length} files and terms ${consent.terms_version}; integrity=${fileIntegrity.map((item) => `${item.file_name}:${item.sha256.slice(0, 12)}`).join(',')}`,
       created_at: now
     };
     runtimeAuditLogs.push(audit);
@@ -193,6 +207,7 @@ export async function POST(request: Request) {
           submission: created,
           consent,
           files: fileRows,
+          file_integrity: fileIntegrity,
           audit
         },
         warnings
