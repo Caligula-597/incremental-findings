@@ -44,6 +44,7 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - `GET /api/public/journal-profile` (public mission + live metrics)
 - `GET /api/public/submissions` (public article index feed)
 - `GET /api/public/submissions/:id/citation?format=bibtex` (citation export)
+- `GET /api/public/integrations/requirements` (external API readiness + missing env checklist)
 
 ## Required Supabase table
 Base submissions table:
@@ -172,6 +173,13 @@ SESSION_SECRET=at_least_32_chars_random_secret
 DOI_PREFIX=10.5555
 DOI_REGISTRANT=incremental-findings
 CROSSREF_API_BASE=
+CROSSREF_MEMBER_ID=
+CROSSREF_USERNAME=
+CROSSREF_PASSWORD=
+DATACITE_REPOSITORY_ID=
+DATACITE_API_TOKEN=
+UNPAYWALL_EMAIL=
+ALTMETRIC_API_KEY=
 ```
 
 > Authentication persistence uses Supabase when any supported server key pair exists.
@@ -219,3 +227,11 @@ Open http://localhost:3000
 - This project keeps one website entrypoint, while splitting functionality by bounded modules (auth, submissions, editorial, DOI, public profile, citation export).
 - This mirrors how many journal platforms evolve: one domain for users, modular services/routes behind it.
 - Added `app/sitemap.ts` and `app/robots.ts` for publication discoverability and crawler control.
+
+## External APIs still needed for production-grade journal operation
+- **Identity**: ORCID (already scaffolded), plus optional ROR for organization normalization.
+- **DOI registration**: Crossref Deposit API (journal articles) and optional DataCite (datasets/software).
+- **Discovery/metadata enrichment**: OpenAlex + Unpaywall to enrich indexing and OA visibility.
+- **Impact/monitoring**: optional altmetrics providers for non-citation signal.
+- **Long-term preservation**: CLOCKSS/Portico-style archival integration for formal continuity.
+- Current integration roadmap is visible in `/community` and machine-readable via `GET /api/public/integrations/requirements`.

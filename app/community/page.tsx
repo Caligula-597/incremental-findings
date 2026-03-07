@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { SiteHeader } from '@/components/header';
 import { SectionTitle } from '@/components/ui-kit';
 import { JOURNAL_2026_TARGETS, JOURNAL_POSITIONING, JOURNAL_PUBLIC_PROGRAMS } from '@/lib/journal-plan';
+import { INTEGRATION_PROVIDERS } from '@/lib/integration-plan';
 
 export default function CommunityPage() {
   return (
@@ -43,6 +44,39 @@ export default function CommunityPage() {
             <li key={target}>{target}</li>
           ))}
         </ul>
+      </section>
+
+      <section className="mt-8 glass-panel p-6">
+        <SectionTitle
+          title="External API & infrastructure roadmap"
+          subtitle="真实期刊需要外部生态协作：身份、DOI、发现性、计量与长期保存。"
+          className="mb-4"
+        />
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-left text-sm">
+            <thead className="text-xs uppercase tracking-wide text-zinc-500">
+              <tr>
+                <th className="px-3 py-2">Provider</th>
+                <th className="px-3 py-2">Category</th>
+                <th className="px-3 py-2">Priority</th>
+                <th className="px-3 py-2">Purpose</th>
+              </tr>
+            </thead>
+            <tbody>
+              {INTEGRATION_PROVIDERS.map((item) => (
+                <tr key={item.id} className="border-t border-zinc-200/70">
+                  <td className="px-3 py-3 font-medium">{item.name}</td>
+                  <td className="px-3 py-3 capitalize text-zinc-600">{item.category}</td>
+                  <td className="px-3 py-3 uppercase text-xs tracking-wide text-zinc-500">{item.priority}</td>
+                  <td className="px-3 py-3 text-zinc-700">{item.purpose}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-4 text-xs text-zinc-600">
+          机器可读清单接口：<code className="rounded bg-zinc-100 px-1 py-0.5">/api/public/integrations/requirements</code>
+        </p>
       </section>
 
       <section className="mt-8 glass-panel p-6">
