@@ -82,3 +82,17 @@ export interface AuditLog {
   detail: string;
   created_at: string;
 }
+
+
+export interface NotificationJobRecord {
+  id: string;
+  template: string;
+  to: string;
+  subject: string;
+  renderedBody: string;
+  provider: 'log-only' | 'resend-ready';
+  status: 'queued' | 'sent' | 'failed';
+  error?: string;
+  actor_email: string;
+  created_at: string;
+}

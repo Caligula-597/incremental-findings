@@ -36,6 +36,9 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - `GET /api/orcid/callback`
 - `GET /api/orcid/status`
 - `GET /api/orcid/diagnostics` (safe env/runtime checks for ORCID troubleshooting)
+- `GET /api/notifications/templates` (editor templates list)
+- `POST /api/notifications/preview` (editor preview rendered content)
+- `GET/POST /api/notifications/send` (editor queue/read notification jobs)
 - `GET/POST /api/submissions`
 - `POST /api/submissions/complete` (metadata + agreements + files + SHA-256 integrity manifest)
 - `PATCH /api/submissions/:id/status`
@@ -45,6 +48,7 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - `GET /api/public/submissions` (public article index feed)
 - `GET /api/public/submissions/:id/citation?format=bibtex` (citation export)
 - `GET /api/public/integrations/requirements` (external API readiness + missing env checklist)
+- `GET /api/public/platform-readiness` (feature gap map + priority milestones)
 
 ## Required Supabase table
 Base submissions table:
@@ -235,3 +239,20 @@ Open http://localhost:3000
 - **Impact/monitoring**: optional altmetrics providers for non-citation signal.
 - **Long-term preservation**: CLOCKSS/Portico-style archival integration for formal continuity.
 - Current integration roadmap is visible in `/community` and machine-readable via `GET /api/public/integrations/requirements`.
+
+
+## What is still missing before "real-journal" readiness
+- **P0**: Peer review lifecycle (assignment/invitation/report/decision).
+- **P0**: Submission versioning and revision comparison.
+- **P1**: Production workflow (copyedit/proof/publish package) with DOI handoff receipts.
+- **P1**: Security hardening (rate limits, risk events, abuse controls).
+- **P1**: Metadata exports (RIS/CSL-JSON and indexing export jobs).
+- All modules are exposed in machine-readable form via `GET /api/public/platform-readiness`.
+
+
+## Recently completed foundation module
+- ✅ Notification baseline is now implemented:
+  - template list: `GET /api/notifications/templates`
+  - render preview: `POST /api/notifications/preview`
+  - send/read jobs: `GET/POST /api/notifications/send`
+- Current provider mode is `log-only` by default and switches to `resend-ready` when `RESEND_API_KEY` exists.

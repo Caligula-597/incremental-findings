@@ -3,6 +3,7 @@ import { SiteHeader } from '@/components/header';
 import { SectionTitle } from '@/components/ui-kit';
 import { JOURNAL_2026_TARGETS, JOURNAL_POSITIONING, JOURNAL_PUBLIC_PROGRAMS } from '@/lib/journal-plan';
 import { INTEGRATION_PROVIDERS } from '@/lib/integration-plan';
+import { COMPLETED_FOUNDATION_ITEMS, FEATURE_ROADMAP, getRoadmapSummary } from '@/lib/feature-roadmap';
 
 export default function CommunityPage() {
   return (
@@ -76,6 +77,42 @@ export default function CommunityPage() {
         </div>
         <p className="mt-4 text-xs text-zinc-600">
           机器可读清单接口：<code className="rounded bg-zinc-100 px-1 py-0.5">/api/public/integrations/requirements</code>
+        </p>
+      </section>
+
+
+      <section className="mt-8 glass-panel p-6">
+        <SectionTitle
+          title="What is still missing (platform readiness)"
+          subtitle="我们先把完整设计补齐：这些模块到位后，才接近真实大期刊系统。"
+          className="mb-4"
+        />
+        <div className="mb-4 flex flex-wrap gap-2 text-xs">
+          {Object.entries(getRoadmapSummary()).map(([key, value]) => (
+            <span key={key} className="rounded-full border border-zinc-300 bg-white/90 px-3 py-1">
+              {key}: {value}
+            </span>
+          ))}
+        </div>
+        <ul className="mb-4 list-disc space-y-1 pl-5 text-xs text-emerald-700">
+          {COMPLETED_FOUNDATION_ITEMS.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+        <div className="space-y-3">
+          {FEATURE_ROADMAP.map((item) => (
+            <article key={item.id} className="rounded-2xl border border-zinc-200 bg-white/70 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h4 className="font-semibold">{item.module}</h4>
+                <span className="text-xs uppercase tracking-wide text-zinc-500">{item.priority} · {item.currentState}</span>
+              </div>
+              <p className="mt-2 text-sm text-zinc-700">{item.goal}</p>
+              <p className="mt-2 text-xs text-zinc-600">下个里程碑：{item.nextMilestone}</p>
+            </article>
+          ))}
+        </div>
+        <p className="mt-4 text-xs text-zinc-600">
+          机器可读清单接口：<code className="rounded bg-zinc-100 px-1 py-0.5">/api/public/platform-readiness</code>
         </p>
       </section>
 
