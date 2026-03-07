@@ -15,10 +15,21 @@ export function SiteHeader() {
   const [user, setUser] = useState<SessionUser | null>(null);
 
   useEffect(() => {
-    const raw = localStorage.getItem('if_user');
-    if (!raw) return;
-    const parsed = JSON.parse(raw) as SessionUser;
-    setUser(parsed);
+    async function loadSession() {
+      const response = await fetch('/api/auth/session', { cache: 'no-store' });
+      const body = await response.json().catch(() => ({ data: null }));
+      if (response.ok && body.data) {
+        setUser(body.data as SessionUser);
+        return;
+      }
+
+      const raw = localStorage.getItem('if_user');
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as SessionUser;
+      setUser(parsed);
+    }
+
+    void loadSession();
   }, []);
 
   async function logout() {

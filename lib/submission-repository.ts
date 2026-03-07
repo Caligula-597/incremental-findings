@@ -155,6 +155,38 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
   return created;
 }
 
+
+export async function getSubmissionById(id: string): Promise<Submission | null> {
+  const supabase = getSupabaseServerClient();
+
+  if (supabase) {
+    const preferred = await supabase
+      .from('submissions')
+      .select('id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (!preferred.error) {
+      return preferred.data ? normalizeSubmission(preferred.data as Partial<Submission>) : null;
+    }
+
+    const legacy = await supabase
+      .from('submissions')
+      .select('id,title,authors,abstract,status,file_url,created_at')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (legacy.error) {
+      throw new Error(`Failed to load submission: ${legacy.error.message}`);
+    }
+
+    return legacy.data ? normalizeSubmission(legacy.data as Partial<Submission>) : null;
+  }
+
+  const local = memoryStore.find((item) => item.id === id);
+  return local ?? null;
+}
+
 export async function updateSubmissionStatus(id: string, status: SubmissionStatus): Promise<Submission | null> {
   const supabase = getSupabaseServerClient();
 

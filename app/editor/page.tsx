@@ -31,6 +31,7 @@ export default function EditorPage() {
   const [query, setQuery] = useState('');
   const [disciplineFilter, setDisciplineFilter] = useState('all');
   const [isEditor, setIsEditor] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
 
   async function loadData() {
     const [pendingRes, reviewRes, publishedRes] = await Promise.all([
@@ -38,6 +39,12 @@ export default function EditorPage() {
       fetch('/api/submissions?status=under_review', { cache: 'no-store' }),
       fetch('/api/submissions?status=published', { cache: 'no-store' })
     ]);
+
+    if (!pendingRes.ok || !reviewRes.ok || !publishedRes.ok) {
+      const detail = await pendingRes.json().catch(() => ({ error: 'Unable to load editorial queues' }));
+      setMessage(`Load failed: ${detail.error ?? 'Unknown error'}`);
+      return;
+    }
 
     const pendingJson = await pendingRes.json();
     const reviewJson = await reviewRes.json();
@@ -50,10 +57,17 @@ export default function EditorPage() {
 
   async function updateStatus(id: string, status: SubmissionStatus) {
     setMessage('');
+
+    const reason = status === 'rejected' ? window.prompt('请填写拒稿原因（必填）', '')?.trim() ?? '' : '';
+    if (status === 'rejected' && !reason) {
+      setMessage('拒稿必须填写原因。');
+      return;
+    }
+
     const response = await fetch(`/api/submissions/${id}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status })
+      body: JSON.stringify({ status, reason })
     });
 
     if (!response.ok) {
@@ -67,13 +81,18 @@ export default function EditorPage() {
   }
 
   useEffect(() => {
-    const raw = localStorage.getItem('if_user');
-    if (!raw) return;
-    const parsed = JSON.parse(raw) as { role?: string };
-    if (parsed.role === 'editor') {
-      setIsEditor(true);
-      void loadData();
+    async function boot() {
+      const sessionRes = await fetch('/api/auth/session', { cache: 'no-store' });
+      const sessionBody = await sessionRes.json().catch(() => ({ data: null }));
+      const role = sessionBody?.data?.role;
+      if (sessionRes.ok && role === 'editor') {
+        setIsEditor(true);
+        await loadData();
+      }
+      setCheckingSession(false);
     }
+
+    void boot();
   }, []);
 
   const filteredPending = useMemo(
@@ -90,6 +109,17 @@ export default function EditorPage() {
   );
 
   const totalActive = useMemo(() => pending.length + underReview.length, [pending.length, underReview.length]);
+
+  if (checkingSession) {
+    return (
+      <main>
+        <SiteHeader />
+        <section className="glass-panel p-8">
+          <p className="text-sm text-zinc-700">Checking editorial authorization…</p>
+        </section>
+      </main>
+    );
+  }
 
   if (!isEditor) {
     return (

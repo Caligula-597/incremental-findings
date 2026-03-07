@@ -25,11 +25,23 @@ export default function SubmitPage() {
   const topics = useMemo(() => TOPIC_MAP[discipline as (typeof DISCIPLINES)[number]] ?? [], [discipline]);
 
   useEffect(() => {
-    const raw = localStorage.getItem('if_user');
-    if (!raw) return;
-    const parsed = JSON.parse(raw) as { email?: string; id?: string };
-    if (parsed.email) setUserEmail(parsed.email);
-    if (parsed.id) setUserId(parsed.id);
+    async function loadSessionIdentity() {
+      const response = await fetch('/api/auth/session', { cache: 'no-store' });
+      const body = await response.json().catch(() => ({ data: null }));
+      if (response.ok && body.data) {
+        if (body.data.email) setUserEmail(body.data.email);
+        if (body.data.id) setUserId(body.data.id);
+        return;
+      }
+
+      const raw = localStorage.getItem('if_user');
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { email?: string; id?: string };
+      if (parsed.email) setUserEmail(parsed.email);
+      if (parsed.id) setUserId(parsed.id);
+    }
+
+    void loadSessionIdentity();
   }, []);
 
   useEffect(() => {

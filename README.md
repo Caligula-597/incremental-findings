@@ -30,6 +30,7 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - `POST /api/auth/register`
 - `POST /api/auth/login`
 - `POST /api/auth/editor-login`
+- `GET /api/auth/session`
 - `GET /api/orcid/start`
 - `GET /api/orcid/callback`
 - `GET /api/orcid/status`
@@ -191,3 +192,5 @@ Open http://localhost:3000
 - `PATCH /api/submissions/:id/status` and `POST /api/submissions/:id/publish` require editor role from server-side session.
 - `POST /api/submissions/complete` requires a logged-in session and enforces submission identity match.
 - Password hashing uses `scrypt` with backward-compatible migration for existing SHA-256 hashes.
+
+- Editorial workflow transition validation is now enforced server-side (e.g., prevents invalid direct transitions).

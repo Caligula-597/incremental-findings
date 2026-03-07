@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSubmission, listSubmissions } from '@/lib/submission-repository';
+import { getServerSessionUser } from '@/lib/session';
 import { SubmissionStatus } from '@/lib/types';
 
 const allowedStatus = new Set<SubmissionStatus>(['pending', 'under_review', 'published', 'rejected']);
@@ -12,6 +13,14 @@ export async function GET(request: NextRequest) {
 
     if (status && !allowedStatus.has(status)) {
       return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+    }
+
+    // Only published records are public; editorial queues require editor role.
+    if (status && status !== 'published') {
+      const sessionUser = getServerSessionUser();
+      if (!sessionUser || sessionUser.role !== 'editor') {
+        return NextResponse.json({ error: 'Editor authorization required for non-public queues' }, { status: 403 });
+      }
     }
 
     const data = await listSubmissions(status ?? undefined);
@@ -31,6 +40,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const sessionUser = getServerSessionUser();
+    if (!sessionUser || sessionUser.role !== 'editor') {
+      return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
+    }
+
     const body = await request.json();
 
     if (!body.title || !body.authors) {
@@ -44,7 +58,8 @@ export async function POST(request: NextRequest) {
       discipline: body.discipline ? String(body.discipline) : undefined,
       topic: body.topic ? String(body.topic) : undefined,
       article_type: body.article_type ? String(body.article_type) : undefined,
-      file_url: body.file_url ? String(body.file_url) : undefined
+      file_url: body.file_url ? String(body.file_url) : undefined,
+      author_id: body.author_id ? String(body.author_id) : undefined
     });
 
     return NextResponse.json({ data: created }, { status: 201 });

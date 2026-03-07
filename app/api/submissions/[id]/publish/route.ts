@@ -1,12 +1,22 @@
 import { NextResponse } from 'next/server';
-import { publishSubmission } from '@/lib/submission-repository';
+import { getSubmissionById, publishSubmission } from '@/lib/submission-repository';
 import { getServerSessionUser } from '@/lib/session';
+import { canTransitionStatus } from '@/lib/workflow';
 
 export async function POST(_: Request, context: { params: { id: string } }) {
   try {
     const sessionUser = getServerSessionUser();
     if (!sessionUser || sessionUser.role !== 'editor') {
       return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
+    }
+
+    const existing = await getSubmissionById(context.params.id);
+    if (!existing) {
+      return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
+    }
+
+    if (!canTransitionStatus(existing.status, 'published')) {
+      return NextResponse.json({ error: `Invalid workflow transition: ${existing.status} -> published` }, { status: 409 });
     }
 
     const updated = await publishSubmission(context.params.id);
