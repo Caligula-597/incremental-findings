@@ -66,6 +66,7 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - `GET /api/public/module-readiness` (implemented-module verification snapshot)
 - `GET /api/public/perf-hints` (runtime lag diagnosis hints + mitigations)
 - `GET /api/public/professionalization-plan` (current implementation depth + prioritized next hardening actions)
+- `GET /api/public/backend-recommendation` (backend integration options + current config snapshot)
 
 ## Required Supabase table
 Base submissions table:
@@ -410,6 +411,11 @@ Open http://localhost:3000
 - 开发模式下首次访问页面会触发 Next.js 编译，出现短暂卡顿属于常见现象。
 - 建议用 `npm run build && npm run start` 评估真实性能。
 - 可通过 `GET /api/public/perf-hints` 获取可机器读取的性能排查建议。
+
+## Backend recommendation (当前后端建议)
+- **优先方案**：先完整接入 Supabase（Postgres + Storage），因为现有代码已大量兼容该模式。
+- 在正式环境中建议逐步减少 memory fallback 的写路径，仅保留本地开发兜底。
+- 可调用 `GET /api/public/backend-recommendation` 获取机器可读的分阶段建议与当前配置状态。
 
 ## Chinese content baseline
 - Header 支持中英文切换按钮（URL 参数 `lang=zh|en`），并在站内导航中保持语言上下文。
