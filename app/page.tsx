@@ -6,16 +6,19 @@ import { PandaRail } from '@/components/panda-rail';
 import { MetricCard, SectionTitle } from '@/components/ui-kit';
 import { listSubmissions } from '@/lib/submission-repository';
 import { ARTICLE_TYPES, DISCIPLINES } from '@/lib/taxonomy';
-import { ZH_COPY } from '@/lib/site-copy';
+import { getSiteCopy, getSiteLang } from '@/lib/site-copy';
 
 export const revalidate = 60;
 
 export default async function HomePage({
   searchParams
 }: {
-  searchParams?: { discipline?: string; article_type?: string };
+  searchParams?: { discipline?: string; article_type?: string; lang?: string };
 }) {
   const published = await listSubmissions('published');
+
+  const lang = getSiteLang(searchParams?.lang);
+  const copy = getSiteCopy(lang);
 
   const selectedDiscipline = searchParams?.discipline;
   const selectedArticleType = searchParams?.article_type;
@@ -44,7 +47,7 @@ export default async function HomePage({
       <PandaRail />
       <SiteHeader />
 
-      <SectionTitle title={ZH_COPY.home.title} subtitle={ZH_COPY.home.subtitle} />
+      <SectionTitle title={copy.home.title} subtitle={copy.home.subtitle} />
 
       <section id="taxonomy" className="glass-panel mb-8 p-5 shadow-sm">
         <div className="flex flex-wrap items-center gap-3">
@@ -55,15 +58,15 @@ export default async function HomePage({
             <div className="mt-3 flex max-w-4xl flex-wrap gap-2 pb-2">
               <Link
                 className="rounded-full border border-zinc-300 px-3 py-1 text-sm hover:bg-zinc-100"
-                href={selectedArticleType ? `/?article_type=${encodeURIComponent(selectedArticleType)}` : '/'}
+                href={selectedArticleType ? `/?lang=${lang}&article_type=${encodeURIComponent(selectedArticleType)}` : `/?lang=${lang}`}
               >
-                全部学科
+                {copy.home.allDisciplines}
               </Link>
               {DISCIPLINES.map((discipline) => (
                 <Link
                   key={discipline}
                   className="rounded-full border border-zinc-300 px-3 py-1 text-sm hover:bg-zinc-100"
-                  href={`/?discipline=${encodeURIComponent(discipline)}${
+                  href={`/?lang=${lang}&discipline=${encodeURIComponent(discipline)}${
                     selectedArticleType ? `&article_type=${encodeURIComponent(selectedArticleType)}` : ''
                   }`}
                 >
@@ -80,15 +83,15 @@ export default async function HomePage({
             <div className="mt-3 flex max-w-4xl flex-wrap gap-2 pb-2">
               <Link
                 className="rounded-full border border-zinc-300 px-3 py-1 text-sm hover:bg-zinc-100"
-                href={selectedDiscipline ? `/?discipline=${encodeURIComponent(selectedDiscipline)}` : '/'}
+                href={selectedDiscipline ? `/?lang=${lang}&discipline=${encodeURIComponent(selectedDiscipline)}` : `/?lang=${lang}`}
               >
-                全部类型
+                {copy.home.allTypes}
               </Link>
               {ARTICLE_TYPES.map((articleType) => (
                 <Link
                   key={articleType}
                   className="rounded-full border border-zinc-300 px-3 py-1 text-sm hover:bg-zinc-100"
-                  href={`/?article_type=${encodeURIComponent(articleType)}${
+                  href={`/?lang=${lang}&article_type=${encodeURIComponent(articleType)}${
                     selectedDiscipline ? `&discipline=${encodeURIComponent(selectedDiscipline)}` : ''
                   }`}
                 >
@@ -99,8 +102,8 @@ export default async function HomePage({
           </details>
 
           {(selectedDiscipline || selectedArticleType) && (
-            <Link className="btn btn-secondary" href="/">
-              Clear filters
+            <Link className="btn btn-secondary" href={`/?lang=${lang}`}>
+              {copy.home.clearFilters}
             </Link>
           )}
         </div>
@@ -118,7 +121,7 @@ export default async function HomePage({
             />
           </div>
           <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Latest published</p>
+            <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">{copy.home.latestPublished}</p>
             <h2 className="mt-2 font-serif text-3xl leading-tight">{latest.title}</h2>
             <p className="mt-3 text-sm text-zinc-600">
               <span className="font-semibold">Authors:</span> {latest.authors}
@@ -133,20 +136,20 @@ export default async function HomePage({
               {(latest.abstract ?? 'No abstract provided.').slice(0, 260)}...
             </blockquote>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Link className="btn btn-primary" href={`/papers/${latest.id}`}>
-                Open article page
+              <Link className="btn btn-primary" href={`/papers/${latest.id}?lang=${lang}`}>
+                {copy.home.openArticle}
               </Link>
               <a href={latest.file_url ?? '#'} target="_blank" rel="noreferrer" className="btn btn-secondary">
-                Read PDF
+                {copy.home.readPdf}
               </a>
             </div>
           </div>
         </section>
       ) : (
         <section className="glass-panel p-8">
-          <h2 className="font-serif text-3xl">No published submissions for this filter</h2>
+          <h2 className="font-serif text-3xl">{copy.home.noPublishedTitle}</h2>
           <p className="mt-3 max-w-2xl text-zinc-700">
-            We only display real reviewed submissions. Try another discipline or format, or submit a new manuscript.
+            {copy.home.noPublishedDesc}
           </p>
         </section>
       )}
@@ -200,16 +203,16 @@ export default async function HomePage({
       </section>
 
       <section className="mt-10 glass-panel p-6">
-        <SectionTitle title="Contribute your next finding" subtitle="Choose your path depending on where you are in the workflow." className="mb-3" />
+        <SectionTitle title={copy.home.contributeTitle} subtitle={copy.home.contributeSubtitle} className="mb-3" />
         <div className="btn-group">
-          <Link className="btn btn-primary" href="/submit">
-            Start a submission
+          <Link className="btn btn-primary" href={`/submit?lang=${lang}`}>
+            {copy.home.startSubmission}
           </Link>
-          <Link className="btn btn-secondary" href="/account">
-            Manage account & ORCID
+          <Link className="btn btn-secondary" href={`/account?lang=${lang}`}>
+            {copy.home.manageAccount}
           </Link>
-          <Link className="btn btn-secondary" href="/editor">
-            进入编辑部
+          <Link className="btn btn-secondary" href={`/editor?lang=${lang}`}>
+            {copy.home.openEditor}
           </Link>
         </div>
       </section>

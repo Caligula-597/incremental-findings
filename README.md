@@ -411,5 +411,6 @@ Open http://localhost:3000
 - 可通过 `GET /api/public/perf-hints` 获取可机器读取的性能排查建议。
 
 ## Chinese content baseline
-- Header 与首页关键导航/标题已提供中文化文案。
+- Header 支持中英文切换按钮（URL 参数 `lang=zh|en`），并在站内导航中保持语言上下文。
+- 首页与社区页关键标题/导航已接入双语文案。
 - 后续可继续按模块推进双语字段（投稿表单、编辑后台状态、通知模板）。

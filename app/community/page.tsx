@@ -4,14 +4,17 @@ import { SectionTitle } from '@/components/ui-kit';
 import { JOURNAL_2026_TARGETS, JOURNAL_POSITIONING, JOURNAL_PUBLIC_PROGRAMS } from '@/lib/journal-plan';
 import { INTEGRATION_PROVIDERS } from '@/lib/integration-plan';
 import { COMPLETED_FOUNDATION_ITEMS, FEATURE_ROADMAP, getRoadmapSummary } from '@/lib/feature-roadmap';
+import { getSiteCopy, getSiteLang } from '@/lib/site-copy';
 
-export default function CommunityPage() {
+export default function CommunityPage({ searchParams }: { searchParams?: { lang?: string } }) {
+  const lang = getSiteLang(searchParams?.lang);
+  const copy = getSiteCopy(lang);
   return (
     <main>
       <SiteHeader />
       <SectionTitle
-        title="Journal Mission & Public Plan"
-        subtitle="面向群众、面向研究者、面向可复现证据：这是我们期刊的公开目标。"
+        title={copy.community.title}
+        subtitle={copy.community.subtitle}
       />
 
       <section className="glass-panel p-6">
@@ -119,10 +122,10 @@ export default function CommunityPage() {
       <section className="mt-8 glass-panel p-6">
         <SectionTitle title="Contribute" subtitle="欢迎投稿、复现实验、方法改进与公共证据摘要。" className="mb-3" />
         <div className="btn-group">
-          <Link className="btn btn-primary" href="/submit">
+          <Link className="btn btn-primary" href={`/submit?lang=${lang}`}>
             Submit to journal
           </Link>
-          <Link className="btn btn-secondary" href="/login">
+          <Link className="btn btn-secondary" href={`/login?lang=${lang}`}>
             Join as author/editor
           </Link>
         </div>
