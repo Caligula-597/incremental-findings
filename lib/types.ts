@@ -193,3 +193,22 @@ export interface IpRateLimitRecord {
   reason: string;
   created_at: string;
 }
+
+
+export interface IndexingExportRecord {
+  id: string;
+  submission_id: string;
+  provider: string;
+  payload_json: string;
+  status: 'queued' | 'sent' | 'failed';
+  actor_email: string;
+  created_at: string;
+}
+
+export interface MetadataSnapshotRecord {
+  id: string;
+  submission_id: string;
+  format: 'bibtex' | 'ris' | 'csl-json';
+  content: string;
+  created_at: string;
+}

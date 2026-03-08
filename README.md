@@ -56,11 +56,14 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - `POST /api/security/risk-check` (risk scoring for routes/IPs)
 - `GET /api/security/events` (editor security event feed)
 - `POST /api/security/block` (editor block IP/range placeholder)
+- `GET /api/indexing/export` (editor indexing export jobs)
+- `POST /api/indexing/export/:provider` (queue metadata export to provider)
 - `GET /api/public/journal-profile` (public mission + live metrics)
 - `GET /api/public/submissions` (public article index feed)
 - `GET /api/public/submissions/:id/citation?format=bibtex` (citation export)
 - `GET /api/public/integrations/requirements` (external API readiness + missing env checklist)
 - `GET /api/public/platform-readiness` (feature gap map + priority milestones)
+- `GET /api/public/module-readiness` (implemented-module verification snapshot)
 
 ## Required Supabase table
 Base submissions table:
@@ -230,6 +233,25 @@ CREATE TABLE IF NOT EXISTS ip_rate_limits (
   reason TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+
+CREATE TABLE IF NOT EXISTS indexing_exports (
+  id UUID PRIMARY KEY,
+  submission_id UUID NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL,
+  payload_json TEXT NOT NULL,
+  status TEXT NOT NULL,
+  actor_email TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS metadata_snapshots (
+  id UUID PRIMARY KEY,
+  submission_id UUID NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+  format TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 ```
 
 Alternative minimal schema (also supported by current code):
@@ -351,8 +373,8 @@ Open http://localhost:3000
 
 
 ## What is still missing before "real-journal" readiness
-- **P1**: Metadata exports (RIS/CSL-JSON and indexing export jobs).
-- All modules are exposed in machine-readable form via `GET /api/public/platform-readiness`.
+- 核心模块已全部落地，下一步进入质量提升（自动化测试、可观测性、真实外部服务接入）阶段。
+- 全量模块状态可通过 `GET /api/public/platform-readiness` 与 `GET /api/public/module-readiness` 交叉核对。
 
 
 ## Recently completed foundation module
@@ -376,4 +398,7 @@ Open http://localhost:3000
   - risk check: `POST /api/security/risk-check`
   - security feed: `GET /api/security/events`
   - block operation: `POST /api/security/block`
+- ✅ Indexing export baseline is now implemented:
+  - citation formats: `format=bibtex|ris|csl-json`
+  - export queue: `GET /api/indexing/export` + `POST /api/indexing/export/:provider`
 - Current provider mode is `log-only` by default and switches to `resend-ready` when `RESEND_API_KEY` exists.
