@@ -65,6 +65,7 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - `GET /api/public/platform-readiness` (feature gap map + priority milestones)
 - `GET /api/public/module-readiness` (implemented-module verification snapshot)
 - `GET /api/public/perf-hints` (runtime lag diagnosis hints + mitigations)
+- `GET /api/public/professionalization-plan` (current implementation depth + prioritized next hardening actions)
 
 ## Required Supabase table
 Base submissions table:
