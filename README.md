@@ -22,6 +22,9 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
   - `consent_logs`
   - `audit_logs`
 
+## Extra implementation guide
+- Supabase 对接完整指引：`docs/supabase-integration-guide.md`
+
 ## Stack
 - Next.js (App Router) + TypeScript
 - Tailwind CSS
