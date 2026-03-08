@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { ZH_COPY } from '@/lib/site-copy';
 import { useRouter } from 'next/navigation';
 
 interface SessionUser {
@@ -15,18 +16,29 @@ export function SiteHeader() {
   const [user, setUser] = useState<SessionUser | null>(null);
 
   useEffect(() => {
-    async function loadSession() {
-      const response = await fetch('/api/auth/session', { cache: 'no-store' });
-      const body = await response.json().catch(() => ({ data: null }));
-      if (response.ok && body.data) {
-        setUser(body.data as SessionUser);
-        return;
+    const raw = localStorage.getItem('if_user');
+    if (raw) {
+      try {
+        setUser(JSON.parse(raw) as SessionUser);
+      } catch {
+        localStorage.removeItem('if_user');
       }
+    }
 
-      const raw = localStorage.getItem('if_user');
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as SessionUser;
-      setUser(parsed);
+    async function loadSession() {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 1500);
+      try {
+        const response = await fetch('/api/auth/session', { cache: 'no-store', signal: controller.signal });
+        const body = await response.json().catch(() => ({ data: null }));
+        if (response.ok && body.data) {
+          setUser(body.data as SessionUser);
+        }
+      } catch {
+        // ignore transient timeout/network issues to keep header responsive
+      } finally {
+        clearTimeout(timeout);
+      }
     }
 
     void loadSession();
@@ -43,30 +55,30 @@ export function SiteHeader() {
     <header className="mb-10 border-b border-zinc-200 pb-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Incremental Findings</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{ZH_COPY.siteName}</p>
           <Link href="/" className="mt-2 block font-serif text-5xl md:text-6xl">
-            Incremental Findings
+            {ZH_COPY.siteName}
           </Link>
           <p className="mt-4 text-sm uppercase tracking-[0.15em] text-zinc-600">
-            Independent research archive · Inspired by editorial publication aesthetics
+            {ZH_COPY.tagline}
           </p>
         </div>
 
         <nav className="btn-group text-sm">
           <Link className="btn btn-secondary" href="/">
-            Main Page
+            {ZH_COPY.nav.home}
           </Link>
           <Link className="btn btn-secondary" href="/submit">
-            Submit Work
+            {ZH_COPY.nav.submit}
           </Link>
           <Link className="btn btn-secondary" href="/community">
-            Mission & Plan
+            {ZH_COPY.nav.community}
           </Link>
           <Link className="btn btn-secondary" href="/editor">
-            Editorial Workspace
+            {ZH_COPY.nav.editor}
           </Link>
           <Link className="btn btn-secondary" href="/account">
-            Account
+            {ZH_COPY.nav.account}
           </Link>
           {user ? (
             <>
@@ -75,12 +87,12 @@ export function SiteHeader() {
                 {user.role === 'editor' ? ' · Editor' : ''}
               </span>
               <button type="button" onClick={logout} className="btn btn-ghost">
-                Log out
+                {ZH_COPY.nav.logout}
               </button>
             </>
           ) : (
             <Link className="btn btn-primary" href="/login">
-              Log in
+              {ZH_COPY.nav.login}
             </Link>
           )}
         </nav>

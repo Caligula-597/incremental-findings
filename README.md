@@ -64,6 +64,7 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - `GET /api/public/integrations/requirements` (external API readiness + missing env checklist)
 - `GET /api/public/platform-readiness` (feature gap map + priority milestones)
 - `GET /api/public/module-readiness` (implemented-module verification snapshot)
+- `GET /api/public/perf-hints` (runtime lag diagnosis hints + mitigations)
 
 ## Required Supabase table
 Base submissions table:
@@ -402,3 +403,13 @@ Open http://localhost:3000
   - citation formats: `format=bibtex|ris|csl-json`
   - export queue: `GET /api/indexing/export` + `POST /api/indexing/export/:provider`
 - Current provider mode is `log-only` by default and switches to `resend-ready` when `RESEND_API_KEY` exists.
+
+
+## Performance notes (运行卡顿排查)
+- 开发模式下首次访问页面会触发 Next.js 编译，出现短暂卡顿属于常见现象。
+- 建议用 `npm run build && npm run start` 评估真实性能。
+- 可通过 `GET /api/public/perf-hints` 获取可机器读取的性能排查建议。
+
+## Chinese content baseline
+- Header 与首页关键导航/标题已提供中文化文案。
+- 后续可继续按模块推进双语字段（投稿表单、编辑后台状态、通知模板）。

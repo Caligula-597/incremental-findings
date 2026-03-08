@@ -6,6 +6,7 @@ import { PandaRail } from '@/components/panda-rail';
 import { MetricCard, SectionTitle } from '@/components/ui-kit';
 import { listSubmissions } from '@/lib/submission-repository';
 import { ARTICLE_TYPES, DISCIPLINES } from '@/lib/taxonomy';
+import { ZH_COPY } from '@/lib/site-copy';
 
 export const revalidate = 60;
 
@@ -43,7 +44,7 @@ export default async function HomePage({
       <PandaRail />
       <SiteHeader />
 
-      <SectionTitle title="Discover incremental research" subtitle="Filter by discipline and type to explore concise, high-signal findings." />
+      <SectionTitle title={ZH_COPY.home.title} subtitle={ZH_COPY.home.subtitle} />
 
       <section id="taxonomy" className="glass-panel mb-8 p-5 shadow-sm">
         <div className="flex flex-wrap items-center gap-3">
@@ -56,7 +57,7 @@ export default async function HomePage({
                 className="rounded-full border border-zinc-300 px-3 py-1 text-sm hover:bg-zinc-100"
                 href={selectedArticleType ? `/?article_type=${encodeURIComponent(selectedArticleType)}` : '/'}
               >
-                All disciplines
+                全部学科
               </Link>
               {DISCIPLINES.map((discipline) => (
                 <Link
@@ -81,7 +82,7 @@ export default async function HomePage({
                 className="rounded-full border border-zinc-300 px-3 py-1 text-sm hover:bg-zinc-100"
                 href={selectedDiscipline ? `/?discipline=${encodeURIComponent(selectedDiscipline)}` : '/'}
               >
-                All types
+                全部类型
               </Link>
               {ARTICLE_TYPES.map((articleType) => (
                 <Link
@@ -208,7 +209,7 @@ export default async function HomePage({
             Manage account & ORCID
           </Link>
           <Link className="btn btn-secondary" href="/editor">
-            Open editorial workspace
+            进入编辑部
           </Link>
         </div>
       </section>
