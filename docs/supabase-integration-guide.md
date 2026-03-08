@@ -52,7 +52,8 @@ NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 ```
 
-> 说明：服务端实际使用 `SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY`；如果没有就会回退到 public 变量，再不行才走 memory。
+> 说明：服务端现在只使用 `SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY`。
+> 若缺少 service role key，服务端会自动回退到 memory 模式（避免 anon key 触发 RLS 写入失败）。
 
 ---
 
