@@ -23,6 +23,7 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
   - `audit_logs`
 
 ## Extra implementation guide
+- RLS 强化与策略示例：`docs/rls-hardening-guide.md`
 - Supabase 对接完整指引：`docs/supabase-integration-guide.md`
 
 ## Stack
