@@ -11,49 +11,6 @@ export type FeatureModule = {
 
 export const FEATURE_ROADMAP: FeatureModule[] = [
   {
-    id: 'review-lifecycle',
-    module: 'Peer Review Lifecycle',
-    goal: '支持送审、审稿人分配、意见回收、轮次管理、终审决策。',
-    currentState: 'missing',
-    priority: 'p0',
-    requiredApis: [
-      'POST /api/reviews/assign',
-      'POST /api/reviews/invitations/:id/respond',
-      'POST /api/reviews/:id/submit-report',
-      'POST /api/submissions/:id/decision'
-    ],
-    dataContracts: ['review_rounds', 'review_assignments', 'review_reports', 'editor_decisions'],
-    nextMilestone: '先实现编辑端分配审稿人与意见汇总，再做多轮修回流程。'
-  },
-  {
-    id: 'production-pipeline',
-    module: 'Production & Publication',
-    goal: '录用后进入排版、校对、上线与 DOI 注册回执链路。',
-    currentState: 'partial',
-    priority: 'p1',
-    requiredApis: [
-      'POST /api/production/:id/start',
-      'POST /api/production/:id/proof',
-      'POST /api/production/:id/publish-package'
-    ],
-    dataContracts: ['production_jobs', 'proof_tasks', 'publication_packages'],
-    nextMilestone: '把 publish + doi 从单步骤拆成可追踪的生产流水线。'
-  },
-  {
-    id: 'anti-abuse',
-    module: 'Security & Anti-abuse',
-    goal: '对注册、登录、投稿接口做风控、速率控制和审计增强。',
-    currentState: 'partial',
-    priority: 'p1',
-    requiredApis: [
-      'POST /api/security/risk-check',
-      'GET /api/security/events',
-      'POST /api/security/block'
-    ],
-    dataContracts: ['security_events', 'risk_scores', 'ip_rate_limits'],
-    nextMilestone: '先加中间件级限流和异常登录告警，再做风险评分。'
-  },
-  {
     id: 'indexing-export',
     module: 'Indexing & Metadata Export',
     goal: '向 Crossref / DOAJ / 学术索引平台导出标准元数据。',
@@ -72,7 +29,10 @@ export const FEATURE_ROADMAP: FeatureModule[] = [
 
 export const COMPLETED_FOUNDATION_ITEMS = [
   'Notification system baseline: templates + preview + send queue APIs',
-  'Submission versioning baseline: create/list revision history APIs'
+  'Submission versioning baseline: create/list revision history APIs',
+  'Peer review lifecycle baseline: assign/respond/report/decision APIs',
+  'Production pipeline baseline: start/proof/publish package APIs',
+  'Security anti-abuse baseline: risk-check/events/block APIs'
 ];
 
 export function getRoadmapSummary() {

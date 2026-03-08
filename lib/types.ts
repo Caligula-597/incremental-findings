@@ -109,3 +109,87 @@ export interface SubmissionVersionRecord {
   metadata_json?: string | null;
   created_at: string;
 }
+
+
+export interface ReviewAssignmentRecord {
+  id: string;
+  submission_id: string;
+  reviewer_email: string;
+  editor_email: string;
+  round_index: number;
+  status: 'invited' | 'accepted' | 'declined' | 'completed';
+  due_at?: string | null;
+  responded_at?: string | null;
+  created_at: string;
+}
+
+export interface ReviewReportRecord {
+  id: string;
+  submission_id: string;
+  assignment_id: string;
+  reviewer_email: string;
+  recommendation: 'accept' | 'minor_revision' | 'major_revision' | 'reject';
+  summary: string;
+  confidential_note?: string | null;
+  created_at: string;
+}
+
+export interface EditorDecisionRecord {
+  id: string;
+  submission_id: string;
+  decision: 'accept' | 'reject' | 'revise';
+  mapped_status: SubmissionStatus;
+  reason: string;
+  editor_email: string;
+  created_at: string;
+}
+
+
+export interface ProductionJobRecord {
+  id: string;
+  submission_id: string;
+  stage: 'started' | 'proof_ready' | 'package_published';
+  editor_email: string;
+  note?: string | null;
+  created_at: string;
+}
+
+export interface PublicationPackageRecord {
+  id: string;
+  submission_id: string;
+  package_url: string;
+  checksum?: string | null;
+  editor_email: string;
+  created_at: string;
+}
+
+
+export interface SecurityEventRecord {
+  id: string;
+  kind: 'risk_check' | 'blocked' | 'alert';
+  actor_email?: string | null;
+  ip?: string | null;
+  route?: string | null;
+  detail: string;
+  risk_score?: number | null;
+  created_at: string;
+}
+
+export interface RiskScoreRecord {
+  id: string;
+  ip: string;
+  route: string;
+  score: number;
+  decision: 'allow' | 'challenge' | 'block';
+  reasons: string[];
+  created_at: string;
+}
+
+export interface IpRateLimitRecord {
+  id: string;
+  ip: string;
+  route: string;
+  blocked_until: string;
+  reason: string;
+  created_at: string;
+}

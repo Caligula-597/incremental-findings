@@ -45,6 +45,17 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - `POST /api/submissions/:id/publish` (compat alias)
 - `POST /api/submissions/:id/doi` (assign DOI for published submissions)
 - `GET/POST /api/submissions/:id/revisions` (submission version history baseline)
+- `POST /api/reviews/assign` (editor assigns reviewer)
+- `POST /api/reviews/invitations/:id/respond` (reviewer accepts/declines)
+- `POST /api/reviews/:id/submit-report` (review report submission)
+- `POST /api/submissions/:id/decision` (editor decision endpoint)
+- `GET /api/production/:id` (editor production timeline)
+- `POST /api/production/:id/start` (start production workflow)
+- `POST /api/production/:id/proof` (mark proof-ready stage)
+- `POST /api/production/:id/publish-package` (final publication package + status sync)
+- `POST /api/security/risk-check` (risk scoring for routes/IPs)
+- `GET /api/security/events` (editor security event feed)
+- `POST /api/security/block` (editor block IP/range placeholder)
 - `GET /api/public/journal-profile` (public mission + live metrics)
 - `GET /api/public/submissions` (public article index feed)
 - `GET /api/public/submissions/:id/citation?format=bibtex` (citation export)
@@ -133,6 +144,90 @@ CREATE TABLE IF NOT EXISTS submission_versions (
   revision_summary TEXT NOT NULL,
   actor_email TEXT NOT NULL,
   metadata_json TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+CREATE TABLE IF NOT EXISTS review_assignments (
+  id UUID PRIMARY KEY,
+  submission_id UUID NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+  reviewer_email TEXT NOT NULL,
+  editor_email TEXT NOT NULL,
+  round_index INT NOT NULL DEFAULT 1,
+  status TEXT NOT NULL,
+  due_at TIMESTAMPTZ,
+  responded_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS review_reports (
+  id UUID PRIMARY KEY,
+  submission_id UUID NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+  assignment_id UUID NOT NULL REFERENCES review_assignments(id) ON DELETE CASCADE,
+  reviewer_email TEXT NOT NULL,
+  recommendation TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  confidential_note TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS editor_decisions (
+  id UUID PRIMARY KEY,
+  submission_id UUID NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+  decision TEXT NOT NULL,
+  mapped_status TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  editor_email TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+CREATE TABLE IF NOT EXISTS production_jobs (
+  id UUID PRIMARY KEY,
+  submission_id UUID NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+  stage TEXT NOT NULL,
+  editor_email TEXT NOT NULL,
+  note TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS publication_packages (
+  id UUID PRIMARY KEY,
+  submission_id UUID NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+  package_url TEXT NOT NULL,
+  checksum TEXT,
+  editor_email TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+CREATE TABLE IF NOT EXISTS security_events (
+  id UUID PRIMARY KEY,
+  kind TEXT NOT NULL,
+  actor_email TEXT,
+  ip TEXT,
+  route TEXT,
+  detail TEXT NOT NULL,
+  risk_score INT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS risk_scores (
+  id UUID PRIMARY KEY,
+  ip TEXT NOT NULL,
+  route TEXT NOT NULL,
+  score INT NOT NULL,
+  decision TEXT NOT NULL,
+  reasons TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS ip_rate_limits (
+  id UUID PRIMARY KEY,
+  ip TEXT NOT NULL,
+  route TEXT NOT NULL,
+  blocked_until TIMESTAMPTZ NOT NULL,
+  reason TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 ```
@@ -256,9 +351,6 @@ Open http://localhost:3000
 
 
 ## What is still missing before "real-journal" readiness
-- **P0**: Peer review lifecycle (assignment/invitation/report/decision).
-- **P1**: Production workflow (copyedit/proof/publish package) with DOI handoff receipts.
-- **P1**: Security hardening (rate limits, risk events, abuse controls).
 - **P1**: Metadata exports (RIS/CSL-JSON and indexing export jobs).
 - All modules are exposed in machine-readable form via `GET /api/public/platform-readiness`.
 
@@ -271,4 +363,17 @@ Open http://localhost:3000
 - ✅ Submission versioning baseline is now implemented:
   - revision list/create: `GET/POST /api/submissions/:id/revisions`
   - stores `revision_summary`, `version_index`, status snapshot, optional metadata/file URL
+- ✅ Peer review lifecycle baseline is now implemented:
+  - assign reviewer: `POST /api/reviews/assign`
+  - invitation response: `POST /api/reviews/invitations/:id/respond`
+  - review report submit: `POST /api/reviews/:id/submit-report`
+  - editor decision: `POST /api/submissions/:id/decision`
+- ✅ Production pipeline baseline is now implemented:
+  - timeline read: `GET /api/production/:id`
+  - stage transitions: `POST /api/production/:id/start`, `POST /api/production/:id/proof`
+  - final package publish: `POST /api/production/:id/publish-package`
+- ✅ Security anti-abuse baseline is now implemented:
+  - risk check: `POST /api/security/risk-check`
+  - security feed: `GET /api/security/events`
+  - block operation: `POST /api/security/block`
 - Current provider mode is `log-only` by default and switches to `resend-ready` when `RESEND_API_KEY` exists.
