@@ -3,15 +3,20 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { SiteHeader } from '@/components/header';
 import { getSubmissionById } from '@/lib/submission-repository';
+import { getSiteCopy, getSiteLang } from '@/lib/site-copy';
+import { withLang } from '@/lib/lang';
 
 interface PaperPageProps {
   params: { id: string };
+  searchParams?: { lang?: string };
 }
 
-export async function generateMetadata({ params }: PaperPageProps): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: PaperPageProps): Promise<Metadata> {
+  const lang = getSiteLang(searchParams?.lang);
+  const copy = getSiteCopy(lang);
   const paper = await getSubmissionById(params.id);
   if (!paper || paper.status !== 'published') {
-    return { title: 'Paper not found · Incremental Findings' };
+    return { title: copy.paperDetail.notFound };
   }
 
   const title = `${paper.title} · Incremental Findings`;
@@ -28,7 +33,9 @@ export async function generateMetadata({ params }: PaperPageProps): Promise<Meta
   };
 }
 
-export default async function PaperDetailPage({ params }: PaperPageProps) {
+export default async function PaperDetailPage({ params, searchParams }: PaperPageProps) {
+  const lang = getSiteLang(searchParams?.lang);
+  const copy = getSiteCopy(lang);
   const paper = await getSubmissionById(params.id);
   if (!paper || paper.status !== 'published') {
     notFound();
@@ -55,7 +62,7 @@ export default async function PaperDetailPage({ params }: PaperPageProps) {
     <main>
       <SiteHeader />
       <article className="glass-panel p-7">
-        <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Published paper</p>
+        <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">{copy.paperDetail.publishedArticle}</p>
         <h1 className="mt-2 font-serif text-4xl leading-tight">{paper.title}</h1>
         <p className="mt-3 text-sm text-zinc-600">{paper.authors}</p>
 
@@ -73,32 +80,28 @@ export default async function PaperDetailPage({ params }: PaperPageProps) {
             </a>
           </p>
         ) : (
-          <p className="mt-4 text-sm text-zinc-500">DOI pending assignment</p>
+          <p className="mt-4 text-sm text-zinc-500">{copy.paperDetail.doiPending}</p>
         )}
 
         <section className="mt-6">
-          <h2 className="font-semibold">Abstract</h2>
-          <p className="mt-2 whitespace-pre-wrap text-sm text-zinc-700">{paper.abstract ?? 'No abstract provided.'}</p>
+          <h2 className="font-semibold">{copy.paperDetail.abstract}</h2>
+          <p className="mt-2 whitespace-pre-wrap text-sm text-zinc-700">{paper.abstract ?? copy.paperDetail.noAbstract}</p>
         </section>
 
         <div className="mt-7 flex flex-wrap gap-3">
           <a className="btn btn-primary" href={paper.file_url ?? '#'} target="_blank" rel="noreferrer">
-            View full PDF
+            {copy.paperDetail.viewPdf}
           </a>
           <a className="btn btn-secondary" href={`/api/public/submissions/${paper.id}/citation?format=bibtex`}>
-            Download BibTeX
+            {copy.paperDetail.downloadBibtex}
           </a>
-          <Link className="btn btn-secondary" href="/">
-            Back to discovery
+          <Link className="btn btn-secondary" href={withLang('/', lang)}>
+            {copy.paperDetail.backToDiscovery}
           </Link>
         </div>
       </article>
 
-      <script
-        type="application/ld+json"
-        suppressHydrationWarning
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <script type="application/ld+json" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
     </main>
   );
 }

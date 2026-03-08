@@ -157,7 +157,7 @@ export default async function HomePage({
       {rest.length > 0 ? (
         <section className="mt-12 grid gap-6 md:grid-cols-3">
           {rest.map((paper) => (
-            <PaperCard key={paper.id} paper={paper} />
+            <PaperCard key={paper.id} paper={paper} lang={lang} />
           ))}
         </section>
       ) : null}

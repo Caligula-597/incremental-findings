@@ -5,16 +5,20 @@ import { SiteHeader } from '@/components/header';
 import { TERMS_VERSION, AUTHOR_AGREEMENT_ITEMS, AUTHOR_PROTOCOL_BLOCKS } from '@/lib/legal';
 import { ARTICLE_TYPES, DISCIPLINES, TOPIC_MAP } from '@/lib/taxonomy';
 import { SectionTitle } from '@/components/ui-kit';
-
-const workflowSteps = [
-  'Account login + optional ORCID linking',
-  'Author agreement and compliance declaration',
-  'Metadata entry (title/authors/discipline/topic/type)',
-  'File package upload (manuscript + cover letter + optional supporting files)',
-  'Submission receipt + editor progression (pending → under_review → decision)'
-];
+import { getSiteCopy, getSiteLang } from '@/lib/site-copy';
+import { withLang } from '@/lib/lang';
 
 export default function SubmitPage() {
+  const [lang, setLang] = useState(getSiteLang());
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      setLang(getSiteLang(params.get('lang')));
+    }
+  }, []);
+  const copy = useMemo(() => getSiteCopy(lang), [lang]);
+
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [discipline, setDiscipline] = useState<string>(DISCIPLINES[0]);
@@ -73,13 +77,13 @@ export default function SubmitPage() {
     const body = await response.json().catch(() => ({ error: 'Unknown error' }));
 
     if (!response.ok) {
-      setMessage(`Submission failed: ${body.error ?? 'Please review required fields.'}`);
+      setMessage(`${copy.submit.failedPrefix}${body.error ?? 'Please review required fields.'}`);
       setLoading(false);
       return;
     }
 
-    const warningText = Array.isArray(body.warnings) && body.warnings.length > 0 ? ` Warnings: ${body.warnings.join(' | ')}` : '';
-    setMessage(`Submission created successfully.${warningText}`);
+    const warningText = Array.isArray(body.warnings) && body.warnings.length > 0 ? ` ${copy.submit.warningPrefix}${body.warnings.join(' | ')}` : '';
+    setMessage(`${copy.submit.success}${warningText}`);
     formElement.reset();
     setDiscipline(DISCIPLINES[0]);
     setLoading(false);
@@ -88,15 +92,12 @@ export default function SubmitPage() {
   return (
     <main>
       <SiteHeader />
-      <SectionTitle
-        title="Submission Portal"
-        subtitle="A guided pipeline with identity, compliance and package integrity checks before editorial screening."
-      />
+      <SectionTitle title={copy.submit.title} subtitle={copy.submit.subtitle} />
 
       <section className="mt-6 glass-panel p-6">
-        <h3 className="font-serif text-2xl">Workflow overview</h3>
+        <h3 className="font-serif text-2xl">{copy.submit.workflowTitle}</h3>
         <div className="mt-4 grid gap-2 lg:grid-cols-5">
-          {workflowSteps.map((item, idx) => (
+          {copy.submit.steps.map((item, idx) => (
             <div key={item} className="rounded-lg border border-zinc-200 bg-white/85 px-3 py-3 text-sm text-zinc-700">
               <span className="mb-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 text-[11px] text-white">{idx + 1}</span>
               <p className="leading-relaxed">{item}</p>
@@ -106,12 +107,10 @@ export default function SubmitPage() {
       </section>
 
       <form className="mt-6 grid gap-5 glass-panel p-6" onSubmit={onSubmit}>
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 text-sm text-emerald-900">
-          Draft hint: your account identity is prefilled from local session. Complete all required file fields before submitting.
-        </div>
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 text-sm text-emerald-900">{copy.submit.draftHint}</div>
 
         <section className="rounded-xl border border-zinc-200 bg-white/80 p-4">
-          <h3 className="font-semibold">1) Author identity</h3>
+          <h3 className="font-semibold">{copy.submit.authorIdentity}</h3>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             <input
               required
@@ -119,26 +118,26 @@ export default function SubmitPage() {
               value={userEmail}
               onChange={(event) => setUserEmail(event.target.value)}
               type="email"
-              placeholder="Your account email"
+              placeholder={copy.submit.yourEmail}
               className="rounded-lg border border-zinc-300 px-3 py-2"
             />
             <input type="hidden" name="user_id" value={userId} readOnly />
 
             {orcidId ? (
               <p className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-                Author ORCID: <span className="font-semibold">{orcidId}</span>
+                {copy.submit.authorOrcid}: <span className="font-semibold">{orcidId}</span>
               </p>
             ) : (
-              <a className="btn btn-secondary justify-center" href="/account">
-                Manage ORCID / Account
+              <a className="btn btn-secondary justify-center" href={withLang('/account', lang)}>
+                {copy.submit.manageOrcid}
               </a>
             )}
           </div>
         </section>
 
         <section className="rounded-xl border border-zinc-200 bg-white/80 p-4">
-          <h3 className="font-semibold">2) Author agreement (required)</h3>
-          <p className="mt-1 text-xs text-zinc-600">Terms version: {TERMS_VERSION}</p>
+          <h3 className="font-semibold">{copy.submit.agreement}</h3>
+          <p className="mt-1 text-xs text-zinc-600">{copy.submit.termsVersion}: {TERMS_VERSION}</p>
 
           <div className="mt-3 grid gap-3 md:grid-cols-3">
             {AUTHOR_PROTOCOL_BLOCKS.map((block) => (
@@ -172,26 +171,21 @@ export default function SubmitPage() {
             </label>
             <label className="mt-1 flex gap-2 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2">
               <input required type="checkbox" name="protocol_ack" value="true" />
-              <span>我已阅读并理解完整作者协议与审稿流程要求。</span>
+              <span>{copy.submit.protocolAck}</span>
             </label>
           </div>
         </section>
 
         <section className="rounded-xl border border-zinc-200 bg-white/80 p-4">
-          <h3 className="font-semibold">3) Manuscript metadata</h3>
+          <h3 className="font-semibold">{copy.submit.metadata}</h3>
           <div className="mt-2 grid gap-3">
-            <input required name="title" placeholder="Title" className="rounded-lg border border-zinc-300 px-3 py-2" />
-            <input required name="authors" placeholder="Authors (comma-separated)" className="rounded-lg border border-zinc-300 px-3 py-2" />
+            <input required name="title" placeholder={copy.submit.titleField} className="rounded-lg border border-zinc-300 px-3 py-2" />
+            <input required name="authors" placeholder={copy.submit.authorsField} className="rounded-lg border border-zinc-300 px-3 py-2" />
 
             <div className="grid gap-3 md:grid-cols-3">
               <label className="grid gap-1 text-sm">
-                Discipline
-                <select
-                  name="discipline"
-                  className="rounded-lg border border-zinc-300 px-3 py-2"
-                  value={discipline}
-                  onChange={(event) => setDiscipline(event.target.value)}
-                >
+                {copy.submit.discipline}
+                <select name="discipline" className="rounded-lg border border-zinc-300 px-3 py-2" value={discipline} onChange={(event) => setDiscipline(event.target.value)}>
                   {DISCIPLINES.map((item) => (
                     <option key={item} value={item}>
                       {item}
@@ -201,7 +195,7 @@ export default function SubmitPage() {
               </label>
 
               <label className="grid gap-1 text-sm">
-                Topic
+                {copy.submit.topic}
                 <select name="topic" className="rounded-lg border border-zinc-300 px-3 py-2" defaultValue={topics[0]}>
                   {topics.map((item) => (
                     <option key={item} value={item}>
@@ -212,7 +206,7 @@ export default function SubmitPage() {
               </label>
 
               <label className="grid gap-1 text-sm">
-                Article type
+                {copy.submit.articleType}
                 <select name="article_type" className="rounded-lg border border-zinc-300 px-3 py-2" defaultValue={ARTICLE_TYPES[0]}>
                   {ARTICLE_TYPES.map((item) => (
                     <option key={item} value={item}>
@@ -223,25 +217,25 @@ export default function SubmitPage() {
               </label>
             </div>
 
-            <textarea name="abstract" placeholder="Abstract" rows={5} className="rounded-lg border border-zinc-300 px-3 py-2" />
+            <textarea name="abstract" placeholder={copy.submit.abstractField} rows={5} className="rounded-lg border border-zinc-300 px-3 py-2" />
           </div>
         </section>
 
         <section className="rounded-xl border border-zinc-200 bg-white/80 p-4">
-          <h3 className="font-semibold">4) File package upload</h3>
+          <h3 className="font-semibold">{copy.submit.upload}</h3>
           <div className="mt-2 grid gap-3">
             <label className="grid gap-1 text-sm">
-              Manuscript PDF (required)
+              {copy.submit.manuscript}
               <input required name="manuscript" type="file" accept="application/pdf" className="rounded-lg border border-zinc-300 px-3 py-2" />
             </label>
 
             <label className="grid gap-1 text-sm">
-              Cover letter (required)
+              {copy.submit.coverLetter}
               <input required name="cover_letter" type="file" accept="application/pdf,.doc,.docx,.txt" className="rounded-lg border border-zinc-300 px-3 py-2" />
             </label>
 
             <label className="grid gap-1 text-sm">
-              Supporting materials (optional, multiple)
+              {copy.submit.supporting}
               <input name="supporting_files" multiple type="file" className="rounded-lg border border-zinc-300 px-3 py-2" />
             </label>
           </div>
@@ -249,9 +243,9 @@ export default function SubmitPage() {
 
         <div className="flex flex-wrap items-center gap-3">
           <button type="submit" disabled={loading} className="btn btn-primary w-fit disabled:opacity-60">
-            {loading ? 'Submitting...' : 'Submit complete package'}
+            {loading ? copy.submit.submitting : copy.submit.submitButton}
           </button>
-          <p className="text-xs text-zinc-500">Estimated editorial triage feedback: within 5–7 business days.</p>
+          <p className="text-xs text-zinc-500">{copy.submit.eta}</p>
         </div>
 
         {message ? <p className="text-sm text-zinc-700">{message}</p> : null}
