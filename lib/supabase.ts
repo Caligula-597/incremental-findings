@@ -1,6 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
+import { enforceProductionEnvRequirements, maybeWarnForProductionEnv } from '@/lib/env-guard';
 
 export function getSupabaseServerClient() {
+  const prodGuard = enforceProductionEnvRequirements();
+  if (!prodGuard.isProd) {
+    maybeWarnForProductionEnv();
+  }
+
   const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 

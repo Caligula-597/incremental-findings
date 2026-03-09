@@ -1,8 +1,11 @@
+import { getProductionEnvRequirements } from '@/lib/env-guard';
+
 export type RuntimeMode = 'supabase' | 'memory';
 
 export function getRuntimeModeSnapshot() {
   const supabaseUrl = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleConfigured = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const prodGuard = getProductionEnvRequirements();
 
   const mode: RuntimeMode = supabaseUrl && serviceRoleConfigured ? 'supabase' : 'memory';
 
@@ -14,6 +17,9 @@ export function getRuntimeModeSnapshot() {
     publicUrlConfigured: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
     sessionSecretConfigured: Boolean(process.env.SESSION_SECRET),
     editorAccessCodeConfigured: Boolean(process.env.EDITOR_ACCESS_CODE),
-    orcidConfigured: Boolean(process.env.ORCID_CLIENT_ID && process.env.ORCID_CLIENT_SECRET)
+    orcidConfigured: Boolean(process.env.ORCID_CLIENT_ID && process.env.ORCID_CLIENT_SECRET),
+    isProduction: prodGuard.isProd,
+    productionMissing: prodGuard.missing,
+    productionReady: !prodGuard.hasBlockingMissing
   };
 }
