@@ -23,6 +23,8 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
   - `audit_logs`
 
 ## Extra implementation guide
+- Supabase 团队对接问题清单：`docs/supabase-team-handoff-checklist.md`
+- Supabase 团队回复模板：`docs/supabase-team-response-template.md`
 - RLS 强化与策略示例：`docs/rls-hardening-guide.md`
 - Supabase 对接完整指引：`docs/supabase-integration-guide.md`
 

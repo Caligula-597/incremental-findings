@@ -33,6 +33,8 @@ export default function LoginPage() {
     const payload = {
       name: String(formData.get('name') ?? ''),
       email: String(formData.get('email') ?? ''),
+      username: String(formData.get('username') ?? ''),
+      identifier: String(formData.get('email') ?? ''),
       password: String(formData.get('password') ?? ''),
       editor_code: String(formData.get('editor_code') ?? '')
     };
@@ -95,13 +97,20 @@ export default function LoginPage() {
           </label>
         ) : null}
 
+        {mode === 'register' ? (
+          <label className="mt-4 grid gap-1 text-sm">
+            {copy.login.usernameOptional}
+            <input name="username" className="rounded border border-zinc-300 px-3 py-2" placeholder={copy.login.usernamePlaceholder} />
+          </label>
+        ) : null}
+
         <label className="mt-4 grid gap-1 text-sm">
-          {mode !== 'editor' ? copy.login.emailOrUsername : copy.login.email}
+          {mode === 'register' ? copy.login.email : mode !== 'editor' ? copy.login.emailOrUsername : copy.login.email}
           <input
             name="email"
             required
             className="rounded border border-zinc-300 px-3 py-2"
-            placeholder={mode === 'editor' ? copy.login.editorEmailPlaceholder : copy.login.emailPlaceholder}
+            placeholder={mode === 'editor' ? copy.login.editorEmailPlaceholder : mode === 'register' ? 'you@research.org' : copy.login.emailPlaceholder}
           />
         </label>
 

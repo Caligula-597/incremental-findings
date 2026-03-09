@@ -5,75 +5,78 @@ import { runtimeUsers } from '@/lib/runtime-store';
 import { hashPassword, needsPasswordRehash, verifyPassword } from '@/lib/auth-security';
 import { buildSessionToken, setSessionCookie } from '@/lib/session';
 
+function normalizeIdentifier(body: any) {
+  const fromIdentifier = String(body.identifier ?? '').trim().toLowerCase();
+  const fromEmail = String(body.email ?? '').trim().toLowerCase();
+  const fromUsername = String(body.username ?? '').trim().toLowerCase();
+  const identifier = fromIdentifier || fromEmail || fromUsername;
+  return identifier;
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const email = String(body.email ?? '').trim().toLowerCase();
-    const username = String(body.username ?? '').trim().toLowerCase();
-    const accountKey = email || username;
+    const identifier = normalizeIdentifier(body);
     const password = String(body.password ?? '');
 
-    if (!accountKey || !password) {
-      return NextResponse.json({ error: 'email(or username) and password are required' }, { status: 400 });
+    if (!identifier || !password) {
+      return NextResponse.json({ error: 'identifier(email or username) and password are required' }, { status: 400 });
     }
 
     const supabase = getSupabaseServerClient();
 
     if (supabase) {
-      const result = await supabase.from('user_accounts').select('id,email,name,password_hash').eq('email', accountKey).maybeSingle();
+      const byEmail = await supabase
+        .from('user_accounts')
+        .select('id,email,username,name,password_hash')
+        .eq('email', identifier)
+        .maybeSingle();
 
-      if (!result.error && result.data && verifyPassword(password, result.data.password_hash)) {
-        if (needsPasswordRehash(result.data.password_hash)) {
-          await supabase.from('user_accounts').update({ password_hash: hashPassword(password) }).eq('id', result.data.id);
+      const byUsername = await supabase
+        .from('user_accounts')
+        .select('id,email,username,name,password_hash')
+        .eq('username', identifier)
+        .maybeSingle();
+
+      const account = (!byEmail.error && byEmail.data ? byEmail.data : null) ?? (!byUsername.error && byUsername.data ? byUsername.data : null);
+
+      if (account && verifyPassword(password, account.password_hash)) {
+        if (needsPasswordRehash(account.password_hash)) {
+          await supabase.from('user_accounts').update({ password_hash: hashPassword(password) }).eq('id', account.id);
         }
 
         const sessionUser = {
-          id: result.data.id,
-          email: result.data.email ?? accountKey,
-          name: result.data.name ?? result.data.email ?? accountKey,
+          id: account.id,
+          email: account.email,
+          name: account.name ?? account.username ?? account.email,
           role: 'author' as const
         };
 
         setSessionCookie(buildSessionToken(sessionUser));
         return NextResponse.json({
-          data: { ...sessionUser, session_token: randomUUID() },
+          data: { ...sessionUser, username: account.username ?? null, session_token: randomUUID() },
           mode: 'supabase'
         });
       }
 
-      const resultV2 = await supabase.from('user_accounts').select('id,username,password_hash').eq('username', accountKey).maybeSingle();
-      if (!resultV2.error && resultV2.data && verifyPassword(password, resultV2.data.password_hash)) {
-        if (needsPasswordRehash(resultV2.data.password_hash)) {
-          await supabase.from('user_accounts').update({ password_hash: hashPassword(password) }).eq('id', resultV2.data.id);
-        }
-
-        const sessionUser = {
-          id: resultV2.data.id,
-          email: resultV2.data.username,
-          name: resultV2.data.username,
-          role: 'author' as const
-        };
-
-        setSessionCookie(buildSessionToken(sessionUser));
-        return NextResponse.json({
-          data: { ...sessionUser, session_token: randomUUID() },
-          mode: 'supabase-v2'
-        });
-      }
-
-      if (result.error && resultV2.error) {
+      if (byEmail.error && byUsername.error) {
         return NextResponse.json(
-          { error: `Failed to query account from Supabase: ${result.error.message}; ${resultV2.error.message}` },
+          { error: `Failed to query account from Supabase: ${byEmail.error.message}; ${byUsername.error.message}` },
           { status: 500 }
         );
       }
 
-      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+      return NextResponse.json({ error: 'Invalid email/username or password' }, { status: 401 });
     }
 
-    const user = runtimeUsers.find((item) => item.email === accountKey && verifyPassword(password, item.password_hash));
+    const user = runtimeUsers.find(
+      (item) =>
+        (item.email === identifier || (item.username ? item.username.toLowerCase() === identifier : false)) &&
+        verifyPassword(password, item.password_hash)
+    );
+
     if (!user) {
-      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+      return NextResponse.json({ error: 'Invalid email/username or password' }, { status: 401 });
     }
 
     if (needsPasswordRehash(user.password_hash)) {
@@ -89,7 +92,7 @@ export async function POST(request: Request) {
 
     setSessionCookie(buildSessionToken(sessionUser));
     return NextResponse.json({
-      data: { ...sessionUser, session_token: randomUUID() },
+      data: { ...sessionUser, username: user.username ?? null, session_token: randomUUID() },
       mode: 'memory'
     });
   } catch (error) {

@@ -86,10 +86,13 @@ create index if not exists idx_submissions_created_at on submissions(created_at 
 
 ### 3.2 账号与 ORCID
 
+> 对接统一说明：当前前后端短期兼容方案保留 `username` 字段，并要求唯一索引。
+
 ```sql
 create table if not exists user_accounts (
   id uuid primary key default uuid_generate_v4(),
   email text unique not null,
+  username text unique,
   name text not null,
   password_hash text not null,
   role text default 'author',
@@ -97,6 +100,7 @@ create table if not exists user_accounts (
 );
 
 create unique index if not exists idx_user_accounts_email on user_accounts(email);
+create unique index if not exists idx_user_accounts_username on user_accounts(username) where username is not null;
 
 create table if not exists orcid_links (
   user_email text primary key,

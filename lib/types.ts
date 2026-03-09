@@ -41,6 +41,7 @@ export interface DoiRegistrationResult {
 export interface AuthUser {
   id: string;
   email: string;
+  username?: string | null;
   name: string;
   password_hash: string;
   created_at: string;
