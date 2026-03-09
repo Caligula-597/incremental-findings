@@ -340,6 +340,10 @@ ALTMETRIC_API_KEY=
 - Open `/api/orcid/diagnostics` to verify callback/credential wiring without exposing secrets.
 - When token exchange fails, `/api/orcid/callback` returns diagnostic metadata (fingerprints + callback match checks).
 
+## Supabase migrations included in repo
+- `supabase/migrations/202603090001_auth_alignment_and_rls.sql`: auth contract alignment (`username` + identity-table RLS baseline).
+- `supabase/migrations/202603090002_submissions_normalization_rls_audit.sql`: submissions ownership/RLS hardening, `submission_authors`, audit trigger, and `vw_submissions_for_user`.
+
 ## Run locally
 ```bash
 npm install
