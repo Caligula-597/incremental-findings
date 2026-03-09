@@ -73,6 +73,7 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - `GET /api/public/perf-hints` (runtime lag diagnosis hints + mitigations)
 - `GET /api/public/professionalization-plan` (current implementation depth + prioritized next hardening actions)
 - `GET /api/public/backend-recommendation` (backend integration options + current config snapshot)
+- `GET /api/public/supabase-health` (current runtime mode + key config diagnostics)
 
 ## Required Supabase table
 Base submissions table:
@@ -101,10 +102,15 @@ ALTER TABLE submissions
 CREATE TABLE IF NOT EXISTS user_accounts (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   email TEXT UNIQUE NOT NULL,
+  username TEXT,
   name TEXT NOT NULL,
   password_hash TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS user_accounts_username_key
+  ON user_accounts(username)
+  WHERE username IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS orcid_links (
   user_email TEXT PRIMARY KEY,
@@ -304,7 +310,7 @@ Create `.env.local`:
 SUPABASE_URL=your_project_url
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
-# If service key is not provided, server will fallback to:
+# Optional public client keys (for browser reads only)
 NEXT_PUBLIC_SUPABASE_URL=your_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 
@@ -326,8 +332,8 @@ UNPAYWALL_EMAIL=
 ALTMETRIC_API_KEY=
 ```
 
-> Authentication persistence uses Supabase when any supported server key pair exists.
-> Memory fallback is only used when Supabase is completely unconfigured.
+> Server-side persistent writes require both `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
+> When either one is missing, the project runs in memory fallback mode (safe for local demo only).
 
 ## ORCID troubleshooting
 - Open `/api/orcid/diagnostics` to verify callback/credential wiring without exposing secrets.
