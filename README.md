@@ -334,7 +334,7 @@ ALTMETRIC_API_KEY=
 
 > Server-side persistent writes require both `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
 > When either one is missing, the project runs in memory fallback mode (safe for local demo only).
-> In `NODE_ENV=production`, the server now fails fast when required integration/security keys are missing (`SESSION_SECRET`, `EDITOR_ACCESS_CODE`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`).
+> In `NODE_ENV=production`, missing integration/security keys are logged as configuration warnings and server data access degrades to safe fallback mode where possible; set `SESSION_SECRET`, `EDITOR_ACCESS_CODE`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` for full production behavior.
 
 ## ORCID troubleshooting
 - Open `/api/orcid/diagnostics` to verify callback/credential wiring without exposing secrets.

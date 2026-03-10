@@ -21,21 +21,10 @@ export function getProductionEnvRequirements() {
   };
 }
 
+// Soft guard: never throw from shared helpers to avoid taking down unrelated pages/routes.
+// Callers can decide whether to reject writes explicitly; shared read/diagnostic paths should degrade gracefully.
 export function enforceProductionEnvRequirements() {
-  const status = getProductionEnvRequirements();
-
-  // During build/prerender we should never hard-fail the bundle output;
-  // we only enforce fail-fast at runtime request handling.
-  if (!status.isProd || !status.hasBlockingMissing || status.isBuildPhase) {
-    return status;
-  }
-
-  const missingKeys = Object.entries(status.missing)
-    .filter(([, value]) => value)
-    .map(([key]) => key)
-    .join(', ');
-
-  throw new Error(`Missing required production configuration: ${missingKeys}`);
+  return getProductionEnvRequirements();
 }
 
 export function maybeWarnForProductionEnv() {
