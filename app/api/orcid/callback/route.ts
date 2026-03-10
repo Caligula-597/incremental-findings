@@ -126,7 +126,8 @@ export async function GET(request: NextRequest) {
 
   const record = {
     user_email: normalizedEmail,
-    user_id: resolvedUserId,
+    // In memory mode, keep state user_id to preserve account linkage on status lookup.
+    user_id: resolvedUserId ?? userIdFromState,
     orcid_id: orcidId,
     verified: true,
     connected_at: new Date().toISOString(),

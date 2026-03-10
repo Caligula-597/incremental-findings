@@ -61,8 +61,11 @@ export default function AccountPage() {
   useEffect(() => {
     async function loadOrcid() {
       if (!user?.email && !user?.id) return;
-      const query = user?.id ? `user_id=${encodeURIComponent(user.id)}` : `email=${encodeURIComponent(user?.email ?? '')}`;
-      const response = await fetch(`/api/orcid/status?${query}`);
+      const query = new URLSearchParams();
+      if (user?.id) query.set('user_id', user.id);
+      if (user?.email) query.set('email', user.email);
+
+      const response = await fetch(`/api/orcid/status?${query.toString()}`);
       const body = await response.json().catch(() => ({ data: null }));
       if (body.data?.orcid_id) {
         setOrcid(body.data.orcid_id);
