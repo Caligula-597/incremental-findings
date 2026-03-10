@@ -1,5 +1,9 @@
 let hasLoggedProdWarning = false;
 
+function isBuildPhase() {
+  return process.env.NEXT_PHASE === 'phase-production-build' || process.env.npm_lifecycle_event === 'build';
+}
+
 export function getProductionEnvRequirements() {
   const isProd = process.env.NODE_ENV === 'production';
   const missing = {
@@ -12,14 +16,17 @@ export function getProductionEnvRequirements() {
   return {
     isProd,
     missing,
-    hasBlockingMissing: Object.values(missing).some(Boolean)
+    hasBlockingMissing: Object.values(missing).some(Boolean),
+    isBuildPhase: isBuildPhase()
   };
 }
 
 export function enforceProductionEnvRequirements() {
   const status = getProductionEnvRequirements();
 
-  if (!status.isProd || !status.hasBlockingMissing) {
+  // During build/prerender we should never hard-fail the bundle output;
+  // we only enforce fail-fast at runtime request handling.
+  if (!status.isProd || !status.hasBlockingMissing || status.isBuildPhase) {
     return status;
   }
 
@@ -27,11 +34,6 @@ export function enforceProductionEnvRequirements() {
     .filter(([, value]) => value)
     .map(([key]) => key)
     .join(', ');
-
-  if (!hasLoggedProdWarning) {
-    hasLoggedProdWarning = true;
-    throw new Error(`Missing required production configuration: ${missingKeys}`);
-  }
 
   throw new Error(`Missing required production configuration: ${missingKeys}`);
 }
@@ -48,6 +50,7 @@ export function maybeWarnForProductionEnv() {
     .join(', ');
 
   hasLoggedProdWarning = true;
-  console.error(`[config] Missing required production configuration: ${missingKeys}`);
+  const phase = status.isBuildPhase ? 'build' : 'runtime';
+  console.error(`[config:${phase}] Missing required production configuration: ${missingKeys}`);
   return status;
 }

@@ -3,7 +3,7 @@ import { enforceProductionEnvRequirements, maybeWarnForProductionEnv } from '@/l
 
 export function getSupabaseServerClient() {
   const prodGuard = enforceProductionEnvRequirements();
-  if (!prodGuard.isProd) {
+  if (prodGuard.hasBlockingMissing) {
     maybeWarnForProductionEnv();
   }
 
