@@ -219,6 +219,26 @@ create table if not exists publication_packages (
 );
 ```
 
+### 3.5A 出版伦理工单（P1）
+
+```sql
+create table if not exists ethics_cases (
+  id uuid primary key,
+  submission_id uuid not null references submissions(id) on delete cascade,
+  case_type text not null,
+  status text not null,
+  summary text not null,
+  reporter_email text not null,
+  owner_email text,
+  resolution_note text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create index if not exists idx_ethics_cases_submission_id on ethics_cases(submission_id);
+create index if not exists idx_ethics_cases_status on ethics_cases(status);
+```
+
 ### 3.5 通知 / 安全 / 索引导出
 
 ```sql
@@ -375,3 +395,17 @@ create table if not exists metadata_snapshots (
 3. 最后把“生产禁用 memory 写入”做成环境开关（如 `REQUIRE_DB=true`）。
 
 如果你同意，我下一步就按这三项继续落地。
+
+
+## 8. 审查制度参数（P1）
+
+可通过环境变量控制审查制度默认值：
+
+```bash
+REVIEW_MODEL=single_blind
+REQUIRE_COI_DISCLOSURE=true
+ENFORCE_REVIEWER_AUTHOR_SEPARATION=true
+DEFAULT_REVIEW_DUE_DAYS=21
+```
+
+并通过 `GET /api/public/review-policy` 对外暴露当前策略快照。

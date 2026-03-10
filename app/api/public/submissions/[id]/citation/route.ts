@@ -2,6 +2,43 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSubmissionById } from '@/lib/submission-repository';
 import { isResolvableDoi } from '@/lib/doi';
 
+
+function escapeXml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function toJatsXml(paper: { id: string; title: string; authors: string; created_at: string; abstract?: string | null; doi?: string | null }) {
+  const year = new Date(paper.created_at).getUTCFullYear();
+  const contributors = paper.authors
+    .split(',')
+    .map((a) => a.trim())
+    .filter(Boolean)
+    .map((name) => `<contrib contrib-type="author"><name><string-name>${escapeXml(name)}</string-name></name></contrib>`)
+    .join('');
+
+  const articleId = isResolvableDoi(paper.doi)
+    ? `<article-id pub-id-type="doi">${escapeXml(paper.doi ?? '')}</article-id>`
+    : `<article-id pub-id-type="publisher-id">${escapeXml(paper.id)}</article-id>`;
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<article article-type="research-article">
+  <front>
+    <article-meta>
+      ${articleId}
+      <title-group><article-title>${escapeXml(paper.title)}</article-title></title-group>
+      <contrib-group>${contributors}</contrib-group>
+      <pub-date><year>${year}</year></pub-date>
+      ${paper.abstract ? `<abstract><p>${escapeXml(paper.abstract)}</p></abstract>` : ''}
+    </article-meta>
+  </front>
+</article>`;
+}
+
 function toCitationKey(title: string, createdAt: string) {
   const y = new Date(createdAt).getUTCFullYear();
   const slug = title
@@ -92,7 +129,17 @@ export async function GET(request: NextRequest, context: { params: { id: string 
       return NextResponse.json({ data: toCslJson(paper) });
     }
 
-    return NextResponse.json({ error: 'Unsupported format. Use bibtex|ris|csl-json' }, { status: 400 });
+    if (format === 'jats') {
+      const xml = toJatsXml(paper);
+      return new NextResponse(xml, {
+        headers: {
+          'Content-Type': 'application/xml; charset=utf-8',
+          'Content-Disposition': `attachment; filename="${context.params.id}.xml"`
+        }
+      });
+    }
+
+    return NextResponse.json({ error: 'Unsupported format. Use bibtex|ris|csl-json|jats' }, { status: 400 });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
     return NextResponse.json({ error: message }, { status: 500 });

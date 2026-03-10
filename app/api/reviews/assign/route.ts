@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSessionUser } from '@/lib/session';
 import { getSubmissionById } from '@/lib/submission-repository';
 import { assignReviewer } from '@/lib/review-service';
+import { getReviewPolicyConfig, reviewerConflictsWithAuthors } from '@/lib/review-policy';
 
 export async function POST(request: Request) {
   try {
@@ -25,12 +26,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
     }
 
+
+    const policy = getReviewPolicyConfig();
+    const coiDisclosure = body?.coi_disclosure ? String(body.coi_disclosure).trim() : '';
+
+    if (policy.enforceReviewerAuthorSeparation && reviewerConflictsWithAuthors(reviewerEmail, submission.authors)) {
+      return NextResponse.json({ error: 'Reviewer conflict detected: reviewer appears in author metadata' }, { status: 409 });
+    }
+
+    if (policy.requireCoiDisclosure && !coiDisclosure) {
+      return NextResponse.json({ error: 'coi_disclosure is required by current review policy' }, { status: 400 });
+    }
     const assignment = await assignReviewer({
       submissionId,
       reviewerEmail,
       editorEmail: sessionUser.email,
       roundIndex: Number.isFinite(roundIndex) ? Math.max(1, roundIndex) : 1,
-      dueAt
+      dueAt: dueAt ?? new Date(Date.now() + policy.defaultReviewDueDays * 24 * 60 * 60 * 1000).toISOString()
     });
 
     return NextResponse.json({ data: assignment }, { status: 201 });

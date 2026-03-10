@@ -53,7 +53,7 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - `POST /api/submissions/:id/publish` (compat alias)
 - `POST /api/submissions/:id/doi` (assign temporary publication identifier; replace with real DOI provider later)
 - `GET/POST /api/submissions/:id/revisions` (submission version history baseline)
-- `POST /api/reviews/assign` (editor assigns reviewer)
+- `POST /api/reviews/assign` (editor assigns reviewer; enforces COI/review policy constraints)
 - `POST /api/reviews/invitations/:id/respond` (reviewer accepts/declines)
 - `POST /api/reviews/:id/submit-report` (review report submission)
 - `POST /api/submissions/:id/decision` (editor decision endpoint)
@@ -67,9 +67,10 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - `GET /api/indexing/export` (editor indexing export jobs)
 - `POST /api/indexing/export/:provider` (queue metadata export to provider)
 - `GET /api/public/journal-profile` (public mission + live metrics)
+- `GET /api/public/review-policy` (current review model/COI/SLA defaults)
 - `GET /api/public/journal-standards` (peer review / ethics / QA / metadata standard baseline)
 - `GET /api/public/submissions` (public article index feed)
-- `GET /api/public/submissions/:id/citation?format=bibtex` (citation export)
+- `GET /api/public/submissions/:id/citation?format=bibtex|ris|csl-json|jats` (citation/metadata export)
 - `GET /api/public/integrations/requirements` (external API readiness + missing env checklist)
 - `GET /api/public/platform-readiness` (feature gap map + priority milestones)
 - `GET /api/public/module-readiness` (implemented-module verification snapshot)
@@ -77,6 +78,8 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - `GET /api/public/professionalization-plan` (current implementation depth + prioritized next hardening actions)
 - `GET /api/public/backend-recommendation` (backend integration options + current config snapshot)
 - `GET /api/public/supabase-health` (current runtime mode + key config diagnostics)
+- `GET/POST /api/ethics/cases` (editor ethics case queue)
+- `PATCH /api/ethics/cases/:id` (editor ethics case status/resolution update)
 
 ## Required Supabase table
 Base submissions table:
@@ -334,6 +337,10 @@ DATACITE_REPOSITORY_ID=
 DATACITE_API_TOKEN=
 UNPAYWALL_EMAIL=
 ALTMETRIC_API_KEY=
+REVIEW_MODEL=single_blind
+REQUIRE_COI_DISCLOSURE=true
+ENFORCE_REVIEWER_AUTHOR_SEPARATION=true
+DEFAULT_REVIEW_DUE_DAYS=21
 ```
 
 > Server-side persistent writes require both `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
@@ -347,6 +354,7 @@ ALTMETRIC_API_KEY=
 ## Supabase migrations included in repo
 - `supabase/migrations/202603090001_auth_alignment_and_rls.sql`: auth contract alignment (`username` + identity-table RLS baseline).
 - `supabase/migrations/202603090002_submissions_normalization_rls_audit.sql`: submissions ownership/RLS hardening, `submission_authors`, audit trigger, and `vw_submissions_for_user`.
+- `supabase/migrations/202603090003_ethics_cases_and_policy_support.sql`: publication ethics case table, indexes and service-role RLS baseline.
 
 ## Run locally
 ```bash

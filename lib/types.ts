@@ -209,7 +209,21 @@ export interface IndexingExportRecord {
 export interface MetadataSnapshotRecord {
   id: string;
   submission_id: string;
-  format: 'bibtex' | 'ris' | 'csl-json';
+  format: 'bibtex' | 'ris' | 'csl-json' | 'jats';
   content: string;
   created_at: string;
+}
+
+
+export interface EthicsCaseRecord {
+  id: string;
+  submission_id: string;
+  case_type: 'retraction' | 'correction' | 'expression_of_concern' | 'ethics_inquiry';
+  status: 'open' | 'under_review' | 'resolved' | 'rejected';
+  summary: string;
+  reporter_email: string;
+  owner_email?: string | null;
+  resolution_note?: string | null;
+  created_at: string;
+  updated_at: string;
 }
