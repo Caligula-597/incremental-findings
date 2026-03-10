@@ -14,7 +14,7 @@ export async function GET() {
     guidance,
     productionGate:
       snapshot.isProduction && !snapshot.productionReady
-        ? 'Production mode has missing required configuration. Requests using server integrations can fail fast.'
+        ? 'Production mode has missing required configuration. Server integrations may degrade to fallback behavior and emit warnings.'
         : 'Production configuration gate is satisfied or not active (non-production).'
   });
 }

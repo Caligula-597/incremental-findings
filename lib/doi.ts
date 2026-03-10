@@ -1,8 +1,8 @@
 import { createHash } from 'crypto';
 import { DoiRegistrationResult, Submission } from '@/lib/types';
 
-function sanitizeDoiPrefix(value: string) {
-  return value.trim().replace(/^https?:\/\/doi\.org\//i, '').replace(/\/+$/, '');
+function sanitize(value: string) {
+  return value.trim().replace(/^https?:\/\/doi\.org\//i, '').replace(/\/+$|\s+/g, '');
 }
 
 function slug(value: string) {
@@ -10,21 +10,30 @@ function slug(value: string) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
-    .slice(0, 40);
+    .slice(0, 32);
+}
+
+export function isResolvableDoi(value: string | null | undefined) {
+  if (!value) return false;
+  const normalized = sanitize(value);
+  return /^10\./.test(normalized);
 }
 
 export function buildDoiForSubmission(submission: Submission): DoiRegistrationResult {
-  const prefix = sanitizeDoiPrefix(process.env.DOI_PREFIX ?? '10.5555');
+  const placeholderPrefix = slug(process.env.DOI_PLACEHOLDER_PREFIX ?? 'if-tmp');
   const registrant = slug(process.env.DOI_REGISTRANT ?? 'incremental-findings');
-  const idHash = createHash('sha1').update(`${submission.id}:${submission.created_at}`).digest('hex').slice(0, 8);
+  const idHash = createHash('sha1').update(`${submission.id}:${submission.created_at}`).digest('hex').slice(0, 12);
   const titlePart = slug(submission.title) || 'untitled';
-  const suffix = `${registrant}.${titlePart}.${idHash}`;
   const registeredAt = new Date().toISOString();
+
+  // Temporary non-DOI publication identifier until real provider integration is enabled.
+  // Example: IFTMP:incremental-findings:graph-neural-networks:2d5a0c48aa11
+  const placeholderId = `${placeholderPrefix}:${registrant}:${titlePart}:${idHash}`;
 
   return {
     submission_id: submission.id,
-    doi: `${prefix}/${suffix}`,
+    doi: placeholderId,
     registered_at: registeredAt,
-    provider: process.env.CROSSREF_API_BASE ? 'crossref-ready' : 'mock'
+    provider: 'internal-placeholder'
   };
 }

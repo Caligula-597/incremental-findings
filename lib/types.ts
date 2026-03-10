@@ -35,7 +35,7 @@ export interface DoiRegistrationResult {
   submission_id: string;
   doi: string;
   registered_at: string;
-  provider: 'mock' | 'crossref-ready';
+  provider: 'internal-placeholder' | 'crossref-ready';
 }
 
 export interface AuthUser {

@@ -50,10 +50,14 @@ SUPABASE_URL=...
 SUPABASE_SERVICE_ROLE_KEY=...
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+DOI_PLACEHOLDER_PREFIX=if-tmp
 ```
 
 > 说明：服务端现在只使用 `SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY`。
 > 若缺少 service role key，服务端会自动回退到 memory 模式（避免 anon key 触发 RLS 写入失败）。
+
+> 当前 `/api/submissions/:id/doi` 先生成**内部唯一占位标识**（例如 `if-tmp:incremental-findings:paper-title:abc123...`），
+> 待后续接入 Crossref/DataCite 后再切换为真实 DOI。
 
 ---
 

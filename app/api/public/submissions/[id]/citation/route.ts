@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSubmissionById } from '@/lib/submission-repository';
+import { isResolvableDoi } from '@/lib/doi';
 
 function toCitationKey(title: string, createdAt: string) {
   const y = new Date(createdAt).getUTCFullYear();
@@ -13,7 +14,7 @@ function toCitationKey(title: string, createdAt: string) {
 function toBibTeX(paper: { title: string; authors: string; created_at: string; doi?: string | null; file_url?: string | null }) {
   const key = toCitationKey(paper.title, paper.created_at);
   const year = new Date(paper.created_at).getUTCFullYear();
-  const doiLine = paper.doi ? `  doi = {${paper.doi}},\n` : '';
+  const doiLine = isResolvableDoi(paper.doi) ? `  doi = {${paper.doi}},\n` : '';
   const urlLine = paper.file_url ? `  url = {${paper.file_url}},\n` : '';
   return `@article{${key},\n  title = {${paper.title}},\n  author = {${paper.authors}},\n  journal = {Incremental Findings},\n  year = {${year}},\n${doiLine}${urlLine}}\n`;
 }
@@ -27,7 +28,7 @@ function toRIS(paper: { title: string; authors: string; created_at: string; doi?
     .map((name) => `AU  - ${name}`)
     .join('\n');
 
-  const doiLine = paper.doi ? `\nDO  - ${paper.doi}` : '';
+  const doiLine = isResolvableDoi(paper.doi) ? `\nDO  - ${paper.doi}` : '';
   const urlLine = paper.file_url ? `\nUR  - ${paper.file_url}` : '';
 
   return `TY  - JOUR\nTI  - ${paper.title}\nJO  - Incremental Findings\n${authors}\nPY  - ${year}${doiLine}${urlLine}\nER  - `;
@@ -53,7 +54,7 @@ function toCslJson(paper: { id: string; title: string; authors: string; created_
     issued: { 'date-parts': [[year]] },
     'container-title': 'Incremental Findings',
     author,
-    DOI: paper.doi ?? undefined,
+    DOI: isResolvableDoi(paper.doi) ? paper.doi ?? undefined : undefined,
     URL: paper.file_url ?? undefined
   };
 }

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { SiteHeader } from '@/components/header';
+import { isResolvableDoi } from '@/lib/doi';
 import { MetricCard, SectionTitle, StatusPill } from '@/components/ui-kit';
 import { DISCIPLINES } from '@/lib/taxonomy';
 import { Submission, SubmissionStatus } from '@/lib/types';
@@ -92,7 +93,7 @@ export default function EditorPage() {
     }
 
     const doiValue = body?.data?.doi as string | undefined;
-    setMessage(doiValue ? `DOI assigned: ${doiValue}` : 'DOI assignment completed.');
+    setMessage(doiValue ? `Publication ID assigned: ${doiValue}` : 'Identifier assignment completed.');
     await loadData();
   }
 
@@ -272,17 +273,21 @@ export default function EditorPage() {
                   View PDF
                 </a>
                 {item.doi ? (
-                  <a
-                    className="text-xs font-semibold text-zinc-700 underline"
-                    href={`https://doi.org/${item.doi}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    DOI: {item.doi}
-                  </a>
+                  isResolvableDoi(item.doi) ? (
+                    <a
+                      className="text-xs font-semibold text-zinc-700 underline"
+                      href={`https://doi.org/${item.doi}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      DOI: {item.doi}
+                    </a>
+                  ) : (
+                    <span className="text-xs font-semibold text-zinc-700">Publication ID: {item.doi}</span>
+                  )
                 ) : (
                   <button className="btn btn-secondary btn-sm" onClick={() => assignDoi(item.id)}>
-                    Assign DOI
+                    Assign Publication ID
                   </button>
                 )}
               </div>

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { SiteHeader } from '@/components/header';
 import { getSubmissionById } from '@/lib/submission-repository';
+import { isResolvableDoi } from '@/lib/doi';
 import { getSiteCopy, getSiteLang } from '@/lib/site-copy';
 import { withLang } from '@/lib/lang';
 
@@ -52,7 +53,7 @@ export default async function PaperDetailPage({ params, searchParams }: PaperPag
     headline: paper.title,
     author: citationAuthor.map((name) => ({ '@type': 'Person', name })),
     datePublished: paper.created_at,
-    identifier: paper.doi ? `https://doi.org/${paper.doi}` : paper.id,
+    identifier: isResolvableDoi(paper.doi) ? `https://doi.org/${paper.doi}` : paper.doi ?? paper.id,
     url: paper.file_url ?? undefined,
     abstract: paper.abstract ?? undefined,
     about: [paper.discipline, paper.topic, paper.article_type].filter(Boolean)
@@ -74,10 +75,14 @@ export default async function PaperDetailPage({ params, searchParams }: PaperPag
 
         {paper.doi ? (
           <p className="mt-4 text-sm text-zinc-700">
-            DOI:{' '}
-            <a className="underline" href={`https://doi.org/${paper.doi}`} target="_blank" rel="noreferrer">
-              {paper.doi}
-            </a>
+            {isResolvableDoi(paper.doi) ? 'DOI:' : 'Publication ID:'}{' '}
+            {isResolvableDoi(paper.doi) ? (
+              <a className="underline" href={`https://doi.org/${paper.doi}`} target="_blank" rel="noreferrer">
+                {paper.doi}
+              </a>
+            ) : (
+              <span>{paper.doi}</span>
+            )}
           </p>
         ) : (
           <p className="mt-4 text-sm text-zinc-500">{copy.paperDetail.doiPending}</p>

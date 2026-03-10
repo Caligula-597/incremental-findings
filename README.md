@@ -49,7 +49,7 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - `POST /api/submissions/complete` (metadata + agreements + files + SHA-256 integrity manifest)
 - `PATCH /api/submissions/:id/status`
 - `POST /api/submissions/:id/publish` (compat alias)
-- `POST /api/submissions/:id/doi` (assign DOI for published submissions)
+- `POST /api/submissions/:id/doi` (assign temporary publication identifier; replace with real DOI provider later)
 - `GET/POST /api/submissions/:id/revisions` (submission version history baseline)
 - `POST /api/reviews/assign` (editor assigns reviewer)
 - `POST /api/reviews/invitations/:id/respond` (reviewer accepts/declines)
@@ -65,6 +65,7 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - `GET /api/indexing/export` (editor indexing export jobs)
 - `POST /api/indexing/export/:provider` (queue metadata export to provider)
 - `GET /api/public/journal-profile` (public mission + live metrics)
+- `GET /api/public/journal-standards` (peer review / ethics / QA / metadata standard baseline)
 - `GET /api/public/submissions` (public article index feed)
 - `GET /api/public/submissions/:id/citation?format=bibtex` (citation export)
 - `GET /api/public/integrations/requirements` (external API readiness + missing env checklist)
@@ -322,6 +323,7 @@ EDITOR_ACCESS_CODE=your_editor_access_code
 SESSION_SECRET=at_least_32_chars_random_secret
 DOI_PREFIX=10.5555
 DOI_REGISTRANT=incremental-findings
+DOI_PLACEHOLDER_PREFIX=if-tmp
 CROSSREF_API_BASE=
 CROSSREF_MEMBER_ID=
 CROSSREF_USERNAME=

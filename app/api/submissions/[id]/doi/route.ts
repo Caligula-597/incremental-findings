@@ -28,7 +28,7 @@ export async function POST(_: Request, context: { params: { id: string } }) {
           submission_id: submission.id,
           doi: submission.doi,
           registered_at: submission.doi_registered_at,
-          provider: 'mock'
+          provider: 'internal-placeholder'
         },
         warning: 'DOI already exists; returned existing value.'
       });
@@ -45,7 +45,7 @@ export async function POST(_: Request, context: { params: { id: string } }) {
       submission_id: submission.id,
       action: 'doi_assigned',
       actor_email: sessionUser.email,
-      detail: `Assigned DOI ${registration.doi}`,
+      detail: `Assigned publication_id ${registration.doi}`,
       created_at: registration.registered_at
     };
 
