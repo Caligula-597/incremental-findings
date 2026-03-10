@@ -30,6 +30,7 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - 发布门禁清单：`docs/release-checklist.md`
 - UAT 执行手册：`docs/uat-runbook.md`
 - 运维治理手册：`docs/operations-runbook.md`
+- CI 质量门禁：`.github/workflows/quality-gate.yml`
 
 ## Stack
 - Next.js (App Router) + TypeScript
@@ -369,6 +370,11 @@ Open http://localhost:3000
 Smoke test (requires running app):
 ```bash
 SMOKE_BASE_URL=http://127.0.0.1:3000 npm run smoke
+```
+
+Migration inventory check:
+```bash
+npm run verify:migrations
 ```
 
 

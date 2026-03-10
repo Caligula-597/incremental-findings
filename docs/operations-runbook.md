@@ -24,3 +24,9 @@ AUDIT_LOG_ONLINE_RETENTION_DAYS=90 node scripts/audit-archive-sql.mjs
 - Daily: archive old audit logs.
 - Weekly: export metadata snapshots and indexing payloads to cold storage.
 - Per release: run UAT runbook + smoke checks.
+
+
+## 4) CI quality gate
+- Workflow: `.github/workflows/quality-gate.yml`
+- Checks: `verify:migrations`, `lint`, `typecheck`, `build`
+- Local preflight: `npm run verify:migrations && npm run lint && npm run typecheck && npm run build`

@@ -430,3 +430,14 @@ select public.archive_audit_logs(90);
 ```bash
 AUDIT_LOG_ONLINE_RETENTION_DAYS=90 node scripts/audit-archive-sql.mjs
 ```
+
+
+## 10. Migration CI gate（P2）
+
+仓库包含 migration inventory 校验脚本：
+
+```bash
+npm run verify:migrations
+```
+
+并在 CI workflow `.github/workflows/quality-gate.yml` 中执行，防止缺失关键 migration 或命名不规范。
