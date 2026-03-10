@@ -29,6 +29,7 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - Supabase 对接完整指引：`docs/supabase-integration-guide.md`
 - 发布门禁清单：`docs/release-checklist.md`
 - UAT 执行手册：`docs/uat-runbook.md`
+- 运维治理手册：`docs/operations-runbook.md`
 
 ## Stack
 - Next.js (App Router) + TypeScript
@@ -78,6 +79,7 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - `GET /api/public/professionalization-plan` (current implementation depth + prioritized next hardening actions)
 - `GET /api/public/backend-recommendation` (backend integration options + current config snapshot)
 - `GET /api/public/supabase-health` (current runtime mode + key config diagnostics)
+- `GET /api/public/operations-governance` (migration/audit retention/preservation governance snapshot)
 - `GET/POST /api/ethics/cases` (editor ethics case queue)
 - `PATCH /api/ethics/cases/:id` (editor ethics case status/resolution update)
 
@@ -355,6 +357,7 @@ DEFAULT_REVIEW_DUE_DAYS=21
 - `supabase/migrations/202603090001_auth_alignment_and_rls.sql`: auth contract alignment (`username` + identity-table RLS baseline).
 - `supabase/migrations/202603090002_submissions_normalization_rls_audit.sql`: submissions ownership/RLS hardening, `submission_authors`, audit trigger, and `vw_submissions_for_user`.
 - `supabase/migrations/202603090003_ethics_cases_and_policy_support.sql`: publication ethics case table, indexes and service-role RLS baseline.
+- `supabase/migrations/202603090004_audit_archive_and_ops.sql`: audit archive table + archive function for retention policy.
 
 ## Run locally
 ```bash

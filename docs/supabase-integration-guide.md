@@ -409,3 +409,24 @@ DEFAULT_REVIEW_DUE_DAYS=21
 ```
 
 并通过 `GET /api/public/review-policy` 对外暴露当前策略快照。
+
+
+## 9. Audit retention（P2）
+
+默认建议保留在线审计日志 90 天：
+
+```bash
+AUDIT_LOG_ONLINE_RETENTION_DAYS=90
+```
+
+可使用 migration 中的函数执行归档：
+
+```sql
+select public.archive_audit_logs(90);
+```
+
+也可用脚本生成归档 SQL：
+
+```bash
+AUDIT_LOG_ONLINE_RETENTION_DAYS=90 node scripts/audit-archive-sql.mjs
+```
