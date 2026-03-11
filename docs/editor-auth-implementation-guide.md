@@ -28,6 +28,10 @@ Relevant routes:
 ### Production (optional for rotation)
 - `EDITOR_ACCESS_CODE_ROLLOVER` (optional, comma-separated old codes during rotation)
 
+### Security alert tuning (recommended)
+- `EDITOR_LOGIN_ALERT_THRESHOLD` (default: 5)
+- `EDITOR_LOGIN_ALERT_WINDOW_MS` (default: 300000 / 5 minutes)
+
 ### Local development
 - You may omit `EDITOR_ACCESS_CODE` and use the built-in fallback (`review-demo`) only in non-production.
 
@@ -72,6 +76,8 @@ function parseSession(token?: string) {
 }
 
 const editorLimiter = rateLimit({ windowMs: 60_000, max: 10 });
+const EDITOR_LOGIN_ALERT_THRESHOLD = Number(process.env.EDITOR_LOGIN_ALERT_THRESHOLD || '5');
+const EDITOR_LOGIN_ALERT_WINDOW_MS = Number(process.env.EDITOR_LOGIN_ALERT_WINDOW_MS || '300000');
 
 app.post('/api/auth/editor-login', editorLimiter, (req, res) => {
   if (process.env.NODE_ENV === 'production' && !EDITOR_ACCESS_CODE) {

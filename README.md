@@ -386,6 +386,7 @@ npm run verify:migrations
 - In local demo mode (without env), default editor code is `review-demo`.
 - In production, set `EDITOR_ACCESS_CODE` in environment variables.
 - During credential rotation, set `EDITOR_ACCESS_CODE_ROLLOVER` as comma-separated old codes (optional).
+- Configure `EDITOR_LOGIN_ALERT_THRESHOLD` + `EDITOR_LOGIN_ALERT_WINDOW_MS` to raise security alerts on repeated failed editor logins.
 
 
 ## Session and authorization baseline

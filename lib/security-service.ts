@@ -223,3 +223,40 @@ export async function enforceNotBlocked(input: {
     }
   };
 }
+
+
+export async function countRecentSecurityEvents(input: {
+  route: string;
+  detailPrefix: string;
+  actorEmail?: string | null;
+  windowMs: number;
+}): Promise<number> {
+  const windowMs = Math.max(1000, input.windowMs);
+  const sinceIso = new Date(Date.now() - windowMs).toISOString();
+
+  const supabase = getSupabaseServerClient();
+  if (supabase) {
+    let query = supabase
+      .from('security_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('route', input.route)
+      .like('detail', `${input.detailPrefix}%`)
+      .gte('created_at', sinceIso);
+
+    if (input.actorEmail) {
+      query = query.eq('actor_email', input.actorEmail);
+    }
+
+    const result = await query;
+    if (!result.error) {
+      return result.count ?? 0;
+    }
+  }
+
+  return runtimeSecurityEvents.filter((item) => {
+    if (item.route !== input.route) return false;
+    if (!item.detail.startsWith(input.detailPrefix)) return false;
+    if (input.actorEmail && item.actor_email !== input.actorEmail) return false;
+    return item.created_at >= sinceIso;
+  }).length;
+}

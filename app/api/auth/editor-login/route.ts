@@ -2,10 +2,32 @@ import { randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
 import { buildSessionToken, setSessionCookie } from '@/lib/session';
 import { guardRequest } from '@/lib/request-guard';
-import { recordSecurityEvent } from '@/lib/security-service';
+import { countRecentSecurityEvents, recordSecurityEvent } from '@/lib/security-service';
 
 const DEFAULT_EDITOR_CODE = 'review-demo';
 
+
+
+async function maybeRecordEditorLoginFailureAlert(email: string) {
+  const threshold = Number(process.env.EDITOR_LOGIN_ALERT_THRESHOLD ?? '5') || 5;
+  const windowMs = Number(process.env.EDITOR_LOGIN_ALERT_WINDOW_MS ?? '300000') || 300000;
+
+  const failureCount = await countRecentSecurityEvents({
+    route: '/api/auth/editor-login',
+    detailPrefix: 'editor_login_invalid_',
+    actorEmail: email || null,
+    windowMs
+  });
+
+  if (failureCount >= threshold) {
+    await recordSecurityEvent({
+      kind: 'alert',
+      actorEmail: email || null,
+      route: '/api/auth/editor-login',
+      detail: `editor_login_failure_threshold_exceeded:count_${failureCount}`
+    });
+  }
+}
 
 function parseEditorCodes() {
   const primary = String(process.env.EDITOR_ACCESS_CODE ?? '').trim();
@@ -38,6 +60,7 @@ export async function POST(request: Request) {
         route: '/api/auth/editor-login',
         detail: 'editor_login_invalid_payload'
       });
+      await maybeRecordEditorLoginFailureAlert(email);
       return NextResponse.json({ error: 'email and editor_code are required' }, { status: 400 });
     }
 
@@ -71,6 +94,7 @@ export async function POST(request: Request) {
         route: '/api/auth/editor-login',
         detail: 'editor_login_invalid_code'
       });
+      await maybeRecordEditorLoginFailureAlert(email);
       return NextResponse.json({ error: 'Invalid editor access code' }, { status: 401 });
     }
 
