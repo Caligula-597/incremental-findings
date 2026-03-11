@@ -4,8 +4,7 @@ import { getSupabaseServerClient } from '@/lib/supabase';
 import { runtimeUsers } from '@/lib/runtime-store';
 import { hashPassword, needsPasswordRehash, verifyPassword } from '@/lib/auth-security';
 import { buildSessionToken, setSessionCookie } from '@/lib/session';
-import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
-import { enforceNotBlocked } from '@/lib/security-service';
+import { guardRequest } from '@/lib/request-guard';
 
 function normalizeIdentifier(body: any) {
   const fromIdentifier = String(body.identifier ?? '').trim().toLowerCase();
@@ -26,21 +25,16 @@ export async function POST(request: Request) {
     }
 
 
-    const ip = getClientIp(request);
-    const blocked = await enforceNotBlocked({ ip, route: '/api/auth/login' });
-    if (blocked) {
-      return NextResponse.json(blocked.body, { status: blocked.status });
-    }
-    const loginLimit = checkRateLimit({
-      bucket: `auth-login:${ip}:${identifier || 'unknown'}`,
+    const loginGuard = await guardRequest(request, {
+      route: '/api/auth/login',
+      bucketPrefix: 'auth-login',
+      bucketKeySuffix: identifier || 'unknown',
       maxRequests: Number(process.env.AUTH_LOGIN_RATE_LIMIT_MAX ?? '20') || 20,
-      windowMs: Number(process.env.AUTH_LOGIN_RATE_LIMIT_WINDOW_MS ?? '60000') || 60000
+      windowMs: Number(process.env.AUTH_LOGIN_RATE_LIMIT_WINDOW_MS ?? '60000') || 60000,
+      limitError: 'Too many login attempts. Please try again later.'
     });
-    if (!loginLimit.allowed) {
-      return NextResponse.json(
-        { error: 'Too many login attempts. Please try again later.', retry_after_seconds: loginLimit.retryAfterSeconds },
-        { status: 429, headers: { 'Retry-After': String(loginLimit.retryAfterSeconds) } }
-      );
+    if (loginGuard.response) {
+      return loginGuard.response;
     }
 
     const supabase = getSupabaseServerClient();

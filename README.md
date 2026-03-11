@@ -330,7 +330,6 @@ ORCID_CLIENT_SECRET=xxx
 ORCID_REDIRECT_URI=http://localhost:3000/api/orcid/callback
 EDITOR_ACCESS_CODE=your_editor_access_code
 SESSION_SECRET=at_least_32_chars_random_secret
-DOI_PREFIX=10.5555
 DOI_REGISTRANT=incremental-findings
 DOI_PLACEHOLDER_PREFIX=if-tmp
 CROSSREF_API_BASE=

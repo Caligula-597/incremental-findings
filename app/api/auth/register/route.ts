@@ -4,8 +4,7 @@ import { getSupabaseServerClient } from '@/lib/supabase';
 import { runtimeUsers } from '@/lib/runtime-store';
 import { hashPassword } from '@/lib/auth-security';
 import { buildSessionToken, setSessionCookie } from '@/lib/session';
-import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
-import { enforceNotBlocked } from '@/lib/security-service';
+import { guardRequest } from '@/lib/request-guard';
 
 function normalizeUsername(input: string) {
   const value = input.trim().toLowerCase();
@@ -25,21 +24,15 @@ export async function POST(request: Request) {
     }
 
 
-    const ip = getClientIp(request);
-    const blocked = await enforceNotBlocked({ ip, route: '/api/auth/register' });
-    if (blocked) {
-      return NextResponse.json(blocked.body, { status: blocked.status });
-    }
-    const registerLimit = checkRateLimit({
-      bucket: `auth-register:${ip}`,
+    const registerGuard = await guardRequest(request, {
+      route: '/api/auth/register',
+      bucketPrefix: 'auth-register',
       maxRequests: Number(process.env.AUTH_REGISTER_RATE_LIMIT_MAX ?? '10') || 10,
-      windowMs: Number(process.env.AUTH_REGISTER_RATE_LIMIT_WINDOW_MS ?? '60000') || 60000
+      windowMs: Number(process.env.AUTH_REGISTER_RATE_LIMIT_WINDOW_MS ?? '60000') || 60000,
+      limitError: 'Too many registration attempts. Please try again later.'
     });
-    if (!registerLimit.allowed) {
-      return NextResponse.json(
-        { error: 'Too many registration attempts. Please try again later.', retry_after_seconds: registerLimit.retryAfterSeconds },
-        { status: 429, headers: { 'Retry-After': String(registerLimit.retryAfterSeconds) } }
-      );
+    if (registerGuard.response) {
+      return registerGuard.response;
     }
 
     const passwordHash = hashPassword(password);

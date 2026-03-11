@@ -1,8 +1,7 @@
 import { randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
 import { buildSessionToken, setSessionCookie } from '@/lib/session';
-import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
-import { enforceNotBlocked } from '@/lib/security-service';
+import { guardRequest } from '@/lib/request-guard';
 
 const DEFAULT_EDITOR_CODE = 'review-demo';
 
@@ -18,21 +17,16 @@ export async function POST(request: Request) {
     }
 
 
-    const ip = getClientIp(request);
-    const blocked = await enforceNotBlocked({ ip, route: '/api/auth/editor-login' });
-    if (blocked) {
-      return NextResponse.json(blocked.body, { status: blocked.status });
-    }
-    const editorLimit = checkRateLimit({
-      bucket: `auth-editor-login:${ip}:${email || 'unknown'}`,
+    const editorGuard = await guardRequest(request, {
+      route: '/api/auth/editor-login',
+      bucketPrefix: 'auth-editor-login',
+      bucketKeySuffix: email || 'unknown',
       maxRequests: Number(process.env.EDITOR_LOGIN_RATE_LIMIT_MAX ?? '10') || 10,
-      windowMs: Number(process.env.EDITOR_LOGIN_RATE_LIMIT_WINDOW_MS ?? '60000') || 60000
+      windowMs: Number(process.env.EDITOR_LOGIN_RATE_LIMIT_WINDOW_MS ?? '60000') || 60000,
+      limitError: 'Too many editor login attempts. Please try again later.'
     });
-    if (!editorLimit.allowed) {
-      return NextResponse.json(
-        { error: 'Too many editor login attempts. Please try again later.', retry_after_seconds: editorLimit.retryAfterSeconds },
-        { status: 429, headers: { 'Retry-After': String(editorLimit.retryAfterSeconds) } }
-      );
+    if (editorGuard.response) {
+      return editorGuard.response;
     }
 
     const isProduction = process.env.NODE_ENV === 'production';
