@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { buildSessionToken, setSessionCookie } from '@/lib/session';
 import { guardRequest } from '@/lib/request-guard';
 import { countRecentSecurityEvents, recordSecurityEvent } from '@/lib/security-service';
+import { validateAndConsumeEditorInvite } from '@/lib/editor-access';
 
 const DEFAULT_EDITOR_CODE = 'review-demo';
 
@@ -77,17 +78,11 @@ export async function POST(request: Request) {
       return editorGuard.response;
     }
 
-    const isProduction = process.env.NODE_ENV === 'production';
-    if (isProduction && !process.env.EDITOR_ACCESS_CODE) {
-      return NextResponse.json(
-        { error: 'EDITOR_ACCESS_CODE must be configured in production' },
-        { status: 503 }
-      );
-    }
-
     const acceptedCodes = parseEditorCodes();
     const matchedCodeIndex = acceptedCodes.findIndex((candidate) => code === candidate);
-    if (matchedCodeIndex < 0) {
+    const inviteValidation = matchedCodeIndex < 0 ? await validateAndConsumeEditorInvite({ applicant_email: email, invite_code: code }) : { matched: false as const };
+
+    if (matchedCodeIndex < 0 && !inviteValidation.matched) {
       await recordSecurityEvent({
         kind: 'alert',
         actorEmail: email,
@@ -110,12 +105,12 @@ export async function POST(request: Request) {
       kind: 'alert',
       actorEmail: email,
       route: '/api/auth/editor-login',
-      detail: `editor_login_success:slot_${matchedCodeIndex}`
+      detail: matchedCodeIndex >= 0 ? `editor_login_success:slot_${matchedCodeIndex}` : 'editor_login_success:invite_code'
     });
 
     return NextResponse.json({
       data: sessionUser,
-      mode: process.env.EDITOR_ACCESS_CODE ? 'env' : 'demo-default',
+      mode: matchedCodeIndex >= 0 ? (process.env.EDITOR_ACCESS_CODE ? 'env' : 'demo-default') : 'invite',
       credential_slot: matchedCodeIndex
     });
   } catch (error) {

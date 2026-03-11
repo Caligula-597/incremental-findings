@@ -11,6 +11,7 @@ interface SessionUser {
   id?: string;
   email: string;
   name: string;
+  role?: 'author' | 'editor';
 }
 
 export default function AccountPage() {
@@ -22,6 +23,8 @@ export default function AccountPage() {
   const [orcid, setOrcid] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [diagnostics, setDiagnostics] = useState<string>('');
+  const [applicationStatement, setApplicationStatement] = useState('');
+  const [applicationStatus, setApplicationStatus] = useState<string>('');
 
   useEffect(() => {
     async function loadSession() {
@@ -102,6 +105,35 @@ export default function AccountPage() {
     router.push(withLang('/login', lang) as any);
   }
 
+
+  async function applyEditorRole() {
+    if (!user) {
+      setMessage('请先登录后再提交编辑申请。');
+      return;
+    }
+
+    const statement = applicationStatement.trim();
+    if (statement.length < 20) {
+      setApplicationStatus('申请说明至少需要 20 个字符。');
+      return;
+    }
+
+    const response = await fetch('/api/editor/applications', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ statement })
+    });
+
+    const body = await response.json().catch(() => ({ error: 'Unknown error' }));
+    if (!response.ok) {
+      setApplicationStatus(`提交失败：${body.error ?? 'Unknown error'}`);
+      return;
+    }
+
+    setApplicationStatus(body.reused ? '你已有待处理的编辑申请，请耐心等待。' : '编辑申请已提交，等待现有编辑审核与邀请。');
+    setApplicationStatement('');
+  }
+
   async function runOrcidDiagnostics() {
     const response = await fetch('/api/orcid/diagnostics');
     const body = await response.json().catch(() => ({ data: null }));
@@ -178,6 +210,22 @@ export default function AccountPage() {
               </a>
             </li>
           </ul>
+
+          {user?.role !== 'editor' ? (
+            <div className="mt-6 rounded border border-zinc-200 bg-white p-4 text-sm">
+              <p className="font-semibold">申请成为编辑</p>
+              <p className="mt-2 text-zinc-700">提交你的背景说明后，现有编辑可在工作台审核并手动发放编辑邀请访问码。</p>
+              <textarea
+                value={applicationStatement}
+                onChange={(event) => setApplicationStatement(event.target.value)}
+                className="mt-3 min-h-24 w-full rounded border border-zinc-300 px-3 py-2"
+                placeholder="请填写研究方向、审稿经验、每周可投入时间等信息（至少20字）"
+              />
+              <button type="button" onClick={applyEditorRole} className="btn btn-secondary mt-3">提交编辑申请</button>
+              {applicationStatus ? <p className="mt-2 text-xs text-zinc-600">{applicationStatus}</p> : null}
+            </div>
+          ) : null}
+
           <button type="button" onClick={runOrcidDiagnostics} className="btn btn-ghost mt-4">
             {copy.account.diagnostics}
           </button>

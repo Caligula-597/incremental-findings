@@ -374,6 +374,8 @@ create table if not exists metadata_snapshots (
 - [ ] `POST /api/submissions/:id/revisions` 有版本记录
 - [ ] `POST /api/reviews/assign` 有 `review_assignments` 记录
 - [ ] `POST /api/security/risk-check` 有 `risk_scores/security_events` 记录
+- [ ] `POST /api/editor/applications` 能写入 `editor_applications`
+- [ ] `POST /api/editor/invites` 能生成 `editor_invites` 且邀请码可用于 `editor-login`
 
 ---
 

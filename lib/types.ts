@@ -227,3 +227,28 @@ export interface EthicsCaseRecord {
   created_at: string;
   updated_at: string;
 }
+
+
+export interface EditorApplicationRecord {
+  id: string;
+  applicant_email: string;
+  applicant_name: string;
+  statement: string;
+  status: 'pending' | 'under_review' | 'approved' | 'rejected';
+  reviewed_by_email?: string | null;
+  reviewed_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EditorInviteRecord {
+  id: string;
+  applicant_email: string;
+  invite_code: string;
+  invited_by_email: string;
+  application_id?: string | null;
+  status: 'active' | 'used' | 'revoked' | 'expired';
+  expires_at: string;
+  used_at?: string | null;
+  created_at: string;
+}

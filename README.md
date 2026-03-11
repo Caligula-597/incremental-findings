@@ -384,8 +384,9 @@ npm run verify:migrations
 ## Editor login
 - Use `/login` and choose **Editor Log in**.
 - In local demo mode (without env), default editor code is `review-demo`.
-- In production, set `EDITOR_ACCESS_CODE` in environment variables.
+- In production, set `EDITOR_ACCESS_CODE` in environment variables (optional if you only use invite codes).
 - During credential rotation, set `EDITOR_ACCESS_CODE_ROLLOVER` as comma-separated old codes (optional).
+- Editors can now approve applications and issue manual invite codes; invited users can log in with their email + invite code.
 - Configure `EDITOR_LOGIN_ALERT_THRESHOLD` + `EDITOR_LOGIN_ALERT_WINDOW_MS` to raise security alerts on repeated failed editor logins.
 
 

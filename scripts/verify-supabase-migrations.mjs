@@ -19,7 +19,8 @@ const expected = [
   '202603090001_auth_alignment_and_rls.sql',
   '202603090002_submissions_normalization_rls_audit.sql',
   '202603090003_ethics_cases_and_policy_support.sql',
-  '202603090004_audit_archive_and_ops.sql'
+  '202603090004_audit_archive_and_ops.sql',
+  '202603090005_editor_applications_and_invites.sql'
 ];
 
 for (const name of expected) {

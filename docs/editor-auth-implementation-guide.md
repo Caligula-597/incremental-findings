@@ -194,3 +194,19 @@ For editor login endpoint, record at least:
 
 Include route, actor email, timestamp, and client IP when possible.
 
+
+
+## 8) Editor application + invite workflow (new)
+
+To avoid direct public editor signup:
+- Authors submit an application via `POST /api/editor/applications`
+- Existing editors review applications and issue manual invite codes via `POST /api/editor/invites`
+- Invited users then log in through `/api/auth/editor-login` using `email + invite_code`
+
+Recommended tables:
+- `editor_applications`
+- `editor_invites`
+
+This model supports both:
+1. environment access codes (`EDITOR_ACCESS_CODE`, rollover)
+2. email-bound invite codes (manual editorial approval)

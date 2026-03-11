@@ -8,6 +8,15 @@ import { MetricCard, SectionTitle, StatusPill } from '@/components/ui-kit';
 import { DISCIPLINES } from '@/lib/taxonomy';
 import { Submission, SubmissionStatus } from '@/lib/types';
 
+interface EditorApplication {
+  id: string;
+  applicant_email: string;
+  applicant_name: string;
+  statement: string;
+  status: 'pending' | 'under_review' | 'approved' | 'rejected';
+  created_at: string;
+}
+
 function TaxonomyMeta({ item }: { item: Submission }) {
   return (
     <p className="mt-1 text-xs uppercase tracking-wide text-zinc-500">
@@ -33,6 +42,7 @@ export default function EditorPage() {
   const [disciplineFilter, setDisciplineFilter] = useState('all');
   const [isEditor, setIsEditor] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
+  const [applications, setApplications] = useState<EditorApplication[]>([]);
 
   async function loadData() {
     const [pendingRes, reviewRes, publishedRes] = await Promise.all([
@@ -54,6 +64,34 @@ export default function EditorPage() {
     setPending(pendingJson.data ?? []);
     setUnderReview(reviewJson.data ?? []);
     setPublished(publishedJson.data ?? []);
+  }
+
+
+
+  async function loadApplications() {
+    const response = await fetch('/api/editor/applications?status=pending', { cache: 'no-store' });
+    if (!response.ok) return;
+    const body = await response.json().catch(() => ({ data: [] }));
+    setApplications(body.data ?? []);
+  }
+
+  async function inviteApplicant(application: EditorApplication) {
+    setMessage('');
+    const response = await fetch('/api/editor/invites', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ applicant_email: application.applicant_email, application_id: application.id, expires_in_days: 7 })
+    });
+
+    const body = await response.json().catch(() => ({ error: 'Unknown error' }));
+    if (!response.ok) {
+      setMessage(`邀请失败: ${body.error ?? ''}`);
+      return;
+    }
+
+    const code = body?.data?.invite_code;
+    setMessage(code ? `已生成邀请访问码（请手动发送给申请人）: ${code}` : '邀请已创建');
+    await loadApplications();
   }
 
   async function updateStatus(id: string, status: SubmissionStatus) {
@@ -104,7 +142,7 @@ export default function EditorPage() {
       const role = sessionBody?.data?.role;
       if (sessionRes.ok && role === 'editor') {
         setIsEditor(true);
-        await loadData();
+        await Promise.all([loadData(), loadApplications()]);
       }
       setCheckingSession(false);
     }
@@ -204,6 +242,27 @@ export default function EditorPage() {
       </section>
 
       {message ? <p className="mb-4 text-sm text-zinc-700">{message}</p> : null}
+
+      <section className="mt-6">
+        <SectionTitle title="Editor applications" subtitle="Review incoming editor requests and issue invitation codes." />
+        <div className="mt-4 grid gap-3">
+          {applications.length === 0 ? <p className="text-sm text-zinc-600">No pending applications.</p> : null}
+          {applications.map((application) => (
+            <article key={application.id} className="glass-panel p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-semibold">{application.applicant_name}</p>
+                  <p className="text-sm text-zinc-600">{application.applicant_email}</p>
+                </div>
+                <button className="btn btn-secondary btn-sm" onClick={() => inviteApplicant(application)}>
+                  Approve & generate invite
+                </button>
+              </div>
+              <p className="mt-2 text-sm text-zinc-700">{application.statement}</p>
+            </article>
+          ))}
+        </div>
+      </section>
 
       <section className="mt-8">
         <SectionTitle title="Submissions in progress" />
