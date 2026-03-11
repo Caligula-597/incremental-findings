@@ -32,6 +32,7 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - 运维治理手册：`docs/operations-runbook.md`
 - 统一测试手册：`docs/testing-playbook.md`
 - 编辑登录后端实现指引：`docs/editor-auth-implementation-guide.md`
+- 下一步改进与应用计划书：`docs/next-phase-improvement-plan.md`
 - CI 质量门禁：`.github/workflows/quality-gate.yml`
 
 ## Stack
