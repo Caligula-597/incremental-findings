@@ -171,3 +171,27 @@ SMOKE_BASE_URL=http://127.0.0.1:3000 SMOKE_EDITOR_CODE=review-demo npm run smoke
 - 手工验收结果（通过/失败）
 - 缺陷列表（严重级别、复现步骤、截图/日志）
 - 是否满足发布条件（是/否）
+
+
+## 7) Anti-abuse / 限流测试（新增）
+
+### 7.1 登录限流快速验证
+把阈值临时调低后压测：
+```bash
+AUTH_LOGIN_RATE_LIMIT_MAX=3 AUTH_LOGIN_RATE_LIMIT_WINDOW_MS=60000 npm run dev
+```
+新开终端连续请求登录接口（可用错误密码）：
+```bash
+for i in {1..5}; do
+  curl -s -o /dev/null -w "%{http_code}\n" -X POST http://127.0.0.1:3000/api/auth/login \
+    -H 'content-type: application/json' \
+    -d '{"identifier":"rate-test@example.com","password":"badpass"}'
+done
+```
+**通过标准**：前几次返回 `401`，超过阈值后返回 `429`，且响应包含 `Retry-After`。
+
+### 7.2 编辑登录限流验证
+同理调低：`EDITOR_LOGIN_RATE_LIMIT_MAX=2`，连续提交错误 editor code，确认触发 `429`。
+
+### 7.3 风险检查接口限流验证
+调低 `SECURITY_RISK_CHECK_RATE_LIMIT_MAX`，连续调用 `/api/security/risk-check`，确认触发 `429`。

@@ -1,14 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSessionUser } from '@/lib/session';
 import { runRiskCheck } from '@/lib/security-service';
-
-function getClientIp(request: Request) {
-  return (
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    request.headers.get('x-real-ip') ||
-    'unknown'
-  );
-}
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
   try {
@@ -18,6 +11,19 @@ export async function POST(request: Request) {
     const route = String(body?.route ?? request.headers.get('x-pathname') ?? 'unknown').trim() || 'unknown';
     const ip = String(body?.ip ?? getClientIp(request)).trim() || 'unknown';
     const userAgent = request.headers.get('user-agent') ?? undefined;
+
+
+    const limit = checkRateLimit({
+      bucket: `security-risk-check:${ip}`,
+      maxRequests: Number(process.env.SECURITY_RISK_CHECK_RATE_LIMIT_MAX ?? '30') || 30,
+      windowMs: Number(process.env.SECURITY_RISK_CHECK_RATE_LIMIT_WINDOW_MS ?? '60000') || 60000
+    });
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many risk-check requests. Please try again later.', retry_after_seconds: limit.retryAfterSeconds },
+        { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds) } }
+      );
+    }
 
     const data = await runRiskCheck({
       ip,

@@ -4,6 +4,7 @@ import { getSupabaseServerClient } from '@/lib/supabase';
 import { runtimeUsers } from '@/lib/runtime-store';
 import { hashPassword, needsPasswordRehash, verifyPassword } from '@/lib/auth-security';
 import { buildSessionToken, setSessionCookie } from '@/lib/session';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 function normalizeIdentifier(body: any) {
   const fromIdentifier = String(body.identifier ?? '').trim().toLowerCase();
@@ -21,6 +22,20 @@ export async function POST(request: Request) {
 
     if (!identifier || !password) {
       return NextResponse.json({ error: 'identifier(email or username) and password are required' }, { status: 400 });
+    }
+
+
+    const ip = getClientIp(request);
+    const loginLimit = checkRateLimit({
+      bucket: `auth-login:${ip}:${identifier || 'unknown'}`,
+      maxRequests: Number(process.env.AUTH_LOGIN_RATE_LIMIT_MAX ?? '20') || 20,
+      windowMs: Number(process.env.AUTH_LOGIN_RATE_LIMIT_WINDOW_MS ?? '60000') || 60000
+    });
+    if (!loginLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many login attempts. Please try again later.', retry_after_seconds: loginLimit.retryAfterSeconds },
+        { status: 429, headers: { 'Retry-After': String(loginLimit.retryAfterSeconds) } }
+      );
     }
 
     const supabase = getSupabaseServerClient();

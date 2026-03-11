@@ -391,6 +391,8 @@ npm run verify:migrations
 - `POST /api/submissions/complete` requires a logged-in session and enforces submission identity match.
 - Password hashing uses `scrypt` with backward-compatible migration for existing SHA-256 hashes.
 
+- Auth/security endpoints include in-memory rate limiting (register/login/editor-login/risk-check), configurable via `AUTH_*`, `EDITOR_LOGIN_*`, and `SECURITY_RISK_CHECK_*` environment variables.
+
 - Editorial workflow transition validation is now enforced server-side (e.g., prevents invalid direct transitions).
 
 

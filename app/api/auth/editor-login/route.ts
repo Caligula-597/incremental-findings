@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
 import { buildSessionToken, setSessionCookie } from '@/lib/session';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 const DEFAULT_EDITOR_CODE = 'review-demo';
 
@@ -13,6 +14,20 @@ export async function POST(request: Request) {
 
     if (!email || !code) {
       return NextResponse.json({ error: 'email and editor_code are required' }, { status: 400 });
+    }
+
+
+    const ip = getClientIp(request);
+    const editorLimit = checkRateLimit({
+      bucket: `auth-editor-login:${ip}:${email || 'unknown'}`,
+      maxRequests: Number(process.env.EDITOR_LOGIN_RATE_LIMIT_MAX ?? '10') || 10,
+      windowMs: Number(process.env.EDITOR_LOGIN_RATE_LIMIT_WINDOW_MS ?? '60000') || 60000
+    });
+    if (!editorLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many editor login attempts. Please try again later.', retry_after_seconds: editorLimit.retryAfterSeconds },
+        { status: 429, headers: { 'Retry-After': String(editorLimit.retryAfterSeconds) } }
+      );
     }
 
     const isProduction = process.env.NODE_ENV === 'production';

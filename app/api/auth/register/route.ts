@@ -4,6 +4,7 @@ import { getSupabaseServerClient } from '@/lib/supabase';
 import { runtimeUsers } from '@/lib/runtime-store';
 import { hashPassword } from '@/lib/auth-security';
 import { buildSessionToken, setSessionCookie } from '@/lib/session';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 function normalizeUsername(input: string) {
   const value = input.trim().toLowerCase();
@@ -20,6 +21,20 @@ export async function POST(request: Request) {
 
     if (!email || !password) {
       return NextResponse.json({ error: 'email and password are required' }, { status: 400 });
+    }
+
+
+    const ip = getClientIp(request);
+    const registerLimit = checkRateLimit({
+      bucket: `auth-register:${ip}`,
+      maxRequests: Number(process.env.AUTH_REGISTER_RATE_LIMIT_MAX ?? '10') || 10,
+      windowMs: Number(process.env.AUTH_REGISTER_RATE_LIMIT_WINDOW_MS ?? '60000') || 60000
+    });
+    if (!registerLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many registration attempts. Please try again later.', retry_after_seconds: registerLimit.retryAfterSeconds },
+        { status: 429, headers: { 'Retry-After': String(registerLimit.retryAfterSeconds) } }
+      );
     }
 
     const passwordHash = hashPassword(password);
