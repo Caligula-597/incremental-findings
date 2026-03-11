@@ -1,0 +1,255 @@
+'use client';
+
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { SiteHeader } from '@/components/header';
+import { TERMS_VERSION, AUTHOR_AGREEMENT_ITEMS, AUTHOR_PROTOCOL_BLOCKS } from '@/lib/legal';
+import { ARTICLE_TYPES, DISCIPLINES, TOPIC_MAP } from '@/lib/taxonomy';
+import { SectionTitle } from '@/components/ui-kit';
+import { getSiteCopy, getSiteLang } from '@/lib/site-copy';
+import { withLang } from '@/lib/lang';
+
+export default function SubmitPage() {
+  const [lang, setLang] = useState(getSiteLang());
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      setLang(getSiteLang(params.get('lang')));
+    }
+  }, []);
+  const copy = useMemo(() => getSiteCopy(lang), [lang]);
+
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [discipline, setDiscipline] = useState<string>(DISCIPLINES[0]);
+  const [userEmail, setUserEmail] = useState('');
+  const [userId, setUserId] = useState('');
+  const [orcidId, setOrcidId] = useState<string | null>(null);
+
+  const topics = useMemo(() => TOPIC_MAP[discipline as (typeof DISCIPLINES)[number]] ?? [], [discipline]);
+
+  useEffect(() => {
+    async function loadSessionIdentity() {
+      const response = await fetch('/api/auth/session', { cache: 'no-store' });
+      const body = await response.json().catch(() => ({ data: null }));
+      if (response.ok && body.data) {
+        if (body.data.email) setUserEmail(body.data.email);
+        if (body.data.id) setUserId(body.data.id);
+        return;
+      }
+
+      const raw = localStorage.getItem('if_user');
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { email?: string; id?: string };
+      if (parsed.email) setUserEmail(parsed.email);
+      if (parsed.id) setUserId(parsed.id);
+    }
+
+    void loadSessionIdentity();
+  }, []);
+
+  useEffect(() => {
+    async function loadOrcid() {
+      if (!userEmail && !userId) return;
+      const query = userId ? `user_id=${encodeURIComponent(userId)}` : `email=${encodeURIComponent(userEmail)}`;
+      const response = await fetch(`/api/orcid/status?${query}`);
+      const body = await response.json().catch(() => ({ data: null }));
+      setOrcidId(body.data?.orcid_id ?? null);
+    }
+
+    void loadOrcid();
+  }, [userEmail, userId]);
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setLoading(true);
+    setMessage('');
+
+    const formElement = event.currentTarget;
+    const formData = new FormData(formElement);
+    formData.set('terms_version', TERMS_VERSION);
+
+    const response = await fetch('/api/submissions/complete', {
+      method: 'POST',
+      body: formData
+    });
+
+    const body = await response.json().catch(() => ({ error: 'Unknown error' }));
+
+    if (!response.ok) {
+      setMessage(`${copy.submit.failedPrefix}${body.error ?? 'Please review required fields.'}`);
+      setLoading(false);
+      return;
+    }
+
+    const warningText = Array.isArray(body.warnings) && body.warnings.length > 0 ? ` ${copy.submit.warningPrefix}${body.warnings.join(' | ')}` : '';
+    setMessage(`${copy.submit.success}${warningText}`);
+    formElement.reset();
+    setDiscipline(DISCIPLINES[0]);
+    setLoading(false);
+  }
+
+  return (
+    <main>
+      <SiteHeader />
+      <SectionTitle title={copy.submit.title} subtitle={copy.submit.subtitle} />
+
+      <section className="mt-6 glass-panel p-6">
+        <h3 className="font-serif text-2xl">{copy.submit.workflowTitle}</h3>
+        <div className="mt-4 grid gap-2 lg:grid-cols-5">
+          {copy.submit.steps.map((item, idx) => (
+            <div key={item} className="rounded-lg border border-zinc-200 bg-white/85 px-3 py-3 text-sm text-zinc-700">
+              <span className="mb-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 text-[11px] text-white">{idx + 1}</span>
+              <p className="leading-relaxed">{item}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <form className="mt-6 grid gap-5 glass-panel p-6" onSubmit={onSubmit}>
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 text-sm text-emerald-900">{copy.submit.draftHint}</div>
+
+        <section className="rounded-xl border border-zinc-200 bg-white/80 p-4">
+          <h3 className="font-semibold">{copy.submit.authorIdentity}</h3>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <input
+              required
+              name="user_email"
+              value={userEmail}
+              onChange={(event) => setUserEmail(event.target.value)}
+              type="email"
+              placeholder={copy.submit.yourEmail}
+              className="rounded-lg border border-zinc-300 px-3 py-2"
+            />
+            <input type="hidden" name="user_id" value={userId} readOnly />
+
+            {orcidId ? (
+              <p className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                {copy.submit.authorOrcid}: <span className="font-semibold">{orcidId}</span>
+              </p>
+            ) : (
+              <a className="btn btn-secondary justify-center" href={withLang('/account', lang)}>
+                {copy.submit.manageOrcid}
+              </a>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-zinc-200 bg-white/80 p-4">
+          <h3 className="font-semibold">{copy.submit.agreement}</h3>
+          <p className="mt-1 text-xs text-zinc-600">{copy.submit.termsVersion}: {TERMS_VERSION}</p>
+
+          <div className="mt-3 grid gap-3 md:grid-cols-3">
+            {AUTHOR_PROTOCOL_BLOCKS.map((block) => (
+              <article key={block.title} className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
+                <p className="text-sm font-semibold text-zinc-900">{block.title}</p>
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-zinc-700">
+                  {block.points.map((point) => (
+                    <li key={point}>{point}</li>
+                  ))}
+                </ul>
+              </article>
+            ))}
+          </div>
+
+          <div className="mt-3 grid gap-2 text-sm">
+            <label className="flex gap-2">
+              <input required type="checkbox" name="author_warranty" value="true" />
+              <span>{AUTHOR_AGREEMENT_ITEMS[0]}</span>
+            </label>
+            <label className="flex gap-2">
+              <input required type="checkbox" name="originality_warranty" value="true" />
+              <span>{AUTHOR_AGREEMENT_ITEMS[1]}</span>
+            </label>
+            <label className="flex gap-2">
+              <input required type="checkbox" name="ethics_warranty" value="true" />
+              <span>{AUTHOR_AGREEMENT_ITEMS[2]}</span>
+            </label>
+            <label className="flex gap-2">
+              <input required type="checkbox" name="privacy_ack" value="true" />
+              <span>{AUTHOR_AGREEMENT_ITEMS[3]}</span>
+            </label>
+            <label className="mt-1 flex gap-2 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2">
+              <input required type="checkbox" name="protocol_ack" value="true" />
+              <span>{copy.submit.protocolAck}</span>
+            </label>
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-zinc-200 bg-white/80 p-4">
+          <h3 className="font-semibold">{copy.submit.metadata}</h3>
+          <div className="mt-2 grid gap-3">
+            <input required name="title" placeholder={copy.submit.titleField} className="rounded-lg border border-zinc-300 px-3 py-2" />
+            <input required name="authors" placeholder={copy.submit.authorsField} className="rounded-lg border border-zinc-300 px-3 py-2" />
+
+            <div className="grid gap-3 md:grid-cols-3">
+              <label className="grid gap-1 text-sm">
+                {copy.submit.discipline}
+                <select name="discipline" className="rounded-lg border border-zinc-300 px-3 py-2" value={discipline} onChange={(event) => setDiscipline(event.target.value)}>
+                  {DISCIPLINES.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="grid gap-1 text-sm">
+                {copy.submit.topic}
+                <select name="topic" className="rounded-lg border border-zinc-300 px-3 py-2" defaultValue={topics[0]}>
+                  {topics.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="grid gap-1 text-sm">
+                {copy.submit.articleType}
+                <select name="article_type" className="rounded-lg border border-zinc-300 px-3 py-2" defaultValue={ARTICLE_TYPES[0]}>
+                  {ARTICLE_TYPES.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <textarea name="abstract" placeholder={copy.submit.abstractField} rows={5} className="rounded-lg border border-zinc-300 px-3 py-2" />
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-zinc-200 bg-white/80 p-4">
+          <h3 className="font-semibold">{copy.submit.upload}</h3>
+          <div className="mt-2 grid gap-3">
+            <label className="grid gap-1 text-sm">
+              {copy.submit.manuscript}
+              <input required name="manuscript" type="file" accept="application/pdf" className="rounded-lg border border-zinc-300 px-3 py-2" />
+            </label>
+
+            <label className="grid gap-1 text-sm">
+              {copy.submit.coverLetter}
+              <input required name="cover_letter" type="file" accept="application/pdf,.doc,.docx,.txt" className="rounded-lg border border-zinc-300 px-3 py-2" />
+            </label>
+
+            <label className="grid gap-1 text-sm">
+              {copy.submit.supporting}
+              <input name="supporting_files" multiple type="file" className="rounded-lg border border-zinc-300 px-3 py-2" />
+            </label>
+          </div>
+        </section>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="submit" disabled={loading} className="btn btn-primary w-fit disabled:opacity-60">
+            {loading ? copy.submit.submitting : copy.submit.submitButton}
+          </button>
+          <p className="text-xs text-zinc-500">{copy.submit.eta}</p>
+        </div>
+
+        {message ? <p className="text-sm text-zinc-700">{message}</p> : null}
+      </form>
+    </main>
+  );
+}
