@@ -15,6 +15,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'email and editor_code are required' }, { status: 400 });
     }
 
+    const isProduction = process.env.NODE_ENV === 'production';
+    if (isProduction && !process.env.EDITOR_ACCESS_CODE) {
+      return NextResponse.json(
+        { error: 'EDITOR_ACCESS_CODE must be configured in production' },
+        { status: 503 }
+      );
+    }
+
     const expectedCode = process.env.EDITOR_ACCESS_CODE ?? DEFAULT_EDITOR_CODE;
     if (code !== expectedCode) {
       return NextResponse.json({ error: 'Invalid editor access code' }, { status: 401 });

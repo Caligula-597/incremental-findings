@@ -28,5 +28,5 @@ AUDIT_LOG_ONLINE_RETENTION_DAYS=90 node scripts/audit-archive-sql.mjs
 
 ## 4) CI quality gate
 - Workflow: `.github/workflows/quality-gate.yml`
-- Checks: `verify:migrations`, `lint`, `typecheck`, `build`
-- Local preflight: `npm run verify:migrations && npm run lint && npm run typecheck && npm run build`
+- Checks: `verify:migrations`, `lint`, `typecheck`, `build`, `smoke`
+- Local preflight: `npm run verify:migrations && npm run lint && npm run typecheck && npm run build` then `SMOKE_BASE_URL=http://127.0.0.1:3000 npm run smoke`

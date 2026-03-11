@@ -24,7 +24,7 @@ export function getOperationsGovernanceSnapshot(): OperationsGovernanceSnapshot 
     migrationPipeline: {
       sourceOfTruth: 'supabase/migrations',
       releaseGateRequired: true,
-      ciRequiredChecks: ['npm run lint', 'npm run typecheck', 'npm run build', 'npm run smoke']
+      ciRequiredChecks: ['npm run verify:migrations', 'npm run lint', 'npm run typecheck', 'npm run build', 'npm run smoke']
     },
     auditRetention: {
       onlineRetentionDays,

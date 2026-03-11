@@ -11,6 +11,8 @@
 ## 2) Database / Supabase
 - [ ] 执行 migration: `202603090001_auth_alignment_and_rls.sql`。
 - [ ] 执行 migration: `202603090002_submissions_normalization_rls_audit.sql`。
+- [ ] 执行 migration: `202603090003_ethics_cases_and_policy_support.sql`。
+- [ ] 执行 migration: `202603090004_audit_archive_and_ops.sql`。
 - [ ] 核验 RLS policy 生效（user_accounts/orcid_links/submissions/submission_files）。
 - [ ] 核验 Storage bucket 与上传路径策略（papers）。
 

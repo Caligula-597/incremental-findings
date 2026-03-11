@@ -6,10 +6,23 @@ const random = Math.random().toString(36).slice(2, 8);
 const email = `smoke-${now}-${random}@example.com`;
 const password = 'SmokePass#123';
 
+let cookieHeader = '';
+
 async function mustFetch(path, init = {}) {
   const url = `${baseUrl}${path}`;
-  const res = await fetch(url, init);
+  const headers = { ...(init.headers || {}) };
+  if (cookieHeader) {
+    headers.cookie = cookieHeader;
+  }
+
+  const res = await fetch(url, { ...init, headers });
   const body = await res.text();
+
+  const setCookie = res.headers.get('set-cookie');
+  if (setCookie) {
+    const nextCookie = setCookie.split(';')[0];
+    cookieHeader = cookieHeader ? `${cookieHeader}; ${nextCookie}` : nextCookie;
+  }
   if (!res.ok) {
     throw new Error(`Request failed ${res.status} ${url}\n${body.slice(0, 400)}`);
   }
@@ -53,6 +66,20 @@ async function main() {
   });
   if (!login?.data?.email) throw new Error('login response missing data.email');
   console.log('[smoke] /api/auth/login ok');
+
+  const session = await mustFetch('/api/auth/session');
+  if (!session?.data?.email) throw new Error('session response missing data.email');
+  console.log('[smoke] /api/auth/session ok');
+
+  const editorLogin = await mustFetch('/api/auth/editor-login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: `editor-${random}@example.com`, name: 'Smoke Editor', editor_code: process.env.SMOKE_EDITOR_CODE || 'review-demo' })
+  });
+  if (!editorLogin?.data?.role || editorLogin.data.role !== 'editor') {
+    throw new Error('editor-login response missing editor role');
+  }
+  console.log('[smoke] /api/auth/editor-login ok');
 
   console.log('[smoke] success');
 }
