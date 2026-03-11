@@ -30,6 +30,7 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - 发布门禁清单：`docs/release-checklist.md`
 - UAT 执行手册：`docs/uat-runbook.md`
 - 运维治理手册：`docs/operations-runbook.md`
+- 统一测试手册：`docs/testing-playbook.md`
 - CI 质量门禁：`.github/workflows/quality-gate.yml`
 
 ## Stack
