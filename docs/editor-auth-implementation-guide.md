@@ -25,6 +25,9 @@ Relevant routes:
 - `SESSION_SECRET` (>= 32 chars)
 - `EDITOR_ACCESS_CODE`
 
+### Production (optional for rotation)
+- `EDITOR_ACCESS_CODE_ROLLOVER` (optional, comma-separated old codes during rotation)
+
 ### Local development
 - You may omit `EDITOR_ACCESS_CODE` and use the built-in fallback (`review-demo`) only in non-production.
 
@@ -48,6 +51,7 @@ app.use(cookieParser());
 const COOKIE_NAME = 'if_session';
 const SESSION_SECRET = process.env.SESSION_SECRET || '';
 const EDITOR_ACCESS_CODE = process.env.EDITOR_ACCESS_CODE;
+const EDITOR_ACCESS_CODE_ROLLOVER = process.env.EDITOR_ACCESS_CODE_ROLLOVER || '';
 
 function sign(payloadBase64: string) {
   return crypto.createHmac('sha256', SESSION_SECRET).update(payloadBase64).digest('base64url');
@@ -78,8 +82,10 @@ app.post('/api/auth/editor-login', editorLimiter, (req, res) => {
   const code = String(req.body.editor_code || '').trim();
   if (!email || !code) return res.status(400).json({ error: 'email and editor_code are required' });
 
-  const expectedCode = EDITOR_ACCESS_CODE || 'review-demo';
-  if (code !== expectedCode) return res.status(401).json({ error: 'Invalid editor access code' });
+  const acceptedCodes = [EDITOR_ACCESS_CODE, ...EDITOR_ACCESS_CODE_ROLLOVER.split(',').map(s => s.trim())]
+    .filter(Boolean) as string[];
+  const expectedCodes = acceptedCodes.length > 0 ? acceptedCodes : ['review-demo'];
+  if (!expectedCodes.includes(code)) return res.status(401).json({ error: 'Invalid editor access code' });
 
   const session = makeSession({ id: crypto.randomUUID(), email, name: 'Editorial Reviewer', role: 'editor' });
   res.cookie(COOKIE_NAME, session, {

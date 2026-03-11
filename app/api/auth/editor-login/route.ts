@@ -6,6 +6,24 @@ import { recordSecurityEvent } from '@/lib/security-service';
 
 const DEFAULT_EDITOR_CODE = 'review-demo';
 
+
+function parseEditorCodes() {
+  const primary = String(process.env.EDITOR_ACCESS_CODE ?? '').trim();
+  const rolloverRaw = String(process.env.EDITOR_ACCESS_CODE_ROLLOVER ?? '').trim();
+
+  const rolloverCodes = rolloverRaw
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  const merged = [primary, ...rolloverCodes].filter(Boolean);
+  if (merged.length === 0) {
+    return [DEFAULT_EDITOR_CODE];
+  }
+
+  return Array.from(new Set(merged));
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -44,8 +62,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const expectedCode = process.env.EDITOR_ACCESS_CODE ?? DEFAULT_EDITOR_CODE;
-    if (code !== expectedCode) {
+    const acceptedCodes = parseEditorCodes();
+    const matchedCodeIndex = acceptedCodes.findIndex((candidate) => code === candidate);
+    if (matchedCodeIndex < 0) {
       await recordSecurityEvent({
         kind: 'alert',
         actorEmail: email,
@@ -67,12 +86,13 @@ export async function POST(request: Request) {
       kind: 'alert',
       actorEmail: email,
       route: '/api/auth/editor-login',
-      detail: 'editor_login_success'
+      detail: `editor_login_success:slot_${matchedCodeIndex}`
     });
 
     return NextResponse.json({
       data: sessionUser,
-      mode: process.env.EDITOR_ACCESS_CODE ? 'env' : 'demo-default'
+      mode: process.env.EDITOR_ACCESS_CODE ? 'env' : 'demo-default',
+      credential_slot: matchedCodeIndex
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';

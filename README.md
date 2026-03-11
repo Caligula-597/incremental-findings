@@ -331,6 +331,7 @@ ORCID_CLIENT_ID=xxx
 ORCID_CLIENT_SECRET=xxx
 ORCID_REDIRECT_URI=http://localhost:3000/api/orcid/callback
 EDITOR_ACCESS_CODE=your_editor_access_code
+EDITOR_ACCESS_CODE_ROLLOVER=old_code_1,old_code_2
 SESSION_SECRET=at_least_32_chars_random_secret
 DOI_REGISTRANT=incremental-findings
 DOI_PLACEHOLDER_PREFIX=if-tmp
@@ -384,6 +385,7 @@ npm run verify:migrations
 - Use `/login` and choose **Editor Log in**.
 - In local demo mode (without env), default editor code is `review-demo`.
 - In production, set `EDITOR_ACCESS_CODE` in environment variables.
+- During credential rotation, set `EDITOR_ACCESS_CODE_ROLLOVER` as comma-separated old codes (optional).
 
 
 ## Session and authorization baseline
