@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
 import { buildSessionToken, setSessionCookie } from '@/lib/session';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { enforceNotBlocked } from '@/lib/security-service';
 
 const DEFAULT_EDITOR_CODE = 'review-demo';
 
@@ -18,6 +19,10 @@ export async function POST(request: Request) {
 
 
     const ip = getClientIp(request);
+    const blocked = await enforceNotBlocked({ ip, route: '/api/auth/editor-login' });
+    if (blocked) {
+      return NextResponse.json(blocked.body, { status: blocked.status });
+    }
     const editorLimit = checkRateLimit({
       bucket: `auth-editor-login:${ip}:${email || 'unknown'}`,
       maxRequests: Number(process.env.EDITOR_LOGIN_RATE_LIMIT_MAX ?? '10') || 10,

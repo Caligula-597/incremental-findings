@@ -195,3 +195,21 @@ done
 
 ### 7.3 风险检查接口限流验证
 调低 `SECURITY_RISK_CHECK_RATE_LIMIT_MAX`，连续调用 `/api/security/risk-check`，确认触发 `429`。
+
+
+### 7.4 封禁生效验证（block enforcement）
+1) 先用编辑身份调用 `POST /api/security/block` 封禁某个 IP（例如 `127.0.0.1`，scope 设为 `global` 或具体路由）。
+2) 再调用被保护接口（如 `/api/auth/login` 或 `/api/security/risk-check`）。
+
+示例：
+```bash
+curl -i -b editor_cookies.txt -X POST http://127.0.0.1:3000/api/security/block \
+  -H 'content-type: application/json' \
+  -d '{"ip":"127.0.0.1","route":"global","reason":"qa-block-test","ttl_minutes":5}'
+
+curl -i -X POST http://127.0.0.1:3000/api/auth/login \
+  -H 'content-type: application/json' \
+  -d '{"identifier":"any@example.com","password":"bad"}'
+```
+
+**通过标准**：返回 `403`，响应包含 `blocked_until` 与 `reason`。

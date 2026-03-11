@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSessionUser } from '@/lib/session';
-import { runRiskCheck } from '@/lib/security-service';
+import { enforceNotBlocked, runRiskCheck } from '@/lib/security-service';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
@@ -12,6 +12,10 @@ export async function POST(request: Request) {
     const ip = String(body?.ip ?? getClientIp(request)).trim() || 'unknown';
     const userAgent = request.headers.get('user-agent') ?? undefined;
 
+    const blocked = await enforceNotBlocked({ ip, route: '/api/security/risk-check' });
+    if (blocked) {
+      return NextResponse.json(blocked.body, { status: blocked.status });
+    }
 
     const limit = checkRateLimit({
       bucket: `security-risk-check:${ip}`,

@@ -5,6 +5,7 @@ import { runtimeUsers } from '@/lib/runtime-store';
 import { hashPassword, needsPasswordRehash, verifyPassword } from '@/lib/auth-security';
 import { buildSessionToken, setSessionCookie } from '@/lib/session';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { enforceNotBlocked } from '@/lib/security-service';
 
 function normalizeIdentifier(body: any) {
   const fromIdentifier = String(body.identifier ?? '').trim().toLowerCase();
@@ -26,6 +27,10 @@ export async function POST(request: Request) {
 
 
     const ip = getClientIp(request);
+    const blocked = await enforceNotBlocked({ ip, route: '/api/auth/login' });
+    if (blocked) {
+      return NextResponse.json(blocked.body, { status: blocked.status });
+    }
     const loginLimit = checkRateLimit({
       bucket: `auth-login:${ip}:${identifier || 'unknown'}`,
       maxRequests: Number(process.env.AUTH_LOGIN_RATE_LIMIT_MAX ?? '20') || 20,

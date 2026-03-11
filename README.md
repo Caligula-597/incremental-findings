@@ -392,6 +392,7 @@ npm run verify:migrations
 - Password hashing uses `scrypt` with backward-compatible migration for existing SHA-256 hashes.
 
 - Auth/security endpoints include in-memory rate limiting (register/login/editor-login/risk-check), configurable via `AUTH_*`, `EDITOR_LOGIN_*`, and `SECURITY_RISK_CHECK_*` environment variables.
+- `POST /api/security/block` now has runtime enforcement: blocked IPs are actively rejected by auth and risk-check endpoints until `blocked_until`.
 
 - Editorial workflow transition validation is now enforced server-side (e.g., prevents invalid direct transitions).
 

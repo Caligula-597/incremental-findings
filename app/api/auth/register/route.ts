@@ -5,6 +5,7 @@ import { runtimeUsers } from '@/lib/runtime-store';
 import { hashPassword } from '@/lib/auth-security';
 import { buildSessionToken, setSessionCookie } from '@/lib/session';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { enforceNotBlocked } from '@/lib/security-service';
 
 function normalizeUsername(input: string) {
   const value = input.trim().toLowerCase();
@@ -25,6 +26,10 @@ export async function POST(request: Request) {
 
 
     const ip = getClientIp(request);
+    const blocked = await enforceNotBlocked({ ip, route: '/api/auth/register' });
+    if (blocked) {
+      return NextResponse.json(blocked.body, { status: blocked.status });
+    }
     const registerLimit = checkRateLimit({
       bucket: `auth-register:${ip}`,
       maxRequests: Number(process.env.AUTH_REGISTER_RATE_LIMIT_MAX ?? '10') || 10,

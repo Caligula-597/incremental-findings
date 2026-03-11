@@ -148,3 +148,56 @@ export async function blockIp(input: {
 
   return record;
 }
+
+
+export async function getActiveIpBlock(input: {
+  ip: string;
+  route?: string;
+}): Promise<IpRateLimitRecord | null> {
+  const nowIso = new Date().toISOString();
+  const route = (input.route ?? 'global').trim() || 'global';
+
+  const supabase = getSupabaseServerClient();
+  if (supabase) {
+    const byIp = await supabase
+      .from('ip_rate_limits')
+      .select('*')
+      .eq('ip', input.ip)
+      .gt('blocked_until', nowIso)
+      .order('blocked_until', { ascending: false });
+
+    if (!byIp.error && byIp.data) {
+      const matched = (byIp.data as IpRateLimitRecord[]).find((row) => row.route === 'global' || row.route === route);
+      if (matched) {
+        return matched;
+      }
+    }
+  }
+
+  const runtimeMatch = runtimeIpRateLimits.find(
+    (row) =>
+      row.ip === input.ip &&
+      row.blocked_until > nowIso &&
+      (row.route === 'global' || row.route === route)
+  );
+
+  return runtimeMatch ?? null;
+}
+
+export async function enforceNotBlocked(input: {
+  ip: string;
+  route?: string;
+}) {
+  const activeBlock = await getActiveIpBlock(input);
+  if (!activeBlock) return null;
+
+  return {
+    status: 403,
+    body: {
+      error: 'Request blocked by security policy',
+      blocked_until: activeBlock.blocked_until,
+      reason: activeBlock.reason,
+      scope: activeBlock.route
+    }
+  };
+}
