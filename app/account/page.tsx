@@ -108,13 +108,13 @@ export default function AccountPage() {
 
   async function applyEditorRole() {
     if (!user) {
-      setMessage('请先登录后再提交编辑申请。');
+      setMessage(copy.account.applyEditorLoginFirst);
       return;
     }
 
     const statement = applicationStatement.trim();
     if (statement.length < 20) {
-      setApplicationStatus('申请说明至少需要 20 个字符。');
+      setApplicationStatus(copy.account.applyEditorMinLength);
       return;
     }
 
@@ -126,11 +126,11 @@ export default function AccountPage() {
 
     const body = await response.json().catch(() => ({ error: 'Unknown error' }));
     if (!response.ok) {
-      setApplicationStatus(`提交失败：${body.error ?? 'Unknown error'}`);
+      setApplicationStatus(`${copy.account.applyEditorFailedPrefix}${body.error ?? 'Unknown error'}`);
       return;
     }
 
-    setApplicationStatus(body.reused ? '你已有待处理的编辑申请，请耐心等待。' : '编辑申请已提交，等待现有编辑审核与邀请。');
+    setApplicationStatus(body.reused ? copy.account.applyEditorReused : copy.account.applyEditorSuccess);
     setApplicationStatement('');
   }
 
@@ -213,15 +213,15 @@ export default function AccountPage() {
 
           {user?.role !== 'editor' ? (
             <div className="mt-6 rounded border border-zinc-200 bg-white p-4 text-sm">
-              <p className="font-semibold">申请成为编辑</p>
-              <p className="mt-2 text-zinc-700">提交你的背景说明后，现有编辑可在工作台审核并手动发放编辑邀请访问码。</p>
+              <p className="font-semibold">{copy.account.applyEditorTitle}</p>
+              <p className="mt-2 text-zinc-700">{copy.account.applyEditorDescription}</p>
               <textarea
                 value={applicationStatement}
                 onChange={(event) => setApplicationStatement(event.target.value)}
                 className="mt-3 min-h-24 w-full rounded border border-zinc-300 px-3 py-2"
-                placeholder="请填写研究方向、审稿经验、每周可投入时间等信息（至少20字）"
+                placeholder={copy.account.applyEditorPlaceholder}
               />
-              <button type="button" onClick={applyEditorRole} className="btn btn-secondary mt-3">提交编辑申请</button>
+              <button type="button" onClick={applyEditorRole} className="btn btn-secondary mt-3">{copy.account.applyEditorSubmit}</button>
               {applicationStatus ? <p className="mt-2 text-xs text-zinc-600">{applicationStatus}</p> : null}
             </div>
           ) : null}

@@ -7,6 +7,8 @@ import { isResolvableDoi } from '@/lib/doi';
 import { MetricCard, SectionTitle, StatusPill } from '@/components/ui-kit';
 import { DISCIPLINES } from '@/lib/taxonomy';
 import { Submission, SubmissionStatus } from '@/lib/types';
+import { getSiteCopy, getSiteLang } from '@/lib/site-copy';
+import { withLang } from '@/lib/lang';
 
 interface EditorApplication {
   id: string;
@@ -17,10 +19,10 @@ interface EditorApplication {
   created_at: string;
 }
 
-function TaxonomyMeta({ item }: { item: Submission }) {
+function TaxonomyMeta({ item, unclassified }: { item: Submission; unclassified: string }) {
   return (
     <p className="mt-1 text-xs uppercase tracking-wide text-zinc-500">
-      {[item.discipline, item.topic, item.article_type].filter(Boolean).join(' · ') || 'Unclassified'}
+      {[item.discipline, item.topic, item.article_type].filter(Boolean).join(' · ') || unclassified}
     </p>
   );
 }
@@ -34,6 +36,9 @@ function matchesFilter(item: Submission, query: string, discipline: string) {
 }
 
 export default function EditorPage() {
+  const [lang, setLang] = useState(getSiteLang());
+  const copy = useMemo(() => getSiteCopy(lang), [lang]);
+
   const [pending, setPending] = useState<Submission[]>([]);
   const [underReview, setUnderReview] = useState<Submission[]>([]);
   const [published, setPublished] = useState<Submission[]>([]);
@@ -53,7 +58,7 @@ export default function EditorPage() {
 
     if (!pendingRes.ok || !reviewRes.ok || !publishedRes.ok) {
       const detail = await pendingRes.json().catch(() => ({ error: 'Unable to load editorial queues' }));
-      setMessage(`Load failed: ${detail.error ?? 'Unknown error'}`);
+      setMessage(`${copy.editor.loadFailedPrefix}${detail.error ?? 'Unknown error'}`);
       return;
     }
 
@@ -85,21 +90,21 @@ export default function EditorPage() {
 
     const body = await response.json().catch(() => ({ error: 'Unknown error' }));
     if (!response.ok) {
-      setMessage(`邀请失败: ${body.error ?? ''}`);
+      setMessage(`${copy.editor.inviteFailedPrefix}${body.error ?? ''}`);
       return;
     }
 
     const code = body?.data?.invite_code;
-    setMessage(code ? `已生成邀请访问码（请手动发送给申请人）: ${code}` : '邀请已创建');
+    setMessage(code ? `${copy.editor.inviteCreatedPrefix}${code}` : copy.editor.inviteCreated);
     await loadApplications();
   }
 
   async function updateStatus(id: string, status: SubmissionStatus) {
     setMessage('');
 
-    const reason = status === 'rejected' ? window.prompt('请填写拒稿原因（必填）', '')?.trim() ?? '' : '';
+    const reason = status === 'rejected' ? window.prompt(copy.editor.rejectPrompt, '')?.trim() ?? '' : '';
     if (status === 'rejected' && !reason) {
-      setMessage('拒稿必须填写原因。');
+      setMessage(copy.editor.rejectReasonRequired);
       return;
     }
 
@@ -111,11 +116,11 @@ export default function EditorPage() {
 
     if (!response.ok) {
       const body = await response.json().catch(() => ({ error: 'Unknown error' }));
-      setMessage(`状态更新失败: ${body.error ?? ''}`);
+      setMessage(`${copy.editor.updateStatusFailedPrefix}${body.error ?? ''}`);
       return;
     }
 
-    setMessage(`状态已更新为 ${status}`);
+    setMessage(`${copy.editor.updateStatusSuccessPrefix}${status}`);
     await loadData();
   }
 
@@ -126,14 +131,20 @@ export default function EditorPage() {
 
     const body = await response.json().catch(() => ({ error: 'Unknown error' }));
     if (!response.ok) {
-      setMessage(`DOI 分配失败: ${body.error ?? ''}`);
+      setMessage(`${copy.editor.assignDoiFailedPrefix}${body.error ?? ''}`);
       return;
     }
 
     const doiValue = body?.data?.doi as string | undefined;
-    setMessage(doiValue ? `Publication ID assigned: ${doiValue}` : 'Identifier assignment completed.');
+    setMessage(doiValue ? `${copy.editor.publicationIdAssignedPrefix}${doiValue}` : copy.editor.identifierAssigned);
     await loadData();
   }
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    setLang(getSiteLang(params.get('lang')));
+  }, []);
 
   useEffect(() => {
     async function boot() {
@@ -170,7 +181,7 @@ export default function EditorPage() {
       <main>
         <SiteHeader />
         <section className="glass-panel p-8">
-          <p className="text-sm text-zinc-700">Checking editorial authorization…</p>
+          <p className="text-sm text-zinc-700">{copy.editor.checkingAuthorization}</p>
         </section>
       </main>
     );
@@ -181,12 +192,12 @@ export default function EditorPage() {
       <main>
         <SiteHeader />
         <section className="glass-panel p-8">
-          <h2 className="font-serif text-3xl">Editorial login required</h2>
+          <h2 className="font-serif text-3xl">{copy.editor.loginRequiredTitle}</h2>
           <p className="mt-3 max-w-2xl text-sm text-zinc-700">
-            当前工作台仅开放给编辑账号。请通过登录页的 Editor Log in 使用编辑访问码进入审稿系统。
+            {copy.editor.loginRequiredDesc}
           </p>
-          <Link className="btn btn-primary mt-5" href="/login">
-            Go to editor login
+          <Link className="btn btn-primary mt-5" href={withLang('/login', lang)}>
+            {copy.editor.goToLogin}
           </Link>
         </section>
       </main>
@@ -197,15 +208,15 @@ export default function EditorPage() {
     <main>
       <SiteHeader />
       <SectionTitle
-        title="Editorial Workspace"
-        subtitle="Manage screening, review progression and publishing decisions in one place."
+        title={copy.editor.workspaceTitle}
+        subtitle={copy.editor.workspaceSubtitle}
       />
 
       <section className="mb-6 grid gap-3 md:grid-cols-4">
-        <MetricCard label="Pending" value={pending.length} />
-        <MetricCard label="Under review" value={underReview.length} />
-        <MetricCard label="Published" value={published.length} />
-        <MetricCard label="Active queue" value={totalActive} />
+        <MetricCard label={copy.editor.pendingMetric} value={pending.length} />
+        <MetricCard label={copy.editor.underReviewMetric} value={underReview.length} />
+        <MetricCard label={copy.editor.publishedMetric} value={published.length} />
+        <MetricCard label={copy.editor.activeQueueMetric} value={totalActive} />
       </section>
 
       <section className="glass-panel mb-6 p-4">
@@ -213,7 +224,7 @@ export default function EditorPage() {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search title, authors, abstract, topic"
+            placeholder={copy.editor.searchPlaceholder}
             className="rounded-lg border border-zinc-300 px-3 py-2"
           />
           <select
@@ -221,7 +232,7 @@ export default function EditorPage() {
             onChange={(event) => setDisciplineFilter(event.target.value)}
             className="rounded-lg border border-zinc-300 px-3 py-2"
           >
-            <option value="all">All disciplines</option>
+            <option value="all">{copy.editor.allDisciplines}</option>
             {DISCIPLINES.map((discipline) => (
               <option key={discipline} value={discipline}>
                 {discipline}
@@ -236,7 +247,7 @@ export default function EditorPage() {
             }}
             className="btn btn-secondary"
           >
-            Reset filters
+            {copy.editor.resetFilters}
           </button>
         </div>
       </section>
@@ -244,9 +255,9 @@ export default function EditorPage() {
       {message ? <p className="mb-4 text-sm text-zinc-700">{message}</p> : null}
 
       <section className="mt-6">
-        <SectionTitle title="Editor applications" subtitle="Review incoming editor requests and issue invitation codes." />
+        <SectionTitle title={copy.editor.applicationsTitle} subtitle={copy.editor.applicationsSubtitle} />
         <div className="mt-4 grid gap-3">
-          {applications.length === 0 ? <p className="text-sm text-zinc-600">No pending applications.</p> : null}
+          {applications.length === 0 ? <p className="text-sm text-zinc-600">{copy.editor.noPendingApplications}</p> : null}
           {applications.map((application) => (
             <article key={application.id} className="glass-panel p-4">
               <div className="flex items-start justify-between gap-3">
@@ -255,7 +266,7 @@ export default function EditorPage() {
                   <p className="text-sm text-zinc-600">{application.applicant_email}</p>
                 </div>
                 <button className="btn btn-secondary btn-sm" onClick={() => inviteApplicant(application)}>
-                  Approve & generate invite
+                  {copy.editor.approveAndInvite}
                 </button>
               </div>
               <p className="mt-2 text-sm text-zinc-700">{application.statement}</p>
@@ -265,9 +276,9 @@ export default function EditorPage() {
       </section>
 
       <section className="mt-8">
-        <SectionTitle title="Submissions in progress" />
+        <SectionTitle title={copy.editor.submissionsInProgress} />
         <div className="mt-4 grid gap-4">
-          {filteredPending.length === 0 ? <p>No pending submissions.</p> : null}
+          {filteredPending.length === 0 ? <p>{copy.editor.noPendingSubmissions}</p> : null}
           {filteredPending.map((item) => (
             <article key={item.id} className="glass-panel p-4">
               <div className="flex items-start justify-between gap-3">
@@ -275,11 +286,11 @@ export default function EditorPage() {
                 <StatusPill status={item.status} />
               </div>
               <p className="mt-1 text-sm text-zinc-600">{item.authors}</p>
-              <TaxonomyMeta item={item} />
-              <p className="mt-2 text-sm">{(item.abstract ?? 'No abstract provided.').slice(0, 200)}...</p>
+              <TaxonomyMeta item={item} unclassified={copy.editor.unclassified} />
+              <p className="mt-2 text-sm">{(item.abstract ?? copy.editor.noAbstract).slice(0, 200)}...</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button className="btn btn-secondary btn-sm" onClick={() => updateStatus(item.id, 'under_review')}>
-                  Move to under review
+                  {copy.editor.moveToUnderReview}
                 </button>
                 <button className="btn btn-danger btn-sm" onClick={() => updateStatus(item.id, 'rejected')}>
                   Reject
@@ -291,9 +302,9 @@ export default function EditorPage() {
       </section>
 
       <section className="mt-10">
-        <SectionTitle title="Peer review queue" />
+        <SectionTitle title={copy.editor.peerReviewQueue} />
         <div className="mt-4 grid gap-4">
-          {filteredUnderReview.length === 0 ? <p>No submissions under review.</p> : null}
+          {filteredUnderReview.length === 0 ? <p>{copy.editor.noUnderReviewSubmissions}</p> : null}
           {filteredUnderReview.map((item) => (
             <article key={item.id} className="glass-panel p-4">
               <div className="flex items-start justify-between gap-3">
@@ -301,7 +312,7 @@ export default function EditorPage() {
                 <StatusPill status={item.status} />
               </div>
               <p className="mt-1 text-sm text-zinc-600">{item.authors}</p>
-              <TaxonomyMeta item={item} />
+              <TaxonomyMeta item={item} unclassified={copy.editor.unclassified} />
               <div className="mt-3 flex flex-wrap gap-2">
                 <button className="btn btn-primary btn-sm" onClick={() => updateStatus(item.id, 'published')}>
                   Publish
@@ -316,9 +327,9 @@ export default function EditorPage() {
       </section>
 
       <section className="mt-10">
-        <SectionTitle title="Published work" />
+        <SectionTitle title={copy.editor.publishedWork} />
         <div className="mt-4 grid gap-4">
-          {filteredPublished.length === 0 ? <p>No published submissions.</p> : null}
+          {filteredPublished.length === 0 ? <p>{copy.editor.noPublishedSubmissions}</p> : null}
           {filteredPublished.map((item) => (
             <article key={item.id} className="glass-panel p-4">
               <div className="flex items-start justify-between gap-3">
@@ -326,10 +337,10 @@ export default function EditorPage() {
                 <StatusPill status={item.status} />
               </div>
               <p className="mt-1 text-sm text-zinc-600">{item.authors}</p>
-              <TaxonomyMeta item={item} />
+              <TaxonomyMeta item={item} unclassified={copy.editor.unclassified} />
               <div className="mt-2 flex flex-wrap items-center gap-3">
                 <a className="inline-block text-sm underline" href={item.file_url ?? '#'} target="_blank" rel="noreferrer">
-                  View PDF
+                  {copy.editor.viewPdf}
                 </a>
                 {item.doi ? (
                   isResolvableDoi(item.doi) ? (
@@ -342,11 +353,11 @@ export default function EditorPage() {
                       DOI: {item.doi}
                     </a>
                   ) : (
-                    <span className="text-xs font-semibold text-zinc-700">Publication ID: {item.doi}</span>
+                    <span className="text-xs font-semibold text-zinc-700">{copy.editor.publicationIdPrefix}{item.doi}</span>
                   )
                 ) : (
                   <button className="btn btn-secondary btn-sm" onClick={() => assignDoi(item.id)}>
-                    Assign Publication ID
+                    {copy.editor.assignPublicationId}
                   </button>
                 )}
               </div>
