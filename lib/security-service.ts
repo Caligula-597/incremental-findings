@@ -56,6 +56,28 @@ async function persistSecurityEvent(event: SecurityEventRecord) {
   runtimeSecurityEvents.unshift(event);
 }
 
+export async function recordSecurityEvent(input: {
+  kind: SecurityEventRecord['kind'];
+  actorEmail?: string | null;
+  ip?: string | null;
+  route?: string | null;
+  detail: string;
+  riskScore?: number | null;
+}) {
+  const event: SecurityEventRecord = {
+    id: randomUUID(),
+    kind: input.kind,
+    actor_email: input.actorEmail ?? null,
+    ip: input.ip ?? null,
+    route: input.route ?? null,
+    detail: input.detail,
+    risk_score: input.riskScore ?? null,
+    created_at: new Date().toISOString()
+  };
+
+  await persistSecurityEvent(event);
+}
+
 export async function runRiskCheck(input: RiskCheckInput): Promise<RiskScoreRecord> {
   const result = computeRiskScore(input);
   const record: RiskScoreRecord = {

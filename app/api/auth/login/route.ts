@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@/lib/supabase';
 import { runtimeUsers } from '@/lib/runtime-store';
@@ -68,7 +67,7 @@ export async function POST(request: Request) {
 
         setSessionCookie(buildSessionToken(sessionUser));
         return NextResponse.json({
-          data: { ...sessionUser, username: account.username ?? null, session_token: randomUUID() },
+          data: { ...sessionUser, username: account.username ?? null },
           mode: 'supabase'
         });
       }
@@ -106,7 +105,7 @@ export async function POST(request: Request) {
 
     setSessionCookie(buildSessionToken(sessionUser));
     return NextResponse.json({
-      data: { ...sessionUser, username: user.username ?? null, session_token: randomUUID() },
+      data: { ...sessionUser, username: user.username ?? null },
       mode: 'memory'
     });
   } catch (error) {

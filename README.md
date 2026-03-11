@@ -31,6 +31,7 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - UAT 执行手册：`docs/uat-runbook.md`
 - 运维治理手册：`docs/operations-runbook.md`
 - 统一测试手册：`docs/testing-playbook.md`
+- 编辑登录后端实现指引：`docs/editor-auth-implementation-guide.md`
 - CI 质量门禁：`.github/workflows/quality-gate.yml`
 
 ## Stack

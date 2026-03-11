@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
 import { buildSessionToken, setSessionCookie } from '@/lib/session';
 import { guardRequest } from '@/lib/request-guard';
+import { recordSecurityEvent } from '@/lib/security-service';
 
 const DEFAULT_EDITOR_CODE = 'review-demo';
 
@@ -13,6 +14,12 @@ export async function POST(request: Request) {
     const code = String(body.editor_code ?? '').trim();
 
     if (!email || !code) {
+      await recordSecurityEvent({
+        kind: 'alert',
+        actorEmail: email || null,
+        route: '/api/auth/editor-login',
+        detail: 'editor_login_invalid_payload'
+      });
       return NextResponse.json({ error: 'email and editor_code are required' }, { status: 400 });
     }
 
@@ -39,6 +46,12 @@ export async function POST(request: Request) {
 
     const expectedCode = process.env.EDITOR_ACCESS_CODE ?? DEFAULT_EDITOR_CODE;
     if (code !== expectedCode) {
+      await recordSecurityEvent({
+        kind: 'alert',
+        actorEmail: email,
+        route: '/api/auth/editor-login',
+        detail: 'editor_login_invalid_code'
+      });
       return NextResponse.json({ error: 'Invalid editor access code' }, { status: 401 });
     }
 
@@ -50,11 +63,15 @@ export async function POST(request: Request) {
     };
 
     setSessionCookie(buildSessionToken(sessionUser));
+    await recordSecurityEvent({
+      kind: 'alert',
+      actorEmail: email,
+      route: '/api/auth/editor-login',
+      detail: 'editor_login_success'
+    });
+
     return NextResponse.json({
-      data: {
-        ...sessionUser,
-        session_token: randomUUID()
-      },
+      data: sessionUser,
       mode: process.env.EDITOR_ACCESS_CODE ? 'env' : 'demo-default'
     });
   } catch (error) {
