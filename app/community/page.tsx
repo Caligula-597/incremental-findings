@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { SiteHeader } from '@/components/header';
 import { SectionTitle } from '@/components/ui-kit';
-import { JOURNAL_2026_TARGETS, JOURNAL_POSITIONING, JOURNAL_PUBLIC_PROGRAMS } from '@/lib/journal-plan';
+import { JOURNAL_POSITIONING, JOURNAL_PUBLIC_PROGRAMS } from '@/lib/journal-plan';
 import { INTEGRATION_PROVIDERS } from '@/lib/integration-plan';
 import { COMPLETED_FOUNDATION_ITEMS, FEATURE_ROADMAP, getRoadmapSummary } from '@/lib/feature-roadmap';
 import { getSiteCopy, getSiteLang } from '@/lib/site-copy';
@@ -13,8 +13,6 @@ export default function CommunityPage({ searchParams }: { searchParams?: { lang?
   const sectionCopy = {
     programsTitle: lang === 'zh' ? '公众项目' : 'Public-facing programs',
     programsSubtitle: lang === 'zh' ? '让期刊内容不只服务同行评审，也服务公众理解。' : 'Make journal content useful not only for peer review, but also for public understanding.',
-    targetTitle: lang === 'zh' ? '2026 目标计划' : '2026 target plan',
-    targetSubtitle: lang === 'zh' ? '公开目标可度量，便于外界监督。' : 'Public goals should be measurable and externally auditable.',
     missionDetailsTitle: lang === 'zh' ? '期刊使命（扩展）' : 'Extended mission',
     missionDetailsSubtitle: lang === 'zh' ? '我们强调“增量但可靠”的学术价值观。' : 'Our editorial philosophy emphasizes “incremental yet reliable” science.',
     pillarsTitle: lang === 'zh' ? '办刊原则' : 'Editorial pillars',
@@ -86,14 +84,6 @@ export default function CommunityPage({ searchParams }: { searchParams?: { lang?
         </div>
       </section>
 
-      <section className="mt-8 glass-panel p-6">
-        <SectionTitle title={sectionCopy.targetTitle} subtitle={sectionCopy.targetSubtitle} className="mb-2" />
-        <ul className="list-disc space-y-2 pl-5 text-sm text-zinc-700">
-          {JOURNAL_2026_TARGETS[lang].map((target) => (
-            <li key={target}>{target}</li>
-          ))}
-        </ul>
-      </section>
 
       <section className="mt-8 glass-panel p-6">
         <SectionTitle title={sectionCopy.roadmapTitle} subtitle={sectionCopy.roadmapSubtitle} className="mb-4" />
@@ -138,6 +128,11 @@ export default function CommunityPage({ searchParams }: { searchParams?: { lang?
             <li key={item}>{item}</li>
           ))}
         </ul>
+        {FEATURE_ROADMAP.length === 0 ? (
+          <p className="mb-3 text-sm text-zinc-600">
+            {lang === 'zh' ? '当前路线图明细暂未拆分到前端卡片，先展示基础能力与机器可读接口。' : 'Detailed roadmap cards are not populated yet; baseline capabilities and machine-readable endpoints are shown below.'}
+          </p>
+        ) : null}
         <div className="space-y-3">
           {FEATURE_ROADMAP.map((item) => (
             <article key={item.id} className="rounded-2xl border border-zinc-200 bg-white/70 p-4">

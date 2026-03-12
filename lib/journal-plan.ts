@@ -58,18 +58,3 @@ export const JOURNAL_PUBLIC_PROGRAMS = {
     }
   ]
 } as const;
-
-export const JOURNAL_2026_TARGETS = {
-  zh: [
-    '发布首批 120 篇经审稿论文，其中重复研究/阴性结果占比不少于 30%。',
-    '编辑初筛中位时长不超过 7 天，首轮决策中位时长不超过 35 天。',
-    '100% 录用稿件完成 DOI 或可追溯发布编号，并提供公共元数据导出。',
-    '为高公共价值稿件提供双语通俗摘要，提升公众可读性。'
-  ],
-  en: [
-    'Publish the first 120 peer-reviewed articles with at least 30% replication/negative-result content.',
-    'Keep median editorial triage under 7 days and first decision under 35 days.',
-    'Provide DOI or traceable publication IDs for 100% of accepted articles with public metadata exports.',
-    'Launch bilingual plain-language summaries for high public-interest submissions.'
-  ]
-} as const;

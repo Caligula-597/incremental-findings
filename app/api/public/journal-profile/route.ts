@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { JOURNAL_2026_TARGETS, JOURNAL_POSITIONING, JOURNAL_PUBLIC_PROGRAMS } from '@/lib/journal-plan';
+import { JOURNAL_POSITIONING, JOURNAL_PUBLIC_PROGRAMS } from '@/lib/journal-plan';
 import { listSubmissions } from '@/lib/submission-repository';
 
 export async function GET() {
@@ -16,7 +16,6 @@ export async function GET() {
       data: {
         positioning: JOURNAL_POSITIONING,
         programs: JOURNAL_PUBLIC_PROGRAMS,
-        targets_2026: JOURNAL_2026_TARGETS,
         live_metrics: {
           published_count: published.length,
           pending_count: pending.length,
