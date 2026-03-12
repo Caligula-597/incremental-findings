@@ -23,3 +23,9 @@ export const runtimeEthicsCases: EthicsCaseRecord[] = [];
 
 export const runtimeEditorApplications: EditorApplicationRecord[] = [];
 export const runtimeEditorInvites: EditorInviteRecord[] = [];
+
+export const runtimeSubmissionFileBlobs = new Map<string, {
+  file_name: string;
+  content_type: string;
+  bytes: Buffer;
+}>();

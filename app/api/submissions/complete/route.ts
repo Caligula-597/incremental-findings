@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
 import { TERMS_VERSION } from '@/lib/legal';
-import { runtimeAuditLogs, runtimeSubmissionFiles } from '@/lib/runtime-store';
+import { runtimeAuditLogs, runtimeSubmissionFileBlobs, runtimeSubmissionFiles } from '@/lib/runtime-store';
 import { createSubmission } from '@/lib/submission-repository';
 import { getSupabaseServerClient } from '@/lib/supabase';
 import { getServerSessionUser } from '@/lib/session';
@@ -37,7 +37,7 @@ async function uploadToStorage(file: File, pathPrefix: string) {
   const filePath = `${pathPrefix}/${Date.now()}-${file.name}`;
 
   if (!supabase) {
-    return { path: filePath, mode: 'memory' as const };
+    return { path: `memory://${filePath}`, mode: 'memory' as const };
   }
 
   const arrayBuffer = await file.arrayBuffer();
@@ -47,11 +47,10 @@ async function uploadToStorage(file: File, pathPrefix: string) {
   });
 
   if (upload.error) {
-    return { path: filePath, mode: 'memory' as const, warning: upload.error.message };
+    return { path: `memory://${filePath}`, mode: 'memory' as const, warning: upload.error.message };
   }
 
-  const publicUrl = supabase.storage.from('papers').getPublicUrl(filePath).data.publicUrl;
-  return { path: publicUrl || filePath, mode: 'supabase' as const };
+  return { path: `supabase://papers/${filePath}`, mode: 'supabase' as const };
 }
 
 export async function POST(request: Request) {
@@ -129,13 +128,13 @@ export async function POST(request: Request) {
       author_id: userId || undefined
     });
 
-    const filesToRecord: Array<{ file: File; kind: 'manuscript' | 'cover_letter' | 'supporting'; path: string }> = [
-      { file: manuscript, kind: 'manuscript', path: manuscriptUpload.path }
+    const filesToRecord: Array<{ file: File; kind: 'manuscript' | 'cover_letter' | 'supporting'; path: string; mode: 'memory' | 'supabase' }> = [
+      { file: manuscript, kind: 'manuscript', path: manuscriptUpload.path, mode: manuscriptUpload.mode }
     ];
 
     const coverUpload = await uploadToStorage(coverLetter, 'cover-letters');
     if (coverUpload.warning) warnings.push(`Cover letter storage fallback: ${coverUpload.warning}`);
-    filesToRecord.push({ file: coverLetter, kind: 'cover_letter', path: coverUpload.path });
+    filesToRecord.push({ file: coverLetter, kind: 'cover_letter', path: coverUpload.path, mode: coverUpload.mode });
 
     for (const item of supporting) {
       if (item instanceof File && item.size > 0) {
@@ -147,7 +146,7 @@ export async function POST(request: Request) {
 
         const supportUpload = await uploadToStorage(item, 'supporting-files');
         if (supportUpload.warning) warnings.push(`Supporting file fallback (${item.name}): ${supportUpload.warning}`);
-        filesToRecord.push({ file: item, kind: 'supporting', path: supportUpload.path });
+        filesToRecord.push({ file: item, kind: 'supporting', path: supportUpload.path, mode: supportUpload.mode });
       }
     }
 
@@ -160,18 +159,36 @@ export async function POST(request: Request) {
       }))
     );
 
-    const fileRows = filesToRecord.map((entry) => ({
-      id: randomUUID(),
-      submission_id: created.id,
-      file_kind: entry.kind,
-      file_name: entry.file.name,
-      file_path: entry.path,
-      content_type: entry.file.type || 'application/octet-stream',
-      size_bytes: entry.file.size,
-      created_at: now
-    }));
+    const fileRowsWithSource = filesToRecord.map((entry) => {
+      const id = randomUUID();
+      return {
+        row: {
+          id,
+          submission_id: created.id,
+          file_kind: entry.kind,
+          file_name: entry.file.name,
+          file_path: entry.path,
+          content_type: entry.file.type || 'application/octet-stream',
+          size_bytes: entry.file.size,
+          created_at: now
+        },
+        entry
+      };
+    });
 
+    const fileRows = fileRowsWithSource.map((item) => item.row);
     runtimeSubmissionFiles.push(...fileRows);
+
+    for (const item of fileRowsWithSource) {
+      if (item.entry.mode === 'memory') {
+        const bytes = Buffer.from(await item.entry.file.arrayBuffer());
+        runtimeSubmissionFileBlobs.set(item.row.id, {
+          file_name: item.row.file_name,
+          content_type: item.row.content_type,
+          bytes
+        });
+      }
+    }
 
     const audit = {
       id: randomUUID(),

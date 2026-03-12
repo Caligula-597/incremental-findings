@@ -292,7 +292,7 @@ export default function EditorPage() {
                   {(item.files ?? []).map((file) => (
                     <li key={file.id}>
                       {file.file_kind}:
-                      <a className="ml-1 underline" href={file.file_path} target="_blank" rel="noreferrer">
+                      <a className="ml-1 underline" href={`/api/submissions/files/${file.id}`} target="_blank" rel="noreferrer">
                         {file.file_name}
                       </a>
                     </li>
@@ -330,7 +330,7 @@ export default function EditorPage() {
                   {(item.files ?? []).map((file) => (
                     <li key={file.id}>
                       {file.file_kind}:
-                      <a className="ml-1 underline" href={file.file_path} target="_blank" rel="noreferrer">
+                      <a className="ml-1 underline" href={`/api/submissions/files/${file.id}`} target="_blank" rel="noreferrer">
                         {file.file_name}
                       </a>
                     </li>
@@ -367,7 +367,7 @@ export default function EditorPage() {
                   {(item.files ?? []).map((file) => (
                     <li key={file.id}>
                       {file.file_kind}:
-                      <a className="ml-1 underline" href={file.file_path} target="_blank" rel="noreferrer">
+                      <a className="ml-1 underline" href={`/api/submissions/files/${file.id}`} target="_blank" rel="noreferrer">
                         {file.file_name}
                       </a>
                     </li>

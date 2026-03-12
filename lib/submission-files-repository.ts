@@ -32,3 +32,15 @@ export async function listSubmissionFilesBySubmissionIds(submissionIds: string[]
 
   return grouped;
 }
+
+export async function getSubmissionFileById(fileId: string): Promise<SubmissionFileRecord | null> {
+  const supabase = getSupabaseServerClient();
+  if (supabase) {
+    const result = await supabase.from('submission_files').select('*').eq('id', fileId).maybeSingle();
+    if (!result.error && result.data) {
+      return result.data as SubmissionFileRecord;
+    }
+  }
+
+  return runtimeSubmissionFiles.find((item) => item.id === fileId) ?? null;
+}
