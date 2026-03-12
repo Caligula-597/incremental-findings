@@ -1,0 +1,42 @@
+name: quality-gate
+
+on:
+  pull_request:
+  push:
+    branches: ["main", "work"]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify migration inventory
+        run: npm run verify:migrations
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Run smoke tests
+        run: |
+          EDITOR_ACCESS_CODE=review-demo npm run start -- --hostname 127.0.0.1 --port 3000 &
+          APP_PID=$!
+          trap "kill $APP_PID" EXIT
+          sleep 12
+          SUPABASE_URL= SUPABASE_SERVICE_ROLE_KEY= NEXT_PUBLIC_SUPABASE_URL= NEXT_PUBLIC_SUPABASE_ANON_KEY= SMOKE_BASE_URL=http://127.0.0.1:3000 npm run smoke
