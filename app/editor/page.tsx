@@ -51,9 +51,9 @@ export default function EditorPage() {
 
   async function loadData() {
     const [pendingRes, reviewRes, publishedRes] = await Promise.all([
-      fetch('/api/submissions?status=pending', { cache: 'no-store' }),
-      fetch('/api/submissions?status=under_review', { cache: 'no-store' }),
-      fetch('/api/submissions?status=published', { cache: 'no-store' })
+      fetch('/api/submissions?status=pending&include_files=true', { cache: 'no-store' }),
+      fetch('/api/submissions?status=under_review&include_files=true', { cache: 'no-store' }),
+      fetch('/api/submissions?status=published&include_files=true', { cache: 'no-store' })
     ]);
 
     if (!pendingRes.ok || !reviewRes.ok || !publishedRes.ok) {
@@ -287,6 +287,18 @@ export default function EditorPage() {
               </div>
               <p className="mt-1 text-sm text-zinc-600">{item.authors}</p>
               <TaxonomyMeta item={item} unclassified={copy.editor.unclassified} />
+              {(item.files ?? []).length > 0 ? (
+                <ul className="mt-2 list-disc pl-5 text-xs text-zinc-700">
+                  {(item.files ?? []).map((file) => (
+                    <li key={file.id}>
+                      {file.file_kind}:
+                      <a className="ml-1 underline" href={file.file_path} target="_blank" rel="noreferrer">
+                        {file.file_name}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
               <p className="mt-2 text-sm">{(item.abstract ?? copy.editor.noAbstract).slice(0, 200)}...</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button className="btn btn-secondary btn-sm" onClick={() => updateStatus(item.id, 'under_review')}>
@@ -313,6 +325,18 @@ export default function EditorPage() {
               </div>
               <p className="mt-1 text-sm text-zinc-600">{item.authors}</p>
               <TaxonomyMeta item={item} unclassified={copy.editor.unclassified} />
+              {(item.files ?? []).length > 0 ? (
+                <ul className="mt-2 list-disc pl-5 text-xs text-zinc-700">
+                  {(item.files ?? []).map((file) => (
+                    <li key={file.id}>
+                      {file.file_kind}:
+                      <a className="ml-1 underline" href={file.file_path} target="_blank" rel="noreferrer">
+                        {file.file_name}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
               <div className="mt-3 flex flex-wrap gap-2">
                 <button className="btn btn-primary btn-sm" onClick={() => updateStatus(item.id, 'published')}>
                   Publish
@@ -338,6 +362,18 @@ export default function EditorPage() {
               </div>
               <p className="mt-1 text-sm text-zinc-600">{item.authors}</p>
               <TaxonomyMeta item={item} unclassified={copy.editor.unclassified} />
+              {(item.files ?? []).length > 0 ? (
+                <ul className="mt-2 list-disc pl-5 text-xs text-zinc-700">
+                  {(item.files ?? []).map((file) => (
+                    <li key={file.id}>
+                      {file.file_kind}:
+                      <a className="ml-1 underline" href={file.file_path} target="_blank" rel="noreferrer">
+                        {file.file_name}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
               <div className="mt-2 flex flex-wrap items-center gap-3">
                 <a className="inline-block text-sm underline" href={item.file_url ?? '#'} target="_blank" rel="noreferrer">
                   {copy.editor.viewPdf}

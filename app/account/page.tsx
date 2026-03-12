@@ -7,6 +7,16 @@ import { SectionTitle } from '@/components/ui-kit';
 import { getSiteCopy, getSiteLang } from '@/lib/site-copy';
 import { withLang } from '@/lib/lang';
 
+interface MySubmission {
+  id: string;
+  title: string;
+  status: string;
+  created_at: string;
+  discipline?: string | null;
+  article_type?: string | null;
+  files?: Array<{ id: string; file_kind: string; file_name: string; file_path: string }>;
+}
+
 interface SessionUser {
   id?: string;
   email: string;
@@ -25,6 +35,7 @@ export default function AccountPage() {
   const [diagnostics, setDiagnostics] = useState<string>('');
   const [applicationStatement, setApplicationStatement] = useState('');
   const [applicationStatus, setApplicationStatus] = useState<string>('');
+  const [mySubmissions, setMySubmissions] = useState<MySubmission[]>([]);
 
   useEffect(() => {
     async function loadSession() {
@@ -76,6 +87,17 @@ export default function AccountPage() {
     }
     void loadOrcid();
   }, [user?.email, user?.id]);
+
+  useEffect(() => {
+    async function loadMySubmissions() {
+      if (!user) return;
+      const response = await fetch('/api/submissions/mine?include_files=true', { cache: 'no-store' });
+      const body = await response.json().catch(() => ({ data: [] }));
+      if (response.ok) setMySubmissions(body.data ?? []);
+    }
+
+    void loadMySubmissions();
+  }, [user]);
 
   async function connectOrcid() {
     if (!user?.email) {
@@ -188,6 +210,37 @@ export default function AccountPage() {
                 <li key={item}>{item}</li>
               ))}
             </ul>
+          </div>
+
+          <div className="mt-6 rounded border border-zinc-200 bg-white p-4 text-sm">
+            <p className="font-semibold">{lang === 'zh' ? '我的投稿记录' : 'My submissions'}</p>
+            {mySubmissions.length === 0 ? (
+              <p className="mt-2 text-zinc-600">{lang === 'zh' ? '暂时没有投稿记录。' : 'No submissions yet.'}</p>
+            ) : (
+              <div className="mt-3 space-y-3">
+                {mySubmissions.map((item) => (
+                  <article key={item.id} className="rounded border border-zinc-200 p-3">
+                    <p className="font-medium">{item.title}</p>
+                    <p className="mt-1 text-xs text-zinc-600">
+                      {lang === 'zh' ? '状态' : 'Status'}: {item.status} · {new Date(item.created_at).toLocaleString()}
+                    </p>
+                    <p className="mt-1 text-xs text-zinc-500">
+                      {[item.discipline, item.article_type].filter(Boolean).join(' · ')}
+                    </p>
+                    <ul className="mt-2 list-disc pl-5 text-xs text-zinc-700">
+                      {(item.files ?? []).map((file) => (
+                        <li key={file.id}>
+                          {file.file_kind}:
+                          <a className="ml-1 underline" href={file.file_path} target="_blank" rel="noreferrer">
+                            {file.file_name}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </article>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

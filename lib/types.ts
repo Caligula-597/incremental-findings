@@ -15,6 +15,7 @@ export interface Submission {
   doi_registered_at?: string | null;
   author_id?: string | null;
   category?: string | null;
+  files?: SubmissionFileRecord[];
 }
 
 export interface SubmissionInput {

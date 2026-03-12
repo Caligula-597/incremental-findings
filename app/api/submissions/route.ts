@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSubmission, listSubmissions } from '@/lib/submission-repository';
+import { listSubmissionFilesBySubmissionIds } from '@/lib/submission-files-repository';
 import { getServerSessionUser } from '@/lib/session';
 import { SubmissionStatus } from '@/lib/types';
 
@@ -10,6 +11,7 @@ export async function GET(request: NextRequest) {
     const status = request.nextUrl.searchParams.get('status') as SubmissionStatus | null;
     const discipline = request.nextUrl.searchParams.get('discipline');
     const articleType = request.nextUrl.searchParams.get('article_type');
+    const includeFiles = request.nextUrl.searchParams.get('include_files') === 'true';
 
     if (status && !allowedStatus.has(status)) {
       return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
@@ -30,6 +32,16 @@ export async function GET(request: NextRequest) {
       const articleTypeMatch = articleType ? item.article_type === articleType : true;
       return disciplineMatch && articleTypeMatch;
     });
+
+    if (includeFiles) {
+      const sessionUser = getServerSessionUser();
+      if (!sessionUser || sessionUser.role !== 'editor') {
+        return NextResponse.json({ error: 'Editor authorization required for file visibility' }, { status: 403 });
+      }
+
+      const fileMap = await listSubmissionFilesBySubmissionIds(filtered.map((item) => item.id));
+      return NextResponse.json({ data: filtered.map((item) => ({ ...item, files: fileMap[item.id] ?? [] })) });
+    }
 
     return NextResponse.json({ data: filtered });
   } catch (error) {
