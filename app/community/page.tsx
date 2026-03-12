@@ -3,7 +3,6 @@ import { SiteHeader } from '@/components/header';
 import { SectionTitle } from '@/components/ui-kit';
 import { JOURNAL_POSITIONING, JOURNAL_PUBLIC_PROGRAMS } from '@/lib/journal-plan';
 import { INTEGRATION_PROVIDERS } from '@/lib/integration-plan';
-import { COMPLETED_FOUNDATION_ITEMS, FEATURE_ROADMAP, getRoadmapSummary } from '@/lib/feature-roadmap';
 import { getSiteCopy, getSiteLang } from '@/lib/site-copy';
 
 export default function CommunityPage({ searchParams }: { searchParams?: { lang?: string } }) {
@@ -26,12 +25,6 @@ export default function CommunityPage({ searchParams }: { searchParams?: { lang?
     priority: lang === 'zh' ? '优先级' : 'Priority',
     purpose: lang === 'zh' ? '用途' : 'Purpose',
     machineReadableLabel: lang === 'zh' ? '机器可读清单接口：' : 'Machine-readable endpoint:',
-    readinessTitle: lang === 'zh' ? '尚未完全落地的模块（平台就绪度）' : 'What is still missing (platform readiness)',
-    readinessSubtitle:
-      lang === 'zh'
-        ? '我们先把完整设计补齐：这些模块到位后，才接近真实大期刊系统。'
-        : 'These modules complete the full platform blueprint and move us closer to a production-grade journal system.',
-    nextMilestone: lang === 'zh' ? '下个里程碑：' : 'Next milestone: ',
     contributeTitle: lang === 'zh' ? '参与贡献' : 'Contribute',
     contributeSubtitle: lang === 'zh' ? '欢迎投稿、复现实验、方法改进与公共证据摘要。' : 'Submissions, replications, method improvements and public evidence notes are all welcome.',
     submitButton: lang === 'zh' ? '投稿' : 'Submit to journal',
@@ -111,47 +104,6 @@ export default function CommunityPage({ searchParams }: { searchParams?: { lang?
         </div>
         <p className="mt-4 text-xs text-zinc-600">
           {sectionCopy.machineReadableLabel} <code className="rounded bg-zinc-100 px-1 py-0.5">/api/public/integrations/requirements</code>
-        </p>
-      </section>
-
-      <section className="mt-8 glass-panel p-6">
-        <SectionTitle title={sectionCopy.readinessTitle} subtitle={sectionCopy.readinessSubtitle} className="mb-4" />
-        <div className="mb-4 flex flex-wrap gap-2 text-xs">
-          {Object.entries(getRoadmapSummary()).map(([key, value]) => (
-            <span key={key} className="rounded-full border border-zinc-300 bg-white/90 px-3 py-1">
-              {key}: {value}
-            </span>
-          ))}
-        </div>
-        <ul className="mb-4 list-disc space-y-1 pl-5 text-xs text-emerald-700">
-          {COMPLETED_FOUNDATION_ITEMS.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-        {FEATURE_ROADMAP.length === 0 ? (
-          <p className="mb-3 text-sm text-zinc-600">
-            {lang === 'zh' ? '当前路线图明细暂未拆分到前端卡片，先展示基础能力与机器可读接口。' : 'Detailed roadmap cards are not populated yet; baseline capabilities and machine-readable endpoints are shown below.'}
-          </p>
-        ) : null}
-        <div className="space-y-3">
-          {FEATURE_ROADMAP.map((item) => (
-            <article key={item.id} className="rounded-2xl border border-zinc-200 bg-white/70 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h4 className="font-semibold">{item.module}</h4>
-                <span className="text-xs uppercase tracking-wide text-zinc-500">
-                  {item.priority} · {item.currentState}
-                </span>
-              </div>
-              <p className="mt-2 text-sm text-zinc-700">{item.goal}</p>
-              <p className="mt-2 text-xs text-zinc-600">
-                {sectionCopy.nextMilestone}
-                {item.nextMilestone}
-              </p>
-            </article>
-          ))}
-        </div>
-        <p className="mt-4 text-xs text-zinc-600">
-          {sectionCopy.machineReadableLabel} <code className="rounded bg-zinc-100 px-1 py-0.5">/api/public/platform-readiness</code>
         </p>
       </section>
 
