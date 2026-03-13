@@ -39,7 +39,6 @@ export default function AccountPage() {
   const [applicationStatement, setApplicationStatement] = useState('');
   const [applicationStatus, setApplicationStatus] = useState<string>('');
   const [mySubmissions, setMySubmissions] = useState<MySubmission[]>([]);
-  const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadSession() {
@@ -253,36 +252,13 @@ export default function AccountPage() {
               <div className="mt-3 space-y-3">
                 {mySubmissions.map((item) => (
                   <article key={item.id} className="rounded border border-zinc-200 p-3">
-                    <button
-                      type="button"
-                      className="w-full text-left"
-                      onClick={() => setSelectedSubmissionId((current) => (current === item.id ? null : item.id))}
-                    >
-                      <p className="font-medium">{item.title}</p>
+                    <a className="block" href={withLang(`/account/submissions/${item.id}`, lang)}>
+                      <p className="font-medium underline">{item.title}</p>
                       <p className="mt-1 text-xs text-zinc-600">
                         {lang === 'zh' ? '状态' : 'Status'}: {getWorkflowLabel(item.status)} · {getDeliveryLabel(item)} · {new Date(item.created_at).toLocaleString()}
                       </p>
-                    </button>
-
-                    {selectedSubmissionId === item.id ? (
-                      <div className="mt-2 border-t border-zinc-200 pt-2 text-xs text-zinc-700">
-                        <p>{lang === 'zh' ? '学科/类型' : 'Discipline/Type'}: {[item.discipline, item.article_type].filter(Boolean).join(' · ') || '-'}</p>
-                        <p className="mt-1">{lang === 'zh' ? '主题' : 'Topic'}: {item.topic ?? '-'}</p>
-                        <p className="mt-1">{lang === 'zh' ? '摘要' : 'Abstract'}: {item.abstract ?? '-'}</p>
-                        <p className="mt-1">{lang === 'zh' ? '审核状态' : 'Review status'}: {getWorkflowLabel(item.status)}</p>
-                        <p className="mt-2 font-semibold">{lang === 'zh' ? '文件' : 'Files'}</p>
-                        <ul className="mt-1 list-disc pl-5">
-                          {(item.files ?? []).map((file) => (
-                            <li key={file.id}>
-                              {file.file_kind}:
-                              <a className="ml-1 underline" href={`/api/submissions/files/${file.id}`} target="_blank" rel="noreferrer">
-                                {file.file_name}
-                              </a>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ) : null}
+                      <p className="mt-1 text-xs text-zinc-500">{lang === 'zh' ? '点击查看本次投稿的全部信息与审核进度' : 'Click to open full submission details and review progress'}</p>
+                    </a>
                   </article>
                 ))}
               </div>

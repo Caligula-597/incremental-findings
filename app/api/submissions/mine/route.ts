@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSessionUser } from '@/lib/session';
 import { listSubmissions } from '@/lib/submission-repository';
 import { listSubmissionFilesBySubmissionIds } from '@/lib/submission-files-repository';
+import { getSupabaseServerClient } from '@/lib/supabase';
+import { runtimeAuditLogs } from '@/lib/runtime-store';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,8 +15,36 @@ export async function GET(request: NextRequest) {
     const includeFiles = request.nextUrl.searchParams.get('include_files') === 'true';
 
     const all = await listSubmissions();
-    const mine = all.filter(
+    const mineByAuthor = all.filter(
       (item) => item.author_id === sessionUser.id || item.authors.toLowerCase().includes(sessionUser.email.toLowerCase())
+    );
+
+    const mineByAuditIds = new Set<string>();
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const logs = await supabase
+        .from('audit_logs')
+        .select('submission_id,actor_email,action')
+        .eq('actor_email', sessionUser.email)
+        .eq('action', 'submission_created');
+      if (!logs.error) {
+        for (const row of logs.data ?? []) {
+          const id = String((row as { submission_id?: string }).submission_id ?? '');
+          if (id) mineByAuditIds.add(id);
+        }
+      }
+    } else {
+      for (const row of runtimeAuditLogs) {
+        if (row.actor_email === sessionUser.email && row.action === 'submission_created') {
+          mineByAuditIds.add(row.submission_id);
+        }
+      }
+    }
+
+    const mine = Array.from(
+      new Map(
+        [...mineByAuthor, ...all.filter((item) => mineByAuditIds.has(item.id))].map((item) => [item.id, item])
+      ).values()
     );
 
     if (!includeFiles || mine.length === 0) {

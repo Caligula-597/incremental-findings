@@ -34,9 +34,9 @@ async function listWithFlexibleColumns(status?: SubmissionStatus): Promise<Submi
   const supabase = getSupabaseServerClient();
   if (!supabase) return [];
 
-  const preferredSelect = 'id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at,doi,doi_registered_at';
-  const legacySelect = 'id,title,authors,abstract,status,file_url,created_at';
-  const v2Select = 'id,title,abstract,status,category,file_url,created_at,author_id';
+  const preferredSelect = 'id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at,doi,doi_registered_at,author_id';
+  const legacySelect = 'id,title,authors,abstract,status,file_url,created_at,author_id';
+  const v2Select = 'id,title,authors,abstract,status,category,file_url,created_at,author_id';
 
   let query = supabase.from('submissions').select(preferredSelect).order('created_at', { ascending: false });
   if (status) query = query.eq('status', status);
@@ -86,9 +86,10 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
         file_url: input.file_url ?? null,
         status: 'pending',
         doi: input.doi ?? null,
-        doi_registered_at: input.doi_registered_at ?? null
+        doi_registered_at: input.doi_registered_at ?? null,
+        author_id: input.author_id ?? null
       })
-      .select('id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at,doi,doi_registered_at')
+      .select('id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at,doi,doi_registered_at,author_id')
       .single();
 
     if (!preferred.error) {
@@ -102,9 +103,10 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
         authors: input.authors ?? null,
         abstract: input.abstract ?? null,
         file_url: input.file_url ?? null,
-        status: 'pending'
+        status: 'pending',
+        author_id: input.author_id ?? null
       })
-      .select('id,title,authors,abstract,status,file_url,created_at')
+      .select('id,title,authors,abstract,status,file_url,created_at,author_id')
       .single();
 
     if (!legacy.error) {
@@ -164,7 +166,7 @@ export async function getSubmissionById(id: string): Promise<Submission | null> 
   if (supabase) {
     const preferred = await supabase
       .from('submissions')
-      .select('id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at,doi,doi_registered_at')
+      .select('id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at,doi,doi_registered_at,author_id')
       .eq('id', id)
       .maybeSingle();
 
@@ -174,7 +176,7 @@ export async function getSubmissionById(id: string): Promise<Submission | null> 
 
     const legacy = await supabase
       .from('submissions')
-      .select('id,title,authors,abstract,status,file_url,created_at')
+      .select('id,title,authors,abstract,status,file_url,created_at,author_id')
       .eq('id', id)
       .maybeSingle();
 
@@ -196,7 +198,7 @@ export async function updateSubmissionStatus(id: string, status: SubmissionStatu
       .from('submissions')
       .update({ status })
       .eq('id', id)
-      .select('id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at,doi,doi_registered_at')
+      .select('id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at,doi,doi_registered_at,author_id')
       .maybeSingle();
 
     if (!preferred.error) {
@@ -207,7 +209,7 @@ export async function updateSubmissionStatus(id: string, status: SubmissionStatu
       .from('submissions')
       .update({ status })
       .eq('id', id)
-      .select('id,title,authors,abstract,status,file_url,created_at')
+      .select('id,title,authors,abstract,status,file_url,created_at,author_id')
       .maybeSingle();
 
     if (legacy.error) {
@@ -231,14 +233,14 @@ export async function assignSubmissionDoi(id: string, doi: string, registeredAt:
       .from('submissions')
       .update({ doi, doi_registered_at: registeredAt })
       .eq('id', id)
-      .select('id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at,doi,doi_registered_at')
+      .select('id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at,doi,doi_registered_at,author_id')
       .maybeSingle();
 
     if (!preferred.error) {
       return preferred.data ? normalizeSubmission(preferred.data as Partial<Submission>) : null;
     }
 
-    const legacy = await supabase.from('submissions').update({ doi }).eq('id', id).select('id,title,authors,abstract,status,file_url,created_at').maybeSingle();
+    const legacy = await supabase.from('submissions').update({ doi }).eq('id', id).select('id,title,authors,abstract,status,file_url,created_at,author_id').maybeSingle();
     if (legacy.error) {
       throw new Error(`Failed to assign DOI: ${legacy.error.message}`);
     }
