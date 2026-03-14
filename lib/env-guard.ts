@@ -43,3 +43,14 @@ export function maybeWarnForProductionEnv() {
   console.error(`[config:${phase}] Missing required production configuration: ${missingKeys}`);
   return status;
 }
+
+
+export function shouldRequireSupabase() {
+  return process.env.REQUIRE_SUPABASE === 'true';
+}
+
+export function assertSupabaseAvailability(hasSupabaseClient: boolean) {
+  if (shouldRequireSupabase() && !hasSupabaseClient) {
+    throw new Error('Supabase is required but not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (and run migrations).');
+  }
+}

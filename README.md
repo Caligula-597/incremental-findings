@@ -40,6 +40,22 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - Tailwind CSS
 - Next API routes + Supabase (Postgres/Storage)
 
+
+## Backend matching (Supabase production mode)
+If you see submissions disappearing after refresh or editor queues missing data, your runtime may be in memory fallback mode.
+
+1. Set these variables in `.env.local`:
+   - `SUPABASE_URL`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `REQUIRE_SUPABASE=true` (recommended outside demo mode)
+2. Run migrations in Supabase SQL editor (all files under `supabase/migrations/`).
+3. Verify runtime mode at `GET /api/public/supabase-health`:
+   - `runtime.mode` should be `supabase`
+   - `backendMatchChecklist` should be empty.
+4. Restart the app after env changes.
+
+When `REQUIRE_SUPABASE=true`, write/read APIs will fail fast instead of silently falling back to memory mode.
+
 ## APIs
 - `POST /api/auth/register`
 - `POST /api/auth/login`

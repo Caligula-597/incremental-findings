@@ -1,4 +1,4 @@
-import { getProductionEnvRequirements } from '@/lib/env-guard';
+import { getProductionEnvRequirements, shouldRequireSupabase } from '@/lib/env-guard';
 
 export type RuntimeMode = 'supabase' | 'memory';
 
@@ -8,6 +8,7 @@ export function getRuntimeModeSnapshot() {
   const prodGuard = getProductionEnvRequirements();
 
   const mode: RuntimeMode = supabaseUrl && serviceRoleConfigured ? 'supabase' : 'memory';
+  const requireSupabase = shouldRequireSupabase();
 
   return {
     mode,
@@ -20,6 +21,8 @@ export function getRuntimeModeSnapshot() {
     orcidConfigured: Boolean(process.env.ORCID_CLIENT_ID && process.env.ORCID_CLIENT_SECRET),
     isProduction: prodGuard.isProd,
     productionMissing: prodGuard.missing,
-    productionReady: !prodGuard.hasBlockingMissing
+    productionReady: !prodGuard.hasBlockingMissing,
+    requireSupabase,
+    supabaseRequiredButUnavailable: requireSupabase && mode !== 'supabase'
   };
 }

@@ -2,6 +2,7 @@ import { mockSubmissions } from '@/lib/mock-data';
 import { getSupabaseServerClient } from '@/lib/supabase';
 import { Submission, SubmissionInput, SubmissionStatus } from '@/lib/types';
 import { readRuntimeSubmissions, writeRuntimeSubmissions } from '@/lib/runtime-persistence';
+import { assertSupabaseAvailability } from '@/lib/env-guard';
 
 let memoryStore = [...mockSubmissions] as Submission[];
 
@@ -76,6 +77,7 @@ async function listWithFlexibleColumns(status?: SubmissionStatus): Promise<Submi
 
 export async function listSubmissions(status?: SubmissionStatus): Promise<Submission[]> {
   const supabase = getSupabaseServerClient();
+  assertSupabaseAvailability(Boolean(supabase));
   if (supabase) return listWithFlexibleColumns(status);
 
   const store = getMemoryStore();
@@ -85,6 +87,7 @@ export async function listSubmissions(status?: SubmissionStatus): Promise<Submis
 
 export async function createSubmission(input: SubmissionInput): Promise<Submission> {
   const supabase = getSupabaseServerClient();
+  assertSupabaseAvailability(Boolean(supabase));
 
   if (supabase) {
     const preferred = await supabase
@@ -177,6 +180,7 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
 
 export async function getSubmissionById(id: string): Promise<Submission | null> {
   const supabase = getSupabaseServerClient();
+  assertSupabaseAvailability(Boolean(supabase));
 
   if (supabase) {
     const preferred = await supabase
@@ -207,6 +211,7 @@ export async function getSubmissionById(id: string): Promise<Submission | null> 
 
 export async function updateSubmissionStatus(id: string, status: SubmissionStatus): Promise<Submission | null> {
   const supabase = getSupabaseServerClient();
+  assertSupabaseAvailability(Boolean(supabase));
 
   if (supabase) {
     const preferred = await supabase
@@ -244,6 +249,7 @@ export async function updateSubmissionStatus(id: string, status: SubmissionStatu
 
 export async function assignSubmissionDoi(id: string, doi: string, registeredAt: string): Promise<Submission | null> {
   const supabase = getSupabaseServerClient();
+  assertSupabaseAvailability(Boolean(supabase));
 
   if (supabase) {
     const preferred = await supabase
