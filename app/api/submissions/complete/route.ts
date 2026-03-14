@@ -138,7 +138,8 @@ export async function POST(request: Request) {
       topic: String(form.get('topic') ?? ''),
       article_type: String(form.get('article_type') ?? ''),
       file_url: manuscriptUpload.path,
-      author_id: userId || undefined
+      author_id: userId || undefined,
+      submitter_email: userEmail
     });
 
     const filesToRecord: Array<{ file: File; kind: 'manuscript' | 'cover_letter' | 'supporting'; path: string; mode: 'memory' | 'supabase' }> = [

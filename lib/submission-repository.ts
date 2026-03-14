@@ -21,9 +21,14 @@ function sortByCreatedDesc(items: Submission[]) {
   return [...items].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
 }
 
+function isAuthorForeignKeyViolation(message: string | undefined) {
+  return Boolean(message && /submissions_author_id_fkey/i.test(message));
+}
+
 function normalizeSubmission(data: Partial<Submission>): Submission {
   const category = (data as { category?: string | null }).category ?? null;
   const authorId = (data as { author_id?: string | null }).author_id ?? null;
+  const submitterEmail = (data as { submitter_email?: string | null }).submitter_email ?? null;
 
   return {
     id: String(data.id ?? ''),
@@ -39,7 +44,8 @@ function normalizeSubmission(data: Partial<Submission>): Submission {
     doi: (data as { doi?: string | null }).doi ?? null,
     doi_registered_at: (data as { doi_registered_at?: string | null }).doi_registered_at ?? null,
     author_id: authorId,
-    category
+    category,
+    submitter_email: submitterEmail
   };
 }
 
@@ -47,9 +53,9 @@ async function listWithFlexibleColumns(status?: SubmissionStatus): Promise<Submi
   const supabase = getSupabaseServerClient();
   if (!supabase) return [];
 
-  const preferredSelect = 'id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at,doi,doi_registered_at,author_id';
-  const legacySelect = 'id,title,authors,abstract,status,file_url,created_at,author_id';
-  const v2Select = 'id,title,authors,abstract,status,category,file_url,created_at,author_id';
+  const preferredSelect = 'id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at,doi,doi_registered_at,author_id,submitter_email';
+  const legacySelect = 'id,title,authors,abstract,status,file_url,created_at,author_id,submitter_email';
+  const v2Select = 'id,title,authors,abstract,status,category,file_url,created_at,author_id,submitter_email';
 
   let query = supabase.from('submissions').select(preferredSelect).order('created_at', { ascending: false });
   if (status) query = query.eq('status', status);
@@ -90,26 +96,43 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
   assertSupabaseAvailability(Boolean(supabase));
 
   if (supabase) {
+    const baseInsert = {
+      title: input.title,
+      authors: input.authors ?? null,
+      abstract: input.abstract ?? null,
+      discipline: input.discipline ?? null,
+      topic: input.topic ?? null,
+      article_type: input.article_type ?? null,
+      file_url: input.file_url ?? null,
+      status: 'pending',
+      doi: input.doi ?? null,
+      doi_registered_at: input.doi_registered_at ?? null,
+      submitter_email: input.submitter_email ?? null
+    };
+
     const preferred = await supabase
       .from('submissions')
       .insert({
-        title: input.title,
-        authors: input.authors ?? null,
-        abstract: input.abstract ?? null,
-        discipline: input.discipline ?? null,
-        topic: input.topic ?? null,
-        article_type: input.article_type ?? null,
-        file_url: input.file_url ?? null,
-        status: 'pending',
-        doi: input.doi ?? null,
-        doi_registered_at: input.doi_registered_at ?? null,
+        ...baseInsert,
         author_id: input.author_id ?? null
       })
-      .select('id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at,doi,doi_registered_at,author_id')
+      .select('id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at,doi,doi_registered_at,author_id,submitter_email')
       .single();
 
     if (!preferred.error) {
       return normalizeSubmission(preferred.data as Partial<Submission>);
+    }
+
+    if (isAuthorForeignKeyViolation(preferred.error.message)) {
+      const preferredNoAuthor = await supabase
+        .from('submissions')
+        .insert(baseInsert)
+        .select('id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at,doi,doi_registered_at,author_id,submitter_email')
+        .single();
+
+      if (!preferredNoAuthor.error) {
+        return normalizeSubmission(preferredNoAuthor.data as Partial<Submission>);
+      }
     }
 
     const legacy = await supabase
@@ -120,9 +143,10 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
         abstract: input.abstract ?? null,
         file_url: input.file_url ?? null,
         status: 'pending',
-        author_id: input.author_id ?? null
+        author_id: input.author_id ?? null,
+        submitter_email: input.submitter_email ?? null
       })
-      .select('id,title,authors,abstract,status,file_url,created_at,author_id')
+      .select('id,title,authors,abstract,status,file_url,created_at,author_id,submitter_email')
       .single();
 
     if (!legacy.error) {
@@ -130,6 +154,28 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
       normalized.doi = input.doi ?? null;
       normalized.doi_registered_at = input.doi_registered_at ?? null;
       return normalized;
+    }
+
+    if (isAuthorForeignKeyViolation(legacy.error.message)) {
+      const legacyNoAuthor = await supabase
+        .from('submissions')
+        .insert({
+          title: input.title,
+          authors: input.authors ?? null,
+          abstract: input.abstract ?? null,
+          file_url: input.file_url ?? null,
+          status: 'pending',
+          submitter_email: input.submitter_email ?? null
+        })
+        .select('id,title,authors,abstract,status,file_url,created_at,author_id,submitter_email')
+        .single();
+
+      if (!legacyNoAuthor.error) {
+        const normalized = normalizeSubmission(legacyNoAuthor.data as Partial<Submission>);
+        normalized.doi = input.doi ?? null;
+        normalized.doi_registered_at = input.doi_registered_at ?? null;
+        return normalized;
+      }
     }
 
     const v2 = await supabase
@@ -140,12 +186,35 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
         file_url: input.file_url ?? null,
         status: 'pending',
         category: input.category ?? input.discipline ?? null,
-        author_id: input.author_id ?? null
+        author_id: input.author_id ?? null,
+        submitter_email: input.submitter_email ?? null
       })
-      .select('id,title,abstract,status,category,file_url,created_at,author_id')
+      .select('id,title,abstract,status,category,file_url,created_at,author_id,submitter_email')
       .single();
 
     if (v2.error) {
+      if (isAuthorForeignKeyViolation(v2.error.message)) {
+        const v2NoAuthor = await supabase
+          .from('submissions')
+          .insert({
+            title: input.title,
+            abstract: input.abstract ?? null,
+            file_url: input.file_url ?? null,
+            status: 'pending',
+            category: input.category ?? input.discipline ?? null,
+            submitter_email: input.submitter_email ?? null
+          })
+          .select('id,title,abstract,status,category,file_url,created_at,author_id,submitter_email')
+          .single();
+
+        if (!v2NoAuthor.error) {
+          const normalizedV2 = normalizeSubmission(v2NoAuthor.data as Partial<Submission>);
+          normalizedV2.doi = input.doi ?? null;
+          normalizedV2.doi_registered_at = input.doi_registered_at ?? null;
+          return normalizedV2;
+        }
+      }
+
       throw new Error(`Failed to create submission: ${v2.error.message}`);
     }
 
@@ -169,7 +238,8 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
     doi: input.doi ?? null,
     doi_registered_at: input.doi_registered_at ?? null,
     author_id: input.author_id ?? null,
-    category: input.category ?? input.discipline ?? null
+    category: input.category ?? input.discipline ?? null,
+    submitter_email: input.submitter_email ?? null
   };
 
   const store = getMemoryStore();
@@ -185,7 +255,7 @@ export async function getSubmissionById(id: string): Promise<Submission | null> 
   if (supabase) {
     const preferred = await supabase
       .from('submissions')
-      .select('id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at,doi,doi_registered_at,author_id')
+      .select('id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at,doi,doi_registered_at,author_id,submitter_email')
       .eq('id', id)
       .maybeSingle();
 
@@ -195,7 +265,7 @@ export async function getSubmissionById(id: string): Promise<Submission | null> 
 
     const legacy = await supabase
       .from('submissions')
-      .select('id,title,authors,abstract,status,file_url,created_at,author_id')
+      .select('id,title,authors,abstract,status,file_url,created_at,author_id,submitter_email')
       .eq('id', id)
       .maybeSingle();
 
@@ -218,7 +288,7 @@ export async function updateSubmissionStatus(id: string, status: SubmissionStatu
       .from('submissions')
       .update({ status })
       .eq('id', id)
-      .select('id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at,doi,doi_registered_at,author_id')
+      .select('id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at,doi,doi_registered_at,author_id,submitter_email')
       .maybeSingle();
 
     if (!preferred.error) {
@@ -229,7 +299,7 @@ export async function updateSubmissionStatus(id: string, status: SubmissionStatu
       .from('submissions')
       .update({ status })
       .eq('id', id)
-      .select('id,title,authors,abstract,status,file_url,created_at,author_id')
+      .select('id,title,authors,abstract,status,file_url,created_at,author_id,submitter_email')
       .maybeSingle();
 
     if (legacy.error) {
@@ -256,14 +326,14 @@ export async function assignSubmissionDoi(id: string, doi: string, registeredAt:
       .from('submissions')
       .update({ doi, doi_registered_at: registeredAt })
       .eq('id', id)
-      .select('id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at,doi,doi_registered_at,author_id')
+      .select('id,title,authors,abstract,discipline,topic,article_type,status,file_url,created_at,doi,doi_registered_at,author_id,submitter_email')
       .maybeSingle();
 
     if (!preferred.error) {
       return preferred.data ? normalizeSubmission(preferred.data as Partial<Submission>) : null;
     }
 
-    const legacy = await supabase.from('submissions').update({ doi }).eq('id', id).select('id,title,authors,abstract,status,file_url,created_at,author_id').maybeSingle();
+    const legacy = await supabase.from('submissions').update({ doi }).eq('id', id).select('id,title,authors,abstract,status,file_url,created_at,author_id,submitter_email').maybeSingle();
     if (legacy.error) {
       throw new Error(`Failed to assign DOI: ${legacy.error.message}`);
     }
