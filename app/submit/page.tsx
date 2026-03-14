@@ -49,15 +49,39 @@ export default function SubmitPage() {
   }, []);
 
   useEffect(() => {
+    let timer: ReturnType<typeof setInterval> | null = null;
+
     async function loadOrcid() {
       if (!userEmail && !userId) return;
-      const query = userId ? `user_id=${encodeURIComponent(userId)}` : `email=${encodeURIComponent(userEmail)}`;
-      const response = await fetch(`/api/orcid/status?${query}`);
+
+      const query = new URLSearchParams();
+      if (userId) query.set('user_id', userId);
+      if (userEmail) query.set('email', userEmail);
+
+      const response = await fetch(`/api/orcid/status?${query.toString()}`, { cache: 'no-store' });
       const body = await response.json().catch(() => ({ data: null }));
       setOrcidId(body.data?.orcid_id ?? null);
     }
 
     void loadOrcid();
+
+    const onFocus = () => {
+      void loadOrcid();
+    };
+
+    if (userEmail || userId) {
+      timer = setInterval(() => {
+        void loadOrcid();
+      }, 10000);
+      window.addEventListener('focus', onFocus);
+    }
+
+    return () => {
+      if (timer) {
+        clearInterval(timer);
+      }
+      window.removeEventListener('focus', onFocus);
+    };
   }, [userEmail, userId]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
