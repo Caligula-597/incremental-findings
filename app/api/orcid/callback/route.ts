@@ -16,6 +16,10 @@ function shouldReturnJson(request: NextRequest) {
   return request.nextUrl.searchParams.get('format') === 'json';
 }
 
+function isOnConflictConstraintError(message: string | undefined) {
+  return Boolean(message && /no unique or exclusion constraint matching the ON CONFLICT specification/i.test(message));
+}
+
 async function resolveExistingUserId(
   userIdCandidate: string | undefined,
   accountKey: string | undefined,
@@ -147,6 +151,46 @@ export async function GET(request: NextRequest) {
         { onConflict: 'user_email' }
       );
     if (insert.error) {
+      if (isOnConflictConstraintError(insert.error.message) && record.user_email) {
+        const existingByEmail = await supabase
+          .from('orcid_links')
+          .select('user_email')
+          .eq('user_email', record.user_email)
+          .maybeSingle();
+
+        if (!existingByEmail.error && existingByEmail.data) {
+          const updateByEmail = await supabase
+            .from('orcid_links')
+            .update({
+              orcid_id: record.orcid_id,
+              verified: true,
+              connected_at: record.connected_at
+            })
+            .eq('user_email', record.user_email);
+
+          if (!updateByEmail.error) {
+            if (!jsonMode) {
+              return NextResponse.redirect(getAccountRedirectUrl(request, 'success'));
+            }
+            return NextResponse.json({ data: record, mode: 'supabase-update-user-email' });
+          }
+        } else {
+          const insertByEmail = await supabase.from('orcid_links').insert({
+            user_email: record.user_email,
+            orcid_id: record.orcid_id,
+            verified: true,
+            connected_at: record.connected_at
+          });
+
+          if (!insertByEmail.error) {
+            if (!jsonMode) {
+              return NextResponse.redirect(getAccountRedirectUrl(request, 'success'));
+            }
+            return NextResponse.json({ data: record, mode: 'supabase-insert-user-email' });
+          }
+        }
+      }
+
       if (!record.user_id) {
         if (!jsonMode) {
           return NextResponse.redirect(
@@ -172,6 +216,40 @@ export async function GET(request: NextRequest) {
           return NextResponse.redirect(getAccountRedirectUrl(request, 'success'));
         }
         return NextResponse.json({ data: record, mode: 'supabase-v2' });
+      }
+
+      if (isOnConflictConstraintError(insertV2.error.message) && record.user_id) {
+        const existingByUserId = await supabase.from('orcid_links').select('user_id').eq('user_id', record.user_id).maybeSingle();
+
+        if (!existingByUserId.error && existingByUserId.data) {
+          const updateByUserId = await supabase
+            .from('orcid_links')
+            .update({
+              orcid_id: record.orcid_id,
+              verified_at: record.verified_at
+            })
+            .eq('user_id', record.user_id);
+
+          if (!updateByUserId.error) {
+            if (!jsonMode) {
+              return NextResponse.redirect(getAccountRedirectUrl(request, 'success'));
+            }
+            return NextResponse.json({ data: record, mode: 'supabase-update-user-id' });
+          }
+        } else {
+          const insertByUserId = await supabase.from('orcid_links').insert({
+            user_id: record.user_id,
+            orcid_id: record.orcid_id,
+            verified_at: record.verified_at
+          });
+
+          if (!insertByUserId.error) {
+            if (!jsonMode) {
+              return NextResponse.redirect(getAccountRedirectUrl(request, 'success'));
+            }
+            return NextResponse.json({ data: record, mode: 'supabase-insert-user-id' });
+          }
+        }
       }
 
       runtimeOrcidLinks.push(record);
