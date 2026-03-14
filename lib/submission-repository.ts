@@ -357,3 +357,26 @@ export async function assignSubmissionDoi(id: string, doi: string, registeredAt:
 export async function publishSubmission(id: string): Promise<Submission | null> {
   return updateSubmissionStatus(id, 'published');
 }
+
+
+export async function deleteSubmission(id: string): Promise<boolean> {
+  const supabase = getSupabaseServerClient();
+  assertSupabaseAvailability(Boolean(supabase));
+
+  if (supabase) {
+    const existing = await getSubmissionById(id);
+    if (!existing) return false;
+
+    const remove = await supabase.from('submissions').delete().eq('id', id);
+    if (remove.error) {
+      throw new Error(`Failed to delete submission: ${remove.error.message}`);
+    }
+    return true;
+  }
+
+  const store = getMemoryStore();
+  const next = store.filter((item) => item.id !== id);
+  if (next.length === store.length) return false;
+  setMemoryStore(next);
+  return true;
+}

@@ -10,6 +10,14 @@ import { Submission, SubmissionStatus } from '@/lib/types';
 import { getSiteCopy, getSiteLang } from '@/lib/site-copy';
 import { withLang } from '@/lib/lang';
 
+interface EditorHistoryItem {
+  submission_id: string;
+  title: string;
+  action: string;
+  detail: string;
+  created_at: string;
+}
+
 interface EditorApplication {
   id: string;
   applicant_email: string;
@@ -48,6 +56,9 @@ export default function EditorPage() {
   const [isEditor, setIsEditor] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const [applications, setApplications] = useState<EditorApplication[]>([]);
+  const [history, setHistory] = useState<EditorHistoryItem[]>([]);
+  const [responseNotes, setResponseNotes] = useState<Record<string, string>>({});
+  const [responseFiles, setResponseFiles] = useState<Record<string, File | null>>({});
 
   async function loadData() {
     const [pendingRes, reviewRes, publishedRes] = await Promise.all([
@@ -80,6 +91,14 @@ export default function EditorPage() {
     setApplications(body.data ?? []);
   }
 
+
+  async function loadHistory() {
+    const response = await fetch('/api/editor/history', { cache: 'no-store' });
+    if (!response.ok) return;
+    const body = await response.json().catch(() => ({ data: [] }));
+    setHistory(body.data ?? []);
+  }
+
   async function inviteApplicant(application: EditorApplication) {
     setMessage('');
     const response = await fetch('/api/editor/invites', {
@@ -102,16 +121,24 @@ export default function EditorPage() {
   async function updateStatus(id: string, status: SubmissionStatus) {
     setMessage('');
 
-    const reason = status === 'rejected' ? window.prompt(copy.editor.rejectPrompt, '')?.trim() ?? '' : '';
+    const reason = (responseNotes[id] ?? '').trim();
+    const responseLetter = (responseNotes[id] ?? '').trim();
+    const responseFile = responseFiles[id] ?? null;
+
     if (status === 'rejected' && !reason) {
       setMessage(copy.editor.rejectReasonRequired);
       return;
     }
 
+    const form = new FormData();
+    form.set('status', status);
+    if (reason) form.set('reason', reason);
+    if (responseLetter) form.set('response_letter', responseLetter);
+    if (responseFile) form.set('response_file', responseFile);
+
     const response = await fetch(`/api/submissions/${id}/status`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status, reason })
+      body: form
     });
 
     if (!response.ok) {
@@ -120,8 +147,10 @@ export default function EditorPage() {
       return;
     }
 
+    setResponseNotes((prev) => ({ ...prev, [id]: '' }));
+    setResponseFiles((prev) => ({ ...prev, [id]: null }));
     setMessage(`${copy.editor.updateStatusSuccessPrefix}${status}`);
-    await loadData();
+    await Promise.all([loadData(), loadHistory()]);
   }
 
 
@@ -153,7 +182,7 @@ export default function EditorPage() {
       const role = sessionBody?.data?.role;
       if (sessionRes.ok && role === 'editor') {
         setIsEditor(true);
-        await Promise.all([loadData(), loadApplications()]);
+        await Promise.all([loadData(), loadApplications(), loadHistory()]);
       }
       setCheckingSession(false);
     }
@@ -300,6 +329,21 @@ export default function EditorPage() {
                 </ul>
               ) : null}
               <p className="mt-2 text-sm">{(item.abstract ?? copy.editor.noAbstract).slice(0, 200)}...</p>
+              <div className="mt-3 grid gap-2 rounded-md border border-zinc-200 bg-white/80 p-3">
+                <textarea
+                  value={responseNotes[item.id] ?? ''}
+                  onChange={(event) => setResponseNotes((prev) => ({ ...prev, [item.id]: event.target.value }))}
+                  rows={3}
+                  placeholder={lang === 'zh' ? '填写给作者/审稿人的回复（可选，拒稿建议必填）' : 'Write response letter/note (optional; required for rejection)'}
+                  className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+                />
+                <input
+                  type="file"
+                  onChange={(event) => setResponseFiles((prev) => ({ ...prev, [item.id]: event.target.files?.[0] ?? null }))}
+                  className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+                />
+                {responseFiles[item.id] ? <p className="text-xs text-zinc-600">{lang === 'zh' ? '已选择附件: ' : 'Attachment selected: '}{responseFiles[item.id]?.name}</p> : null}
+              </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button className="btn btn-secondary btn-sm" onClick={() => updateStatus(item.id, 'under_review')}>
                   {copy.editor.moveToUnderReview}
@@ -337,6 +381,21 @@ export default function EditorPage() {
                   ))}
                 </ul>
               ) : null}
+              <div className="mt-3 grid gap-2 rounded-md border border-zinc-200 bg-white/80 p-3">
+                <textarea
+                  value={responseNotes[item.id] ?? ''}
+                  onChange={(event) => setResponseNotes((prev) => ({ ...prev, [item.id]: event.target.value }))}
+                  rows={3}
+                  placeholder={lang === 'zh' ? '填写审稿回复/处理信件（可选）' : 'Write editorial response letter (optional)'}
+                  className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+                />
+                <input
+                  type="file"
+                  onChange={(event) => setResponseFiles((prev) => ({ ...prev, [item.id]: event.target.files?.[0] ?? null }))}
+                  className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+                />
+                {responseFiles[item.id] ? <p className="text-xs text-zinc-600">{lang === 'zh' ? '已选择附件: ' : 'Attachment selected: '}{responseFiles[item.id]?.name}</p> : null}
+              </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button className="btn btn-primary btn-sm" onClick={() => updateStatus(item.id, 'published')}>
                   Publish
@@ -401,6 +460,21 @@ export default function EditorPage() {
           ))}
         </div>
       </section>
+
+      <section className="mt-10">
+        <SectionTitle title={lang === 'zh' ? '编辑审稿记录' : 'Editorial review history'} subtitle={lang === 'zh' ? '查看你最近阅读和处理过的稿件。' : 'Track manuscripts you recently read and handled.'} />
+        <div className="mt-4 grid gap-3">
+          {history.length === 0 ? <p className="text-sm text-zinc-600">{lang === 'zh' ? '暂无记录' : 'No history yet.'}</p> : null}
+          {history.map((entry) => (
+            <article key={`${entry.submission_id}-${entry.created_at}-${entry.action}`} className="rounded-lg border border-zinc-200 bg-white/90 p-3 text-sm">
+              <p className="font-semibold">{entry.title}</p>
+              <p className="text-xs text-zinc-600">{entry.action} · {new Date(entry.created_at).toLocaleString()}</p>
+              <p className="mt-1 text-zinc-700">{entry.detail}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
     </main>
   );
 }

@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -5,8 +6,8 @@ import { getServerSessionUser } from '@/lib/session';
 import { getSubmissionById } from '@/lib/submission-repository';
 import { getSubmissionFileById } from '@/lib/submission-files-repository';
 import { getSupabaseServerClient } from '@/lib/supabase';
-import { runtimeSubmissionFileBlobs } from '@/lib/runtime-store';
-import { getRuntimeStorageDir } from '@/lib/runtime-persistence';
+import { runtimeAuditLogs, runtimeSubmissionFileBlobs } from '@/lib/runtime-store';
+import { getRuntimeStorageDir, writeRuntimeAuditLogs } from '@/lib/runtime-persistence';
 
 export async function GET(_request: Request, context: { params: { id: string } }) {
   try {
@@ -32,6 +33,24 @@ export async function GET(_request: Request, context: { params: { id: string } }
       submission.authors.toLowerCase().includes(sessionUser.email.toLowerCase());
     if (!isEditor && !isOwner) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+
+    if (isEditor) {
+      const audit = {
+        id: randomUUID(),
+        submission_id: submission.id,
+        action: 'editor_file_viewed',
+        actor_email: sessionUser.email,
+        detail: `file_id=${file.id}; file_name=${file.file_name}`,
+        created_at: new Date().toISOString()
+      };
+      runtimeAuditLogs.push(audit);
+      writeRuntimeAuditLogs(runtimeAuditLogs);
+      const supabase = getSupabaseServerClient();
+      if (supabase) {
+        void supabase.from('audit_logs').insert(audit);
+      }
     }
 
     const memoryBlob = runtimeSubmissionFileBlobs.get(file.id);

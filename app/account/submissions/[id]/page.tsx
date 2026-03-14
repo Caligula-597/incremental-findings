@@ -25,6 +25,7 @@ export default function AccountSubmissionDetailPage({ params, searchParams }: { 
   const lang = useMemo(() => getSiteLang(searchParams?.lang), [searchParams?.lang]);
   const [item, setItem] = useState<SubmissionDetail | null>(null);
   const [message, setMessage] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -43,6 +44,24 @@ export default function AccountSubmissionDetailPage({ params, searchParams }: { 
 
     void load();
   }, [lang, params.id]);
+
+  async function deleteSubmission() {
+    if (!item) return;
+    const ok = window.confirm(lang === 'zh' ? '确认删除该投稿记录？该功能仅用于调试。' : 'Delete this submission record? This is a temporary debug feature.');
+    if (!ok) return;
+
+    setDeleting(true);
+    setMessage('');
+    const response = await fetch(`/api/submissions/${item.id}`, { method: 'DELETE' });
+    const body = await response.json().catch(() => ({ error: 'Unknown error' }));
+    if (!response.ok) {
+      setMessage(body.error ?? (lang === 'zh' ? '删除失败' : 'Delete failed'));
+      setDeleting(false);
+      return;
+    }
+
+    window.location.href = withLang('/account', lang);
+  }
 
   return (
     <main>
@@ -70,6 +89,12 @@ export default function AccountSubmissionDetailPage({ params, searchParams }: { 
             <p>{lang === 'zh' ? '主题' : 'Topic'}: {item.topic ?? '-'}</p>
             <p>{lang === 'zh' ? '摘要' : 'Abstract'}: {item.abstract ?? '-'}</p>
             <p>{lang === 'zh' ? 'DOI/编号' : 'DOI/Identifier'}: {item.doi ?? '-'}</p>
+
+            <div className="mt-4">
+              <button type="button" className="btn btn-danger btn-sm" onClick={deleteSubmission} disabled={deleting}>
+                {deleting ? (lang === 'zh' ? '删除中…' : 'Deleting…') : (lang === 'zh' ? '删除此投稿（调试）' : 'Delete this submission (debug)')}
+              </button>
+            </div>
 
             <div className="mt-3">
               <p className="font-semibold">{lang === 'zh' ? '上传文件' : 'Uploaded files'}</p>
