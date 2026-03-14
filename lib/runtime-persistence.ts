@@ -1,15 +1,42 @@
-import { mkdirSync, existsSync, readFileSync, writeFileSync } from 'fs';
+import { accessSync, constants, existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { Submission, SubmissionFileRecord, AuditLog } from '@/lib/types';
 
 const ROOT = process.cwd();
-const DATA_DIR = join(ROOT, '.runtime-storage');
-const SUBMISSIONS_FILE = join(DATA_DIR, 'submissions.json');
-const SUBMISSION_FILES_FILE = join(DATA_DIR, 'submission-files.json');
-const AUDIT_LOGS_FILE = join(DATA_DIR, 'audit-logs.json');
+const STORAGE_DIRNAME = '.runtime-storage';
+
+const configuredDir = (process.env.RUNTIME_STORAGE_DIR ?? '').trim();
+const candidateDirs = [configuredDir, join(ROOT, STORAGE_DIRNAME), join('/tmp', 'incremental-findings', STORAGE_DIRNAME)].filter(Boolean);
+
+let resolvedDataDir: string | null = null;
 
 function ensureDir(path: string) {
   if (!existsSync(path)) mkdirSync(path, { recursive: true });
+}
+
+function isWritableDir(path: string) {
+  try {
+    ensureDir(path);
+    accessSync(path, constants.W_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function getDataDir() {
+  if (resolvedDataDir) return resolvedDataDir;
+
+  for (const candidate of candidateDirs) {
+    if (isWritableDir(candidate)) {
+      resolvedDataDir = candidate;
+      return candidate;
+    }
+  }
+
+  throw new Error(
+    `No writable runtime storage directory found. Tried: ${candidateDirs.join(', ') || '(none)'}. Set RUNTIME_STORAGE_DIR to a writable path.`
+  );
 }
 
 function readJsonFile<T>(path: string, fallback: T): T {
@@ -27,33 +54,29 @@ function writeJsonFile(path: string, value: unknown) {
 }
 
 export function readRuntimeSubmissions(): Submission[] {
-  ensureDir(DATA_DIR);
-  return readJsonFile<Submission[]>(SUBMISSIONS_FILE, []);
+  return readJsonFile<Submission[]>(join(getDataDir(), 'submissions.json'), []);
 }
 
 export function writeRuntimeSubmissions(items: Submission[]) {
-  writeJsonFile(SUBMISSIONS_FILE, items);
+  writeJsonFile(join(getDataDir(), 'submissions.json'), items);
 }
 
 export function readRuntimeSubmissionFiles(): SubmissionFileRecord[] {
-  ensureDir(DATA_DIR);
-  return readJsonFile<SubmissionFileRecord[]>(SUBMISSION_FILES_FILE, []);
+  return readJsonFile<SubmissionFileRecord[]>(join(getDataDir(), 'submission-files.json'), []);
 }
 
 export function writeRuntimeSubmissionFiles(items: SubmissionFileRecord[]) {
-  writeJsonFile(SUBMISSION_FILES_FILE, items);
+  writeJsonFile(join(getDataDir(), 'submission-files.json'), items);
 }
 
 export function readRuntimeAuditLogs(): AuditLog[] {
-  ensureDir(DATA_DIR);
-  return readJsonFile<AuditLog[]>(AUDIT_LOGS_FILE, []);
+  return readJsonFile<AuditLog[]>(join(getDataDir(), 'audit-logs.json'), []);
 }
 
 export function writeRuntimeAuditLogs(items: AuditLog[]) {
-  writeJsonFile(AUDIT_LOGS_FILE, items);
+  writeJsonFile(join(getDataDir(), 'audit-logs.json'), items);
 }
 
 export function getRuntimeStorageDir() {
-  ensureDir(DATA_DIR);
-  return DATA_DIR;
+  return getDataDir();
 }

@@ -48,6 +48,7 @@ If you see submissions disappearing after refresh or editor queues missing data,
    - `SUPABASE_URL`
    - `SUPABASE_SERVICE_ROLE_KEY`
    - `REQUIRE_SUPABASE=true` (recommended outside demo mode)
+   - `RUNTIME_STORAGE_DIR=/tmp/incremental-findings/.runtime-storage` (recommended on serverless platforms if project root is read-only)
 2. Run migrations in Supabase SQL editor (all files under `supabase/migrations/`).
 3. Verify runtime mode at `GET /api/public/supabase-health`:
    - `runtime.mode` should be `supabase`
