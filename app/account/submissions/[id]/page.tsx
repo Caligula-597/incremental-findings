@@ -13,6 +13,7 @@ type SubmissionDetail = {
   created_at: string;
   authors: string;
   discipline?: string | null;
+  category?: string | null;
   article_type?: string | null;
   topic?: string | null;
   abstract?: string | null;
@@ -64,7 +65,7 @@ export default function AccountSubmissionDetailPage({ params, searchParams }: { 
             <p>{lang === 'zh' ? '状态' : 'Status'}: {item.status}</p>
             <p>{lang === 'zh' ? '创建时间' : 'Created at'}: {new Date(item.created_at).toLocaleString()}</p>
             <p>{lang === 'zh' ? '作者' : 'Authors'}: {item.authors}</p>
-            <p>{lang === 'zh' ? '学科' : 'Discipline'}: {item.discipline ?? '-'}</p>
+            <p>{lang === 'zh' ? '学科' : 'Discipline'}: {item.discipline ?? item.category ?? '-'}</p>
             <p>{lang === 'zh' ? '稿件类型' : 'Article type'}: {item.article_type ?? '-'}</p>
             <p>{lang === 'zh' ? '主题' : 'Topic'}: {item.topic ?? '-'}</p>
             <p>{lang === 'zh' ? '摘要' : 'Abstract'}: {item.abstract ?? '-'}</p>

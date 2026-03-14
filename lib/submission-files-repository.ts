@@ -22,6 +22,16 @@ export async function listSubmissionFilesBySubmissionIds(submissionIds: string[]
         if (!grouped[row.submission_id]) grouped[row.submission_id] = [];
         grouped[row.submission_id].push(row);
       }
+
+      const localFiles = readRuntimeSubmissionFiles();
+      const source = localFiles.length > 0 ? localFiles : runtimeSubmissionFiles;
+      for (const row of source.filter((file) => uniqueIds.includes(file.submission_id))) {
+        if (!grouped[row.submission_id]) grouped[row.submission_id] = [];
+        if (!grouped[row.submission_id].some((existing) => existing.id === row.id)) {
+          grouped[row.submission_id].push(row);
+        }
+      }
+
       return grouped;
     }
   }

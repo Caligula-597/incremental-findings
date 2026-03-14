@@ -26,7 +26,10 @@ export async function GET(_request: Request, context: { params: { id: string } }
     }
 
     const isEditor = sessionUser.role === 'editor';
-    const isOwner = submission.author_id === sessionUser.id || submission.authors.toLowerCase().includes(sessionUser.email.toLowerCase());
+    const isOwner =
+      submission.author_id === sessionUser.id ||
+      submission.submitter_email?.toLowerCase() === sessionUser.email.toLowerCase() ||
+      submission.authors.toLowerCase().includes(sessionUser.email.toLowerCase());
     if (!isEditor && !isOwner) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
