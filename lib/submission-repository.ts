@@ -1,8 +1,20 @@
 import { mockSubmissions } from '@/lib/mock-data';
 import { getSupabaseServerClient } from '@/lib/supabase';
 import { Submission, SubmissionInput, SubmissionStatus } from '@/lib/types';
+import { readRuntimeSubmissions, writeRuntimeSubmissions } from '@/lib/runtime-persistence';
 
-const memoryStore = [...mockSubmissions] as Submission[];
+let memoryStore = [...mockSubmissions] as Submission[];
+
+function getMemoryStore() {
+  const persisted = readRuntimeSubmissions();
+  if (persisted.length > 0) return persisted;
+  return memoryStore;
+}
+
+function setMemoryStore(next: Submission[]) {
+  memoryStore = next;
+  writeRuntimeSubmissions(next);
+}
 
 function sortByCreatedDesc(items: Submission[]) {
   return [...items].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
@@ -66,8 +78,9 @@ export async function listSubmissions(status?: SubmissionStatus): Promise<Submis
   const supabase = getSupabaseServerClient();
   if (supabase) return listWithFlexibleColumns(status);
 
-  if (!status) return sortByCreatedDesc(memoryStore);
-  return sortByCreatedDesc(memoryStore.filter((entry) => entry.status === status));
+  const store = getMemoryStore();
+  if (!status) return sortByCreatedDesc(store);
+  return sortByCreatedDesc(store.filter((entry) => entry.status === status));
 }
 
 export async function createSubmission(input: SubmissionInput): Promise<Submission> {
@@ -156,7 +169,9 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
     category: input.category ?? input.discipline ?? null
   };
 
-  memoryStore.unshift(created);
+  const store = getMemoryStore();
+  store.unshift(created);
+  setMemoryStore(store);
   return created;
 }
 
@@ -187,7 +202,7 @@ export async function getSubmissionById(id: string): Promise<Submission | null> 
     return legacy.data ? normalizeSubmission(legacy.data as Partial<Submission>) : null;
   }
 
-  return memoryStore.find((item) => item.id === id) ?? null;
+  return getMemoryStore().find((item) => item.id === id) ?? null;
 }
 
 export async function updateSubmissionStatus(id: string, status: SubmissionStatus): Promise<Submission | null> {
@@ -219,9 +234,11 @@ export async function updateSubmissionStatus(id: string, status: SubmissionStatu
     return legacy.data ? normalizeSubmission(legacy.data as Partial<Submission>) : null;
   }
 
-  const entry = memoryStore.find((item) => item.id === id);
+  const store = getMemoryStore();
+  const entry = store.find((item) => item.id === id);
   if (!entry) return null;
   entry.status = status;
+  setMemoryStore(store);
   return entry;
 }
 
@@ -252,10 +269,12 @@ export async function assignSubmissionDoi(id: string, doi: string, registeredAt:
     return normalized;
   }
 
-  const entry = memoryStore.find((item) => item.id === id);
+  const store = getMemoryStore();
+  const entry = store.find((item) => item.id === id);
   if (!entry) return null;
   entry.doi = doi;
   entry.doi_registered_at = registeredAt;
+  setMemoryStore(store);
   return entry;
 }
 

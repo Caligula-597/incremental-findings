@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { getServerSessionUser } from '@/lib/session';
 import { getSubmissionById } from '@/lib/submission-repository';
 import { getSubmissionFileById } from '@/lib/submission-files-repository';
 import { getSupabaseServerClient } from '@/lib/supabase';
 import { runtimeSubmissionFileBlobs } from '@/lib/runtime-store';
+import { getRuntimeStorageDir } from '@/lib/runtime-persistence';
 
 export async function GET(_request: Request, context: { params: { id: string } }) {
   try {
@@ -36,6 +39,23 @@ export async function GET(_request: Request, context: { params: { id: string } }
           'Content-Disposition': `inline; filename="${memoryBlob.file_name}"`
         }
       });
+    }
+
+
+    if (file.file_path.startsWith('local://')) {
+      const rel = file.file_path.slice('local://'.length);
+      const fullPath = join(getRuntimeStorageDir(), 'files', rel);
+      try {
+        const bytes = readFileSync(fullPath);
+        return new NextResponse(bytes, {
+          headers: {
+            'Content-Type': file.content_type || 'application/octet-stream',
+            'Content-Disposition': `inline; filename="${file.file_name}"`
+          }
+        });
+      } catch {
+        return NextResponse.json({ error: 'File not found on local runtime storage' }, { status: 404 });
+      }
     }
 
     if (file.file_path.startsWith('http://') || file.file_path.startsWith('https://')) {

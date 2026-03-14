@@ -4,6 +4,7 @@ import { listSubmissions } from '@/lib/submission-repository';
 import { listSubmissionFilesBySubmissionIds } from '@/lib/submission-files-repository';
 import { getSupabaseServerClient } from '@/lib/supabase';
 import { runtimeAuditLogs } from '@/lib/runtime-store';
+import { readRuntimeAuditLogs } from '@/lib/runtime-persistence';
 
 export async function GET(request: NextRequest) {
   try {
@@ -34,7 +35,9 @@ export async function GET(request: NextRequest) {
         }
       }
     } else {
-      for (const row of runtimeAuditLogs) {
+      const logs = readRuntimeAuditLogs();
+      const source = logs.length > 0 ? logs : runtimeAuditLogs;
+      for (const row of source) {
         if (row.actor_email === sessionUser.email && row.action === 'submission_created') {
           mineByAuditIds.add(row.submission_id);
         }

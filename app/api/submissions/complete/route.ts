@@ -1,7 +1,10 @@
 import { createHash, randomUUID } from 'crypto';
+import { mkdirSync, writeFileSync } from 'fs';
+import { join } from 'path';
 import { NextResponse } from 'next/server';
 import { TERMS_VERSION } from '@/lib/legal';
 import { runtimeAuditLogs, runtimeSubmissionFileBlobs, runtimeSubmissionFiles } from '@/lib/runtime-store';
+import { getRuntimeStorageDir, writeRuntimeAuditLogs, writeRuntimeSubmissionFiles } from '@/lib/runtime-persistence';
 import { createSubmission } from '@/lib/submission-repository';
 import { getSupabaseServerClient } from '@/lib/supabase';
 import { getServerSessionUser } from '@/lib/session';
@@ -37,7 +40,12 @@ async function uploadToStorage(file: File, pathPrefix: string) {
   const filePath = `${pathPrefix}/${Date.now()}-${file.name}`;
 
   if (!supabase) {
-    return { path: `memory://${filePath}`, mode: 'memory' as const };
+    const storageRoot = join(getRuntimeStorageDir(), 'files');
+    const diskPath = join(storageRoot, filePath);
+    mkdirSync(join(storageRoot, pathPrefix), { recursive: true });
+    const bytes = Buffer.from(await file.arrayBuffer());
+    writeFileSync(diskPath, bytes);
+    return { path: `local://${filePath}`, mode: 'memory' as const };
   }
 
   const arrayBuffer = await file.arrayBuffer();
@@ -47,7 +55,12 @@ async function uploadToStorage(file: File, pathPrefix: string) {
   });
 
   if (upload.error) {
-    return { path: `memory://${filePath}`, mode: 'memory' as const, warning: upload.error.message };
+    const storageRoot = join(getRuntimeStorageDir(), 'files');
+    const diskPath = join(storageRoot, filePath);
+    mkdirSync(join(storageRoot, pathPrefix), { recursive: true });
+    const bytes = Buffer.from(await file.arrayBuffer());
+    writeFileSync(diskPath, bytes);
+    return { path: `local://${filePath}`, mode: 'memory' as const, warning: upload.error.message };
   }
 
   return { path: `supabase://papers/${filePath}`, mode: 'supabase' as const };
@@ -178,6 +191,7 @@ export async function POST(request: Request) {
 
     const fileRows = fileRowsWithSource.map((item) => item.row);
     runtimeSubmissionFiles.push(...fileRows);
+    writeRuntimeSubmissionFiles(runtimeSubmissionFiles);
 
     for (const item of fileRowsWithSource) {
       if (item.entry.mode === 'memory') {
@@ -199,6 +213,7 @@ export async function POST(request: Request) {
       created_at: now
     };
     runtimeAuditLogs.push(audit);
+    writeRuntimeAuditLogs(runtimeAuditLogs);
 
     const supabase = getSupabaseServerClient();
     if (supabase) {

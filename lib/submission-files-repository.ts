@@ -1,5 +1,6 @@
 import { getSupabaseServerClient } from '@/lib/supabase';
 import { runtimeSubmissionFiles } from '@/lib/runtime-store';
+import { readRuntimeSubmissionFiles } from '@/lib/runtime-persistence';
 import { SubmissionFileRecord } from '@/lib/types';
 
 export async function listSubmissionFilesBySubmissionIds(submissionIds: string[]): Promise<Record<string, SubmissionFileRecord[]>> {
@@ -25,7 +26,9 @@ export async function listSubmissionFilesBySubmissionIds(submissionIds: string[]
     }
   }
 
-  for (const row of runtimeSubmissionFiles.filter((file) => uniqueIds.includes(file.submission_id))) {
+  const localFiles = readRuntimeSubmissionFiles();
+  const source = localFiles.length > 0 ? localFiles : runtimeSubmissionFiles;
+  for (const row of source.filter((file) => uniqueIds.includes(file.submission_id))) {
     if (!grouped[row.submission_id]) grouped[row.submission_id] = [];
     grouped[row.submission_id].push(row);
   }
@@ -42,5 +45,7 @@ export async function getSubmissionFileById(fileId: string): Promise<SubmissionF
     }
   }
 
-  return runtimeSubmissionFiles.find((item) => item.id === fileId) ?? null;
+  const localFiles = readRuntimeSubmissionFiles();
+  const source = localFiles.length > 0 ? localFiles : runtimeSubmissionFiles;
+  return source.find((item) => item.id === fileId) ?? null;
 }
