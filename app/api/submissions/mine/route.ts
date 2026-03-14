@@ -16,9 +16,13 @@ export async function GET(request: NextRequest) {
     const includeFiles = request.nextUrl.searchParams.get('include_files') === 'true';
 
     const all = await listSubmissions();
-    const mineByAuthor = all.filter(
-      (item) => item.author_id === sessionUser.id || item.authors.toLowerCase().includes(sessionUser.email.toLowerCase())
-    );
+    const normalizedEmail = sessionUser.email.toLowerCase();
+    const mineByAuthor = all.filter((item) => {
+      const byAuthorId = Boolean(item.author_id && sessionUser.id && item.author_id === sessionUser.id);
+      const bySubmitterEmail = Boolean(item.submitter_email && item.submitter_email.toLowerCase() === normalizedEmail);
+      const byAuthorsText = item.authors.toLowerCase().includes(normalizedEmail);
+      return byAuthorId || bySubmitterEmail || byAuthorsText;
+    });
 
     const mineByAuditIds = new Set<string>();
     const supabase = getSupabaseServerClient();

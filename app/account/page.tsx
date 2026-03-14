@@ -17,6 +17,7 @@ interface MySubmission {
   topic?: string | null;
   abstract?: string | null;
   doi?: string | null;
+  submitter_email?: string | null;
   files?: Array<{ id: string; file_kind: string; file_name: string; file_path: string }>;
 }
 
