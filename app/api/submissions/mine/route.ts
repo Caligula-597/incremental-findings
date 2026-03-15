@@ -6,6 +6,24 @@ import { getSupabaseServerClient } from '@/lib/supabase';
 import { runtimeAuditLogs } from '@/lib/runtime-store';
 import { readRuntimeAuditLogs } from '@/lib/runtime-persistence';
 
+function parseMetaB64(detail: string | undefined) {
+  if (!detail) return null;
+  const matched = detail.match(/meta_b64=([A-Za-z0-9_-]+)/);
+  if (!matched?.[1]) return null;
+  try {
+    return JSON.parse(Buffer.from(matched[1], 'base64url').toString('utf8')) as Partial<{
+      authors: string;
+      abstract: string;
+      discipline: string;
+      topic: string;
+      article_type: string;
+      doi: string;
+    }>;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const sessionUser = getServerSessionUser();
@@ -25,17 +43,23 @@ export async function GET(request: NextRequest) {
     });
 
     const mineByAuditIds = new Set<string>();
+    const metadataBySubmissionId = new Map<string, Partial<{ authors: string; abstract: string; discipline: string; topic: string; article_type: string; doi: string }>>();
     const supabase = getSupabaseServerClient();
     if (supabase) {
       const logs = await supabase
         .from('audit_logs')
-        .select('submission_id,actor_email,action')
+        .select('submission_id,actor_email,action,detail')
         .eq('actor_email', sessionUser.email)
         .eq('action', 'submission_created');
       if (!logs.error) {
         for (const row of logs.data ?? []) {
-          const id = String((row as { submission_id?: string }).submission_id ?? '');
-          if (id) mineByAuditIds.add(id);
+          const typed = row as { submission_id?: string; detail?: string };
+          const id = String(typed.submission_id ?? '');
+          if (id) {
+            mineByAuditIds.add(id);
+            const parsed = parseMetaB64(typed.detail);
+            if (parsed) metadataBySubmissionId.set(id, parsed);
+          }
         }
       }
     } else {
@@ -44,6 +68,8 @@ export async function GET(request: NextRequest) {
       for (const row of source) {
         if (row.actor_email === sessionUser.email && row.action === 'submission_created') {
           mineByAuditIds.add(row.submission_id);
+          const parsed = parseMetaB64(row.detail);
+          if (parsed) metadataBySubmissionId.set(row.submission_id, parsed);
         }
       }
     }
@@ -52,7 +78,20 @@ export async function GET(request: NextRequest) {
       new Map(
         [...mineByAuthor, ...all.filter((item) => mineByAuditIds.has(item.id))].map((item) => [item.id, item])
       ).values()
-    );
+    ).map((item) => {
+      const meta = metadataBySubmissionId.get(item.id);
+      if (!meta) return item;
+      return {
+        ...item,
+        authors: item.authors || meta.authors || item.authors,
+        abstract: item.abstract || meta.abstract || item.abstract,
+        discipline: item.discipline || meta.discipline || item.discipline,
+        topic: item.topic || meta.topic || item.topic,
+        article_type: item.article_type || meta.article_type || item.article_type,
+        doi: item.doi || meta.doi || item.doi,
+        category: item.category || meta.discipline || item.category
+      };
+    });
 
     if (!includeFiles || mine.length === 0) {
       return NextResponse.json({ data: mine });

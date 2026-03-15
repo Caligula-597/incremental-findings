@@ -205,12 +205,21 @@ export async function POST(request: Request) {
       }
     }
 
+    const metadataPayload = {
+      title,
+      authors: authors || userEmail || (userId ? `Author ${userId.slice(0, 8)}` : 'Unknown author'),
+      abstract: String(form.get('abstract') ?? ''),
+      discipline: String(form.get('discipline') ?? ''),
+      topic: String(form.get('topic') ?? ''),
+      article_type: String(form.get('article_type') ?? '')
+    };
+
     const audit = {
       id: randomUUID(),
       submission_id: created.id,
       action: 'submission_created',
       actor_email: userEmail,
-      detail: `Submission created with ${fileRows.length} files and terms ${consent.terms_version}; integrity=${fileIntegrity.map((item) => `${item.file_name}:${item.sha256.slice(0, 12)}`).join(',')}`,
+      detail: `Submission created with ${fileRows.length} files and terms ${consent.terms_version}; meta_b64=${Buffer.from(JSON.stringify(metadataPayload), 'utf8').toString('base64url')}; integrity=${fileIntegrity.map((item) => `${item.file_name}:${item.sha256.slice(0, 12)}`).join(',')}`,
       created_at: now
     };
     runtimeAuditLogs.push(audit);

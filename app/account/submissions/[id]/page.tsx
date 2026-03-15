@@ -88,7 +88,7 @@ export default function AccountSubmissionDetailPage({ params, searchParams }: { 
             <p>{lang === 'zh' ? '稿件类型' : 'Article type'}: {item.article_type ?? '-'}</p>
             <p>{lang === 'zh' ? '主题' : 'Topic'}: {item.topic ?? '-'}</p>
             <p>{lang === 'zh' ? '摘要' : 'Abstract'}: {item.abstract ?? '-'}</p>
-            <p>{lang === 'zh' ? 'DOI/编号' : 'DOI/Identifier'}: {item.doi ?? '-'}</p>
+            <p>{lang === 'zh' ? 'DOI/编号' : 'DOI/Identifier'}: {item.doi ?? item.id}</p>
 
             <div className="mt-4">
               <button type="button" className="btn btn-danger btn-sm" onClick={deleteSubmission} disabled={deleting}>
