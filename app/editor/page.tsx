@@ -10,6 +10,13 @@ import { Submission, SubmissionStatus } from '@/lib/types';
 import { getSiteCopy, getSiteLang } from '@/lib/site-copy';
 import { withLang } from '@/lib/lang';
 
+interface ReviewBoardRow {
+  recommendation_count: number;
+  can_finalize: boolean;
+  final_decision: { final_decision: string; summary: string; created_at: string; managing_editor_email: string } | null;
+  recommendations: Array<{ editor_email: string; recommendation: string; comment: string; created_at: string }>;
+}
+
 interface EditorHistoryItem {
   submission_id: string;
   title: string;
@@ -59,6 +66,8 @@ export default function EditorPage() {
   const [history, setHistory] = useState<EditorHistoryItem[]>([]);
   const [responseNotes, setResponseNotes] = useState<Record<string, string>>({});
   const [responseFiles, setResponseFiles] = useState<Record<string, File | null>>({});
+  const [reviewBoard, setReviewBoard] = useState<Record<string, ReviewBoardRow>>({});
+  const [isManagingEditor, setIsManagingEditor] = useState(false);
 
   async function loadData() {
     const [pendingRes, reviewRes, publishedRes] = await Promise.all([
@@ -77,9 +86,14 @@ export default function EditorPage() {
     const reviewJson = await reviewRes.json();
     const publishedJson = await publishedRes.json();
 
-    setPending(pendingJson.data ?? []);
-    setUnderReview(reviewJson.data ?? []);
-    setPublished(publishedJson.data ?? []);
+    const pendingData = pendingJson.data ?? [];
+    const reviewData = reviewJson.data ?? [];
+    const publishedData = publishedJson.data ?? [];
+
+    setPending(pendingData);
+    setUnderReview(reviewData);
+    setPublished(publishedData);
+    await loadReviewBoard(reviewData.map((item: Submission) => item.id));
   }
 
 
@@ -97,6 +111,20 @@ export default function EditorPage() {
     if (!response.ok) return;
     const body = await response.json().catch(() => ({ data: [] }));
     setHistory(body.data ?? []);
+  }
+
+
+  async function loadReviewBoard(submissionIds: string[]) {
+    if (submissionIds.length === 0) {
+      setReviewBoard({});
+      return;
+    }
+    const query = submissionIds.map((id) => `submission_id=${encodeURIComponent(id)}`).join('&');
+    const response = await fetch(`/api/editor/review-board?${query}`, { cache: 'no-store' });
+    if (!response.ok) return;
+    const body = await response.json().catch(() => ({ data: {}, is_managing_editor: false }));
+    setReviewBoard(body.data ?? {});
+    setIsManagingEditor(Boolean(body.is_managing_editor));
   }
 
   async function inviteApplicant(application: EditorApplication) {
@@ -153,6 +181,44 @@ export default function EditorPage() {
     await Promise.all([loadData(), loadHistory()]);
   }
 
+
+  async function submitRecommendation(id: string, recommendation: 'publish' | 'major_revision' | 'minor_revision' | 'reject') {
+    setMessage('');
+    const comment = (responseNotes[id] ?? '').trim();
+    const response = await fetch('/api/editor/review-board', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ submission_id: id, recommendation, comment })
+    });
+
+    const body = await response.json().catch(() => ({ error: 'Unknown error' }));
+    if (!response.ok) {
+      setMessage(`${copy.editor.updateStatusFailedPrefix}${body.error ?? ''}`);
+      return;
+    }
+
+    setMessage(lang === 'zh' ? `已提交编辑意见：${recommendation}` : `Recommendation submitted: ${recommendation}`);
+    await Promise.all([loadData(), loadHistory()]);
+  }
+
+  async function finalizeDecision(id: string, finalDecision: 'publish' | 'major_revision' | 'minor_revision' | 'reject') {
+    setMessage('');
+    const summary = (responseNotes[id] ?? '').trim();
+    const response = await fetch('/api/editor/review-board/finalize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ submission_id: id, final_decision: finalDecision, summary })
+    });
+
+    const body = await response.json().catch(() => ({ error: 'Unknown error' }));
+    if (!response.ok) {
+      setMessage(`${copy.editor.updateStatusFailedPrefix}${body.error ?? ''}`);
+      return;
+    }
+
+    setMessage(lang === 'zh' ? `行政编辑已做最终决定：${finalDecision}` : `Managing editor finalized: ${finalDecision}`);
+    await Promise.all([loadData(), loadHistory()]);
+  }
 
   async function assignDoi(id: string) {
     setMessage('');
@@ -396,14 +462,23 @@ export default function EditorPage() {
                 />
                 {responseFiles[item.id] ? <p className="text-xs text-zinc-600">{lang === 'zh' ? '已选择附件: ' : 'Attachment selected: '}{responseFiles[item.id]?.name}</p> : null}
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button className="btn btn-primary btn-sm" onClick={() => updateStatus(item.id, 'published')}>
-                  Publish
-                </button>
-                <button className="btn btn-danger btn-sm" onClick={() => updateStatus(item.id, 'rejected')}>
-                  Reject
-                </button>
+              <div className="mt-2 text-xs text-zinc-600">
+                {lang === 'zh' ? '已收集编辑意见数' : 'Collected recommendations'}: {reviewBoard[item.id]?.recommendation_count ?? 0}
               </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button className="btn btn-secondary btn-sm" onClick={() => submitRecommendation(item.id, 'publish')}>Recommend Publish</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => submitRecommendation(item.id, 'minor_revision')}>Minor Revision</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => submitRecommendation(item.id, 'major_revision')}>Major Revision</button>
+                <button className="btn btn-danger btn-sm" onClick={() => submitRecommendation(item.id, 'reject')}>Recommend Reject</button>
+              </div>
+              {isManagingEditor && reviewBoard[item.id]?.can_finalize ? (
+                <div className="mt-3 flex flex-wrap gap-2 border-t border-zinc-200 pt-3">
+                  <button className="btn btn-primary btn-sm" onClick={() => finalizeDecision(item.id, 'publish')}>Finalize Publish</button>
+                  <button className="btn btn-secondary btn-sm" onClick={() => finalizeDecision(item.id, 'minor_revision')}>Finalize Minor Revision</button>
+                  <button className="btn btn-secondary btn-sm" onClick={() => finalizeDecision(item.id, 'major_revision')}>Finalize Major Revision</button>
+                  <button className="btn btn-danger btn-sm" onClick={() => finalizeDecision(item.id, 'reject')}>Finalize Reject</button>
+                </div>
+              ) : null}
             </article>
           ))}
         </div>
