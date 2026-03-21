@@ -32,7 +32,7 @@ export default function AccountSubmissionDetailPage({ params, searchParams }: { 
       const response = await fetch('/api/submissions/mine?include_files=true', { cache: 'no-store' });
       const body = await response.json().catch(() => ({ data: [] }));
       if (!response.ok) {
-        setMessage(body.error ?? 'Load failed');
+        setMessage(body.error ?? (lang === 'zh' ? '加载失败。' : 'Load failed.'));
         return;
       }
       const found = (body.data ?? []).find((entry: SubmissionDetail) => entry.id === params.id) ?? null;
@@ -47,7 +47,7 @@ export default function AccountSubmissionDetailPage({ params, searchParams }: { 
 
   async function deleteSubmission() {
     if (!item) return;
-    const ok = window.confirm(lang === 'zh' ? '确认删除该投稿记录？该功能仅用于调试。' : 'Delete this submission record? This is a temporary debug feature.');
+    const ok = window.confirm(lang === 'zh' ? '确认删除该投稿记录？该功能目前仅用于调试。' : 'Delete this submission record? This feature is currently for debugging only.');
     if (!ok) return;
 
     setDeleting(true);
@@ -55,7 +55,7 @@ export default function AccountSubmissionDetailPage({ params, searchParams }: { 
     const response = await fetch(`/api/submissions/${item.id}`, { method: 'DELETE' });
     const body = await response.json().catch(() => ({ error: 'Unknown error' }));
     if (!response.ok) {
-      setMessage(body.error ?? (lang === 'zh' ? '删除失败' : 'Delete failed'));
+      setMessage(body.error ?? (lang === 'zh' ? '删除失败。' : 'Delete failed.'));
       setDeleting(false);
       return;
     }
@@ -68,7 +68,7 @@ export default function AccountSubmissionDetailPage({ params, searchParams }: { 
       <SiteHeader />
       <SectionTitle
         title={lang === 'zh' ? '投稿详情' : 'Submission details'}
-        subtitle={lang === 'zh' ? '查看本次投稿填写信息、审核状态与文件。' : 'Review metadata, status and uploaded files for this submission.'}
+        subtitle={lang === 'zh' ? '查看本次投稿填写信息、审核状态与已上传文件。' : 'Review metadata, status, and uploaded files for this submission.'}
       />
 
       <section className="glass-panel p-6 text-sm">
@@ -88,7 +88,7 @@ export default function AccountSubmissionDetailPage({ params, searchParams }: { 
             <p>{lang === 'zh' ? '稿件类型' : 'Article type'}: {item.article_type ?? '-'}</p>
             <p>{lang === 'zh' ? '主题' : 'Topic'}: {item.topic ?? '-'}</p>
             <p>{lang === 'zh' ? '摘要' : 'Abstract'}: {item.abstract ?? '-'}</p>
-            <p>{lang === 'zh' ? 'DOI/编号' : 'DOI/Identifier'}: {item.doi ?? item.id}</p>
+            <p>{lang === 'zh' ? 'DOI/发布编号' : 'DOI/Identifier'}: {item.doi ?? item.id}</p>
 
             <div className="mt-4">
               <button type="button" className="btn btn-danger btn-sm" onClick={deleteSubmission} disabled={deleting}>

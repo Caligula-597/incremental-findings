@@ -92,8 +92,8 @@ export const SITE_COPY = {
         '账户登录 + 可选 ORCID 绑定',
         '作者协议与合规声明',
         '稿件元数据填写（题目/作者/学科/主题/稿件类型）',
-        '文件包上传（主文稿 + cover letter + 可选附件）',
-        '提交回执 + 编辑流程推进（pending → under_review → decision）'
+        '文件包上传（主文稿 + 投稿信 + 可选附件）',
+        '提交回执 + 编辑流程推进（under_review → accepted / rejected → in_production → published）'
       ],
       draftHint: '提示：身份信息会从当前会话预填，请先补齐所有必填文件字段再提交。',
       authorIdentity: '1) 作者身份',
@@ -314,7 +314,7 @@ export const SITE_COPY = {
         'Author agreement and compliance declaration',
         'Metadata entry (title/authors/discipline/topic/type)',
         'File package upload (manuscript + cover letter + optional supporting files)',
-        'Submission receipt + editor progression (pending → under_review → decision)'
+        'Submission receipt + editorial progression (under_review → accepted / rejected → in_production → published)'
       ],
       draftHint: 'Draft hint: your account identity is prefilled from local session. Complete all required file fields before submitting.',
       authorIdentity: '1) Author identity',

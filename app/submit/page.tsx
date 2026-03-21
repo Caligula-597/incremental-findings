@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { SiteHeader } from '@/components/header';
-import { TERMS_VERSION, AUTHOR_AGREEMENT_ITEMS, AUTHOR_PROTOCOL_BLOCKS } from '@/lib/legal';
+import { TERMS_VERSION, getAuthorAgreement } from '@/lib/legal';
 import { ARTICLE_TYPES, DISCIPLINES, TOPIC_MAP } from '@/lib/taxonomy';
 import { SectionTitle } from '@/components/ui-kit';
 import { getSiteCopy, getSiteLang } from '@/lib/site-copy';
@@ -18,6 +18,7 @@ export default function SubmitPage() {
     }
   }, []);
   const copy = useMemo(() => getSiteCopy(lang), [lang]);
+  const agreement = useMemo(() => getAuthorAgreement(lang), [lang]);
 
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -101,7 +102,7 @@ export default function SubmitPage() {
     const body = await response.json().catch(() => ({ error: 'Unknown error' }));
 
     if (!response.ok) {
-      setMessage(`${copy.submit.failedPrefix}${body.error ?? 'Please review required fields.'}`);
+      setMessage(`${copy.submit.failedPrefix}${body.error ?? (lang === 'zh' ? '请检查必填字段。' : 'Please review required fields.')}`);
       setLoading(false);
       return;
     }
@@ -163,11 +164,21 @@ export default function SubmitPage() {
           <h3 className="font-semibold">{copy.submit.agreement}</h3>
           <p className="mt-1 text-xs text-zinc-600">{copy.submit.termsVersion}: {TERMS_VERSION}</p>
 
-          <div className="mt-3 grid gap-3 md:grid-cols-3">
-            {AUTHOR_PROTOCOL_BLOCKS.map((block) => (
-              <article key={block.title} className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
+          <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4">
+            <h4 className="font-semibold text-zinc-900">{agreement.overview.title}</h4>
+            <p className="mt-2 text-sm text-zinc-700">{agreement.overview.subtitle}</p>
+            <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-zinc-700">
+              {agreement.overview.summary.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="mt-4 grid gap-3 xl:grid-cols-2">
+            {agreement.sections.map((block) => (
+              <article key={block.title} className="rounded-lg border border-zinc-200 bg-white px-4 py-4">
                 <p className="text-sm font-semibold text-zinc-900">{block.title}</p>
-                <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-zinc-700">
+                <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-zinc-700">
                   {block.points.map((point) => (
                     <li key={point}>{point}</li>
                   ))}
@@ -176,26 +187,35 @@ export default function SubmitPage() {
             ))}
           </div>
 
-          <div className="mt-3 grid gap-2 text-sm">
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/70 px-4 py-4 text-sm text-amber-950">
+            <p className="font-semibold">{lang === 'zh' ? '勾选确认前，请再次确认：' : 'Before checking the confirmations below, please make sure that:'}</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              {agreement.checkboxes.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="mt-4 grid gap-2 text-sm">
             <label className="flex gap-2">
               <input required type="checkbox" name="author_warranty" value="true" />
-              <span>{AUTHOR_AGREEMENT_ITEMS[0]}</span>
+              <span>{agreement.checkboxes[0]}</span>
             </label>
             <label className="flex gap-2">
               <input required type="checkbox" name="originality_warranty" value="true" />
-              <span>{AUTHOR_AGREEMENT_ITEMS[1]}</span>
+              <span>{agreement.checkboxes[1]}</span>
             </label>
             <label className="flex gap-2">
               <input required type="checkbox" name="ethics_warranty" value="true" />
-              <span>{AUTHOR_AGREEMENT_ITEMS[2]}</span>
+              <span>{agreement.checkboxes[2]}</span>
             </label>
             <label className="flex gap-2">
               <input required type="checkbox" name="privacy_ack" value="true" />
-              <span>{AUTHOR_AGREEMENT_ITEMS[3]}</span>
+              <span>{agreement.checkboxes[3]}</span>
             </label>
-            <label className="mt-1 flex gap-2 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2">
+            <label className="mt-1 flex gap-2 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-3">
               <input required type="checkbox" name="protocol_ack" value="true" />
-              <span>{copy.submit.protocolAck}</span>
+              <span>{agreement.overview.protocolAck}</span>
             </label>
           </div>
         </section>
@@ -260,16 +280,16 @@ export default function SubmitPage() {
 
             <label className="grid gap-1 text-sm">
               {copy.submit.supporting}
-              <input name="supporting_files" multiple type="file" className="rounded-lg border border-zinc-300 px-3 py-2" />
+              <input name="supporting" type="file" multiple className="rounded-lg border border-zinc-300 px-3 py-2" />
             </label>
           </div>
         </section>
 
         <div className="flex flex-wrap items-center gap-3">
-          <button type="submit" disabled={loading} className="btn btn-primary w-fit disabled:opacity-60">
+          <button className="btn btn-primary" disabled={loading} type="submit">
             {loading ? copy.submit.submitting : copy.submit.submitButton}
           </button>
-          <p className="text-xs text-zinc-500">{copy.submit.eta}</p>
+          <p className="text-sm text-zinc-600">{copy.submit.eta}</p>
         </div>
 
         {message ? <p className="text-sm text-zinc-700">{message}</p> : null}

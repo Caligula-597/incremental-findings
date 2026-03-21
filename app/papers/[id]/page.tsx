@@ -21,7 +21,7 @@ export async function generateMetadata({ params, searchParams }: PaperPageProps)
   }
 
   const title = `${paper.title} · Incremental Findings`;
-  const description = (paper.abstract ?? 'Published research article').slice(0, 160);
+  const description = (paper.abstract ?? (lang === 'zh' ? '已发布研究论文' : 'Published research article')).slice(0, 160);
 
   return {
     title,
@@ -46,6 +46,8 @@ export default async function PaperDetailPage({ params, searchParams }: PaperPag
     .split(',')
     .map((name) => name.trim())
     .filter(Boolean);
+
+  const doiLabel = isResolvableDoi(paper.doi) ? 'DOI' : lang === 'zh' ? '发布编号' : 'Publication ID';
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -75,7 +77,7 @@ export default async function PaperDetailPage({ params, searchParams }: PaperPag
 
         {paper.doi ? (
           <p className="mt-4 text-sm text-zinc-700">
-            {isResolvableDoi(paper.doi) ? 'DOI:' : 'Publication ID:'}{' '}
+            {doiLabel}:{' '}
             {isResolvableDoi(paper.doi) ? (
               <a className="underline" href={`https://doi.org/${paper.doi}`} target="_blank" rel="noreferrer">
                 {paper.doi}
