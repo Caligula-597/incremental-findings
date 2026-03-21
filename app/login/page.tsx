@@ -18,6 +18,12 @@ type SessionUser = {
 export default function LoginPage() {
   const router = useRouter();
   const [lang, setLang] = useState(getSiteLang());
+  const [mode, setMode] = useState<Mode>('login');
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -25,12 +31,8 @@ export default function LoginPage() {
       setLang(getSiteLang(params.get('lang')));
     }
   }, []);
-  const copy = useMemo(() => getSiteCopy(lang), [lang]);
 
-  const [mode, setMode] = useState<Mode>('login');
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
+  const copy = useMemo(() => getSiteCopy(lang), [lang]);
 
   useEffect(() => {
     async function loadSession() {
@@ -100,8 +102,7 @@ export default function LoginPage() {
       editor_code: String(formData.get('editor_code') ?? '')
     };
 
-    const endpoint =
-      mode === 'register' ? '/api/auth/register' : mode === 'editor' ? '/api/auth/editor-login' : '/api/auth/login';
+    const endpoint = mode === 'register' ? '/api/auth/register' : mode === 'editor' ? '/api/auth/editor-login' : '/api/auth/login';
 
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -111,7 +112,20 @@ export default function LoginPage() {
 
     const body = await response.json().catch(() => ({ error: 'Unknown error' }));
     if (!response.ok) {
-      setMessage(`${copy.login.failedPrefix}${body.error ?? 'request failed'}`);
+      if (body.needs_verification && body.email) {
+        setPendingVerificationEmail(String(body.email));
+        setMessage(copy.login.loginNeedsVerification);
+      } else {
+        setMessage(`${copy.login.failedPrefix}${body.error ?? 'request failed'}`);
+      }
+      setLoading(false);
+      return;
+    }
+
+    if (body.requires_verification) {
+      setPendingVerificationEmail(String(body.data?.email ?? payload.email).trim().toLowerCase());
+      setVerificationCode('');
+      setMessage(`${copy.login.registerSuccess} ${copy.login.verificationPrompt}`);
       setLoading(false);
       return;
     }
@@ -134,9 +148,68 @@ export default function LoginPage() {
       role: account.role ?? (mode === 'editor' ? 'editor' : 'author')
     });
 
-    setMessage(mode === 'register' ? copy.login.registerSuccess : mode === 'editor' ? copy.login.editorSuccess : copy.login.loginSuccess);
+    setMessage(mode === 'editor' ? copy.login.editorSuccess : copy.login.loginSuccess);
     setLoading(false);
     router.push(withLang(mode === 'editor' ? '/editor' : '/account', lang) as any);
+  }
+
+  async function onVerifyEmail(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!pendingVerificationEmail) return;
+
+    setLoading(true);
+    setMessage('');
+    const response = await fetch('/api/auth/verify-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: pendingVerificationEmail, code: verificationCode })
+    });
+
+    const body = await response.json().catch(() => ({ error: 'Unknown error' }));
+    if (!response.ok) {
+      setMessage(`${copy.login.failedPrefix}${body.error ?? 'request failed'}`);
+      setLoading(false);
+      return;
+    }
+
+    const account = body.data;
+    localStorage.setItem(
+      'if_user',
+      JSON.stringify({
+        email: account.email,
+        name: account.name,
+        id: account.id,
+        role: account.role ?? 'author'
+      })
+    );
+    setSessionUser(account as SessionUser);
+    setPendingVerificationEmail('');
+    setVerificationCode('');
+    setMessage(copy.login.verificationSuccess);
+    setLoading(false);
+    router.push(withLang('/account', lang) as any);
+  }
+
+  async function onResendVerification() {
+    if (!pendingVerificationEmail) return;
+
+    setLoading(true);
+    setMessage('');
+    const response = await fetch('/api/auth/resend-verification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: pendingVerificationEmail })
+    });
+
+    const body = await response.json().catch(() => ({ error: 'Unknown error' }));
+    if (!response.ok) {
+      setMessage(`${copy.login.failedPrefix}${body.error ?? 'request failed'}`);
+      setLoading(false);
+      return;
+    }
+
+    setMessage(copy.login.verificationPrompt);
+    setLoading(false);
   }
 
   return (
@@ -235,6 +308,35 @@ export default function LoginPage() {
 
         {message ? <p className="mt-3 text-sm text-zinc-700">{message}</p> : null}
       </form>
+
+      {pendingVerificationEmail ? (
+        <form className="mt-5 max-w-lg rounded border border-zinc-200 bg-white/60 p-4" onSubmit={onVerifyEmail}>
+          <p className="text-sm text-zinc-700">{copy.login.verificationPrompt}</p>
+          <p className="mt-1 text-xs text-zinc-500">{pendingVerificationEmail}</p>
+          <div className="mt-3 grid gap-3">
+            <label className="grid gap-1 text-sm">
+              {copy.login.verificationCode}
+              <input
+                value={verificationCode}
+                onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                className="rounded border border-zinc-300 px-3 py-2"
+                placeholder={copy.login.verificationCodePlaceholder}
+                inputMode="numeric"
+                pattern="[0-9]{6}"
+                required
+              />
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <button disabled={loading} className="btn btn-primary disabled:opacity-60" type="submit">
+                {copy.login.verifyCodeButton}
+              </button>
+              <button disabled={loading} className="btn btn-secondary disabled:opacity-60" type="button" onClick={onResendVerification}>
+                {copy.login.resendVerification}
+              </button>
+            </div>
+          </div>
+        </form>
+      ) : null}
     </main>
   );
 }

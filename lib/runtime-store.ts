@@ -1,6 +1,7 @@
-import { AuditLog, AuthUser, EditorApplicationRecord, EditorDecisionRecord, EditorInviteRecord, EthicsCaseRecord, IndexingExportRecord, IpRateLimitRecord, MetadataSnapshotRecord, NotificationJobRecord, OrcidLink, ProductionJobRecord, PublicationPackageRecord, ReviewAssignmentRecord, ReviewReportRecord, RiskScoreRecord, SecurityEventRecord, SubmissionFileRecord, SubmissionVersionRecord } from '@/lib/types';
+import { AuditLog, AuthUser, EditorApplicationRecord, EditorDecisionRecord, EditorInviteRecord, EmailVerificationRecord, EthicsCaseRecord, IndexingExportRecord, IpRateLimitRecord, MetadataSnapshotRecord, NotificationJobRecord, OrcidLink, ProductionJobRecord, PublicationPackageRecord, ReviewAssignmentRecord, ReviewReportRecord, RiskScoreRecord, SecurityEventRecord, SubmissionFileRecord, SubmissionVersionRecord } from '@/lib/types';
 
 export const runtimeUsers: AuthUser[] = [];
+export const runtimeEmailVerifications: EmailVerificationRecord[] = [];
 export const runtimeOrcidLinks: OrcidLink[] = [];
 export const runtimeSubmissionFiles: SubmissionFileRecord[] = [];
 export const runtimeAuditLogs: AuditLog[] = [];

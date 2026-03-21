@@ -50,6 +50,18 @@ export interface AuthUser {
   created_at: string;
 }
 
+export interface EmailVerificationRecord {
+  email: string;
+  user_id?: string | null;
+  code_hash: string;
+  expires_at: string;
+  sent_at: string;
+  verified_at?: string | null;
+  attempt_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface OrcidLink {
   user_email?: string;
   user_id?: string;

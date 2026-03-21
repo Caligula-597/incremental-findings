@@ -4,6 +4,7 @@ import { runtimeUsers } from '@/lib/runtime-store';
 import { hashPassword, needsPasswordRehash, verifyPassword } from '@/lib/auth-security';
 import { buildSessionToken, setSessionCookie } from '@/lib/session';
 import { guardRequest } from '@/lib/request-guard';
+import { getEmailVerification } from '@/lib/email-verification';
 
 function normalizeIdentifier(body: any) {
   const fromIdentifier = String(body.identifier ?? '').trim().toLowerCase();
@@ -11,6 +12,15 @@ function normalizeIdentifier(body: any) {
   const fromUsername = String(body.username ?? '').trim().toLowerCase();
   const identifier = fromIdentifier || fromEmail || fromUsername;
   return identifier;
+}
+
+function buildSessionUser(account: { id: string; email: string; name?: string | null; username?: string | null }) {
+  return {
+    id: account.id,
+    email: account.email,
+    name: account.name ?? account.username ?? account.email,
+    role: 'author' as const
+  };
 }
 
 export async function POST(request: Request) {
@@ -22,7 +32,6 @@ export async function POST(request: Request) {
     if (!identifier || !password) {
       return NextResponse.json({ error: 'identifier(email or username) and password are required' }, { status: 400 });
     }
-
 
     const loginGuard = await guardRequest(request, {
       route: '/api/auth/login',
@@ -54,17 +63,19 @@ export async function POST(request: Request) {
       const account = (!byEmail.error && byEmail.data ? byEmail.data : null) ?? (!byUsername.error && byUsername.data ? byUsername.data : null);
 
       if (account && verifyPassword(password, account.password_hash)) {
+        const verification = await getEmailVerification(account.email);
+        if (verification.record && !verification.record.verified_at) {
+          return NextResponse.json(
+            { error: 'Email not verified. Please complete email verification first.', needs_verification: true, email: account.email },
+            { status: 403 }
+          );
+        }
+
         if (needsPasswordRehash(account.password_hash)) {
           await supabase.from('user_accounts').update({ password_hash: hashPassword(password) }).eq('id', account.id);
         }
 
-        const sessionUser = {
-          id: account.id,
-          email: account.email,
-          name: account.name ?? account.username ?? account.email,
-          role: 'author' as const
-        };
-
+        const sessionUser = buildSessionUser(account);
         setSessionCookie(buildSessionToken(sessionUser));
         return NextResponse.json({
           data: { ...sessionUser, username: account.username ?? null },
@@ -92,17 +103,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid email/username or password' }, { status: 401 });
     }
 
+    const verification = await getEmailVerification(user.email);
+    if (verification.record && !verification.record.verified_at) {
+      return NextResponse.json(
+        { error: 'Email not verified. Please complete email verification first.', needs_verification: true, email: user.email },
+        { status: 403 }
+      );
+    }
+
     if (needsPasswordRehash(user.password_hash)) {
       user.password_hash = hashPassword(password);
     }
 
-    const sessionUser = {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: 'author' as const
-    };
-
+    const sessionUser = buildSessionUser(user);
     setSessionCookie(buildSessionToken(sessionUser));
     return NextResponse.json({
       data: { ...sessionUser, username: user.username ?? null },

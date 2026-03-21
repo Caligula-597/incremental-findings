@@ -3,8 +3,8 @@ import { NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@/lib/supabase';
 import { runtimeUsers } from '@/lib/runtime-store';
 import { hashPassword } from '@/lib/auth-security';
-import { buildSessionToken, setSessionCookie } from '@/lib/session';
 import { guardRequest } from '@/lib/request-guard';
+import { createOrRefreshEmailVerification } from '@/lib/email-verification';
 
 function normalizeUsername(input: string) {
   const value = input.trim().toLowerCase();
@@ -22,7 +22,6 @@ export async function POST(request: Request) {
     if (!email || !password) {
       return NextResponse.json({ error: 'email and password are required' }, { status: 400 });
     }
-
 
     const registerGuard = await guardRequest(request, {
       route: '/api/auth/register',
@@ -68,22 +67,22 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: `Failed to create account in Supabase: ${insert.error.message}` }, { status: 500 });
       }
 
-      const sessionUser = {
-        id: insert.data.id,
-        email: insert.data.email ?? email,
-        name: insert.data.name ?? name ?? username ?? email,
-        role: 'author' as const
-      };
+      const verification = await createOrRefreshEmailVerification({ email, userId: insert.data.id });
+      const debugVerificationCode = !process.env.RESEND_API_KEY ? verification.code : undefined;
 
-      setSessionCookie(buildSessionToken(sessionUser));
       return NextResponse.json(
         {
           data: {
-            ...sessionUser,
+            id: insert.data.id,
+            email: insert.data.email ?? email,
+            name: insert.data.name ?? name ?? username ?? email,
             username: insert.data.username ?? username,
-            created_at: insert.data.created_at
+            created_at: insert.data.created_at,
+            role: 'author'
           },
-          mode: 'supabase'
+          mode: 'supabase',
+          requires_verification: true,
+          ...(debugVerificationCode ? { debug_verification_code: debugVerificationCode } : {})
         },
         { status: 201 }
       );
@@ -110,16 +109,18 @@ export async function POST(request: Request) {
       created_at: now
     };
     runtimeUsers.push(created);
+    const verification = await createOrRefreshEmailVerification({ email, userId: created.id });
+    const debugVerificationCode = !process.env.RESEND_API_KEY ? verification.code : undefined;
 
-    const sessionUser = {
-      id: created.id,
-      email: created.email,
-      name: created.name,
-      role: 'author' as const
-    };
-
-    setSessionCookie(buildSessionToken(sessionUser));
-    return NextResponse.json({ data: { ...sessionUser, username: created.username }, mode: 'memory' }, { status: 201 });
+    return NextResponse.json(
+      {
+        data: { id: created.id, email: created.email, name: created.name, username: created.username, role: 'author' },
+        mode: 'memory',
+        requires_verification: true,
+        ...(debugVerificationCode ? { debug_verification_code: debugVerificationCode } : {})
+      },
+      { status: 201 }
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
     return NextResponse.json({ error: message }, { status: 500 });

@@ -13,7 +13,7 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - Public mission and community roadmap page (`/community`)
 
 ## What is implemented now
-- Email account register/login API (memory fallback if DB table unavailable)
+- Email account register/login API with email verification codes (memory fallback if DB table unavailable)
 - ORCID connect flow scaffolding (`/api/orcid/start`, `/api/orcid/callback`, `/api/orcid/status`)
 - Author agreements + terms version capture in submission flow
 - Package upload support: manuscript PDF + cover letter + optional supporting files
@@ -60,6 +60,8 @@ When `REQUIRE_SUPABASE=true`, write/read APIs will fail fast instead of silently
 ## APIs
 - `POST /api/auth/register`
 - `POST /api/auth/login`
+- `POST /api/auth/verify-email`
+- `POST /api/auth/resend-verification`
 - `POST /api/auth/editor-login`
 - `GET /api/auth/session`
 - `GET /api/orcid/start`
@@ -140,6 +142,18 @@ CREATE TABLE IF NOT EXISTS user_accounts (
 CREATE UNIQUE INDEX IF NOT EXISTS user_accounts_username_key
   ON user_accounts(username)
   WHERE username IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS email_verifications (
+  email TEXT PRIMARY KEY,
+  user_id UUID REFERENCES user_accounts(id) ON DELETE SET NULL,
+  code_hash TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  sent_at TIMESTAMPTZ NOT NULL,
+  verified_at TIMESTAMPTZ,
+  attempt_count INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 
 CREATE TABLE IF NOT EXISTS orcid_links (
   user_email TEXT PRIMARY KEY,

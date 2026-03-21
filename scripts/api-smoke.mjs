@@ -56,8 +56,23 @@ async function main() {
       username: `smoke_${random}`
     })
   });
-  if (!register?.data?.email) throw new Error('register response missing data.email');
+  if (!register?.data?.email || !register?.requires_verification) {
+    throw new Error('register response missing email verification payload');
+  }
   console.log('[smoke] /api/auth/register ok');
+
+  const verificationCode = register.debug_verification_code;
+  if (!verificationCode) {
+    throw new Error('register response missing debug_verification_code; smoke requires log-only verification mode');
+  }
+
+  const verifyEmail = await mustFetch('/api/auth/verify-email', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email, code: verificationCode })
+  });
+  if (!verifyEmail?.data?.email) throw new Error('verify-email response missing data.email');
+  console.log('[smoke] /api/auth/verify-email ok');
 
   const login = await mustFetch('/api/auth/login', {
     method: 'POST',
