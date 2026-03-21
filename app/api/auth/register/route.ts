@@ -4,7 +4,7 @@ import { getSupabaseServerClient } from '@/lib/supabase';
 import { runtimeUsers } from '@/lib/runtime-store';
 import { hashPassword } from '@/lib/auth-security';
 import { guardRequest } from '@/lib/request-guard';
-import { createOrRefreshEmailVerification } from '@/lib/email-verification';
+import { canExposeDebugVerificationCode, createOrRefreshEmailVerification } from '@/lib/email-verification';
 
 function normalizeUsername(input: string) {
   const value = input.trim().toLowerCase();
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
       }
 
       const verification = await createOrRefreshEmailVerification({ email, userId: insert.data.id });
-      const debugVerificationCode = !process.env.RESEND_API_KEY ? verification.code : undefined;
+      const debugVerificationCode = canExposeDebugVerificationCode() ? verification.code : undefined;
 
       return NextResponse.json(
         {
@@ -110,7 +110,7 @@ export async function POST(request: Request) {
     };
     runtimeUsers.push(created);
     const verification = await createOrRefreshEmailVerification({ email, userId: created.id });
-    const debugVerificationCode = !process.env.RESEND_API_KEY ? verification.code : undefined;
+    const debugVerificationCode = canExposeDebugVerificationCode() ? verification.code : undefined;
 
     return NextResponse.json(
       {

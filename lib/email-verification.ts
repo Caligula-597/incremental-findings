@@ -5,12 +5,41 @@ import { EmailVerificationRecord } from '@/lib/types';
 
 const CODE_TTL_MINUTES = Number(process.env.EMAIL_VERIFICATION_TTL_MINUTES ?? '15') || 15;
 const RESEND_COOLDOWN_SECONDS = Number(process.env.EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS ?? '60') || 60;
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Incremental Findings <no-reply@incremental-findings.local>';
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL?.trim() || '';
 
 type VerificationLookup = {
   record: EmailVerificationRecord | null;
   mode: 'supabase' | 'memory';
 };
+
+
+function isProduction() {
+  return process.env.NODE_ENV === 'production';
+}
+
+function shouldExposeDebugVerificationCode() {
+  return process.env.ALLOW_DEBUG_VERIFICATION_CODE === 'true';
+}
+
+function assertEmailVerificationProviderReady() {
+  if (process.env.RESEND_API_KEY && FROM_EMAIL) {
+    return { provider: 'resend' as const };
+  }
+
+  if (shouldExposeDebugVerificationCode() || !isProduction()) {
+    return { provider: 'log-only' as const };
+  }
+
+  throw new Error('Email verification is not fully configured. Set RESEND_API_KEY and RESEND_FROM_EMAIL in production.');
+}
+
+export function getEmailVerificationDeliveryMode() {
+  return assertEmailVerificationProviderReady().provider;
+}
+
+export function canExposeDebugVerificationCode() {
+  return shouldExposeDebugVerificationCode();
+}
 
 function hashCode(code: string) {
   return createHash('sha256').update(`${code}:${process.env.SESSION_SECRET ?? 'dev-verification-secret'}`).digest('hex');
@@ -30,9 +59,11 @@ export function getVerificationEmailPreview(code: string) {
 
 async function sendVerificationEmail(email: string, code: string) {
   const preview = getVerificationEmailPreview(code);
-  if (!process.env.RESEND_API_KEY) {
+  const delivery = assertEmailVerificationProviderReady();
+
+  if (delivery.provider === 'log-only') {
     console.info('[email-verification:log-only]', { email, code, subject: preview.subject });
-    return { provider: 'log-only' as const };
+    return delivery;
   }
 
   const response = await fetch('https://api.resend.com/emails', {

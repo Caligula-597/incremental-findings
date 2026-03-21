@@ -63,7 +63,7 @@ async function main() {
 
   const verificationCode = register.debug_verification_code;
   if (!verificationCode) {
-    throw new Error('register response missing debug_verification_code; smoke requires log-only verification mode');
+    throw new Error('register response missing debug_verification_code; start the app with ALLOW_DEBUG_VERIFICATION_CODE=true for smoke tests when not using a real inbox');
   }
 
   const verifyEmail = await mustFetch('/api/auth/verify-email', {

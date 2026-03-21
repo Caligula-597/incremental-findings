@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@/lib/supabase';
 import { runtimeUsers } from '@/lib/runtime-store';
-import { canResendVerification, createOrRefreshEmailVerification, getEmailVerification, getResendCooldownSeconds } from '@/lib/email-verification';
+import { canExposeDebugVerificationCode, canResendVerification, createOrRefreshEmailVerification, getEmailVerification, getResendCooldownSeconds } from '@/lib/email-verification';
 
 export async function POST(request: Request) {
   try {
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     }
 
     const refreshed = await createOrRefreshEmailVerification({ email, userId: verification.record?.user_id ?? null });
-    const debugVerificationCode = !process.env.RESEND_API_KEY ? refreshed.code : undefined;
+    const debugVerificationCode = canExposeDebugVerificationCode() ? refreshed.code : undefined;
     return NextResponse.json({ ok: true, ...(debugVerificationCode ? { debug_verification_code: debugVerificationCode } : {}) });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';

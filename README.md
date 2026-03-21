@@ -361,6 +361,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 ORCID_CLIENT_ID=xxx
 ORCID_CLIENT_SECRET=xxx
 ORCID_REDIRECT_URI=http://localhost:3000/api/orcid/callback
+RESEND_API_KEY=your_resend_api_key
+RESEND_FROM_EMAIL=verified_sender@yourdomain.com
 EDITOR_ACCESS_CODE=your_editor_access_code
 EDITOR_ACCESS_CODE_ROLLOVER=old_code_1,old_code_2
 SESSION_SECRET=at_least_32_chars_random_secret
@@ -378,11 +380,13 @@ REVIEW_MODEL=single_blind
 REQUIRE_COI_DISCLOSURE=true
 ENFORCE_REVIEWER_AUTHOR_SEPARATION=true
 DEFAULT_REVIEW_DUE_DAYS=21
+ALLOW_DEBUG_VERIFICATION_CODE=false
 ```
 
 > Server-side persistent writes require both `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
 > When either one is missing, the project runs in memory fallback mode (safe for local demo only).
 > In `NODE_ENV=production`, missing integration/security keys are logged as configuration warnings and server data access degrades to safe fallback mode where possible; set `SESSION_SECRET`, `EDITOR_ACCESS_CODE`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` for full production behavior.
+> Real author email verification in production also requires `RESEND_API_KEY` and `RESEND_FROM_EMAIL`; debug verification codes should stay disabled outside local development.
 
 ## ORCID troubleshooting
 - Open `/api/orcid/diagnostics` to verify callback/credential wiring without exposing secrets.
