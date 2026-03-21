@@ -24,6 +24,8 @@ export default function LoginPage() {
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
+  const [registerEmail, setRegisterEmail] = useState('');
+  const [verificationRequested, setVerificationRequested] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -54,6 +56,12 @@ export default function LoginPage() {
 
     void loadSession();
   }, []);
+
+  function resetRegisterVerification(email = '') {
+    setPendingVerificationEmail(email.trim().toLowerCase());
+    setVerificationCode('');
+    setVerificationRequested(false);
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -99,8 +107,22 @@ export default function LoginPage() {
       username: String(formData.get('username') ?? ''),
       identifier: String(formData.get('email') ?? ''),
       password: String(formData.get('password') ?? ''),
-      editor_code: String(formData.get('editor_code') ?? '')
+      editor_code: String(formData.get('editor_code') ?? ''),
+      verification_code: verificationCode
     };
+
+    if (mode === 'register') {
+      if (!verificationRequested || !pendingVerificationEmail || pendingVerificationEmail !== payload.email.trim().toLowerCase()) {
+        setMessage(copy.login.registerNeedsCode);
+        setLoading(false);
+        return;
+      }
+      if (!verificationCode) {
+        setMessage(copy.login.registerNeedsCode);
+        setLoading(false);
+        return;
+      }
+    }
 
     const endpoint = mode === 'register' ? '/api/auth/register' : mode === 'editor' ? '/api/auth/editor-login' : '/api/auth/login';
 
@@ -118,14 +140,6 @@ export default function LoginPage() {
       } else {
         setMessage(`${copy.login.failedPrefix}${body.error ?? 'request failed'}`);
       }
-      setLoading(false);
-      return;
-    }
-
-    if (body.requires_verification) {
-      setPendingVerificationEmail(String(body.data?.email ?? payload.email).trim().toLowerCase());
-      setVerificationCode('');
-      setMessage(`${copy.login.registerSuccess} ${copy.login.verificationPrompt}`);
       setLoading(false);
       return;
     }
@@ -148,7 +162,14 @@ export default function LoginPage() {
       role: account.role ?? (mode === 'editor' ? 'editor' : 'author')
     });
 
-    setMessage(mode === 'editor' ? copy.login.editorSuccess : copy.login.loginSuccess);
+    if (mode === 'register') {
+      setPendingVerificationEmail('');
+      setVerificationCode('');
+      setVerificationRequested(false);
+      setRegisterEmail('');
+    }
+
+    setMessage(mode === 'register' ? copy.login.registerSuccess : mode === 'editor' ? copy.login.editorSuccess : copy.login.loginSuccess);
     setLoading(false);
     router.push(withLang(mode === 'editor' ? '/editor' : '/account', lang) as any);
   }
@@ -190,12 +211,41 @@ export default function LoginPage() {
     router.push(withLang('/account', lang) as any);
   }
 
+  async function onSendRegisterCode() {
+    const normalizedEmail = registerEmail.trim().toLowerCase();
+    if (!normalizedEmail) {
+      setMessage(copy.login.registerNeedsEmail);
+      return;
+    }
+
+    setLoading(true);
+    setMessage('');
+    const response = await fetch('/api/auth/register/request-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: normalizedEmail })
+    });
+
+    const body = await response.json().catch(() => ({ error: 'Unknown error' }));
+    if (!response.ok) {
+      setMessage(`${copy.login.failedPrefix}${body.error ?? 'request failed'}`);
+      setLoading(false);
+      return;
+    }
+
+    setPendingVerificationEmail(normalizedEmail);
+    setVerificationRequested(true);
+    setMessage(copy.login.codeSentSuccess);
+    setLoading(false);
+  }
+
   async function onResendVerification() {
     if (!pendingVerificationEmail) return;
 
     setLoading(true);
     setMessage('');
-    const response = await fetch('/api/auth/resend-verification', {
+    const endpoint = mode === 'register' ? '/api/auth/register/request-code' : '/api/auth/resend-verification';
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: pendingVerificationEmail })
@@ -208,6 +258,7 @@ export default function LoginPage() {
       return;
     }
 
+    setVerificationRequested(mode === 'register');
     setMessage(copy.login.verificationPrompt);
     setLoading(false);
   }
@@ -219,16 +270,16 @@ export default function LoginPage() {
       <p className="mt-2 text-sm text-zinc-600">{copy.login.subtitle}</p>
 
       <div className="mt-5 flex flex-wrap gap-2 text-sm">
-        <button className={`btn ${mode === 'login' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setMode('login')} type="button">
+        <button className={`btn ${mode === 'login' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => { setMode('login'); resetRegisterVerification(); }} type="button">
           {copy.login.authorLogin}
         </button>
-        <button className={`btn ${mode === 'register' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setMode('register')} type="button">
+        <button className={`btn ${mode === 'register' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => { setMode('register'); setMessage(''); }} type="button">
           {copy.login.authorRegister}
         </button>
-        <button className={`btn ${mode === 'editor' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setMode('editor')} type="button">
+        <button className={`btn ${mode === 'editor' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => { setMode('editor'); resetRegisterVerification(); }} type="button">
           {copy.login.editorLogin}
         </button>
-        <button className={`btn ${mode === 'apply-editor' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setMode('apply-editor')} type="button">
+        <button className={`btn ${mode === 'apply-editor' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => { setMode('apply-editor'); resetRegisterVerification(); }} type="button">
           {copy.login.editorApply}
         </button>
       </div>
@@ -272,10 +323,48 @@ export default function LoginPage() {
               <input
                 name="email"
                 required
+                value={mode === 'register' ? registerEmail : undefined}
+                onChange={mode === 'register' ? (event) => {
+                  const nextEmail = event.target.value;
+                  setRegisterEmail(nextEmail);
+                  if (pendingVerificationEmail && pendingVerificationEmail !== nextEmail.trim().toLowerCase()) {
+                    setVerificationRequested(false);
+                    setPendingVerificationEmail('');
+                    setVerificationCode('');
+                  }
+                } : undefined}
                 className="rounded border border-zinc-300 px-3 py-2"
                 placeholder={mode === 'editor' ? copy.login.editorEmailPlaceholder : mode === 'register' ? 'you@research.org' : copy.login.emailPlaceholder}
               />
             </label>
+
+            {mode === 'register' ? (
+              <div className="mt-4 rounded border border-zinc-200 bg-white/60 p-4">
+                <p className="text-sm text-zinc-700">{copy.login.verificationPrompt}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button disabled={loading} className="btn btn-secondary disabled:opacity-60" type="button" onClick={onSendRegisterCode}>
+                    {copy.login.sendVerificationCode}
+                  </button>
+                  {verificationRequested ? (
+                    <button disabled={loading} className="btn btn-secondary disabled:opacity-60" type="button" onClick={onResendVerification}>
+                      {copy.login.resendVerification}
+                    </button>
+                  ) : null}
+                </div>
+                <label className="mt-4 grid gap-1 text-sm">
+                  {copy.login.verificationCode}
+                  <input
+                    value={verificationCode}
+                    onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                    className="rounded border border-zinc-300 px-3 py-2"
+                    placeholder={copy.login.verificationCodePlaceholder}
+                    inputMode="numeric"
+                    pattern="[0-9]{6}"
+                    required
+                  />
+                </label>
+              </div>
+            ) : null}
 
             {mode === 'editor' ? (
               <label className="mt-4 grid gap-1 text-sm">
@@ -309,7 +398,7 @@ export default function LoginPage() {
         {message ? <p className="mt-3 text-sm text-zinc-700">{message}</p> : null}
       </form>
 
-      {pendingVerificationEmail ? (
+      {pendingVerificationEmail && mode !== 'register' ? (
         <form className="mt-5 max-w-lg rounded border border-zinc-200 bg-white/60 p-4" onSubmit={onVerifyEmail}>
           <p className="text-sm text-zinc-700">{copy.login.verificationPrompt}</p>
           <p className="mt-1 text-xs text-zinc-500">{pendingVerificationEmail}</p>

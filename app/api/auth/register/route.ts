@@ -3,12 +3,22 @@ import { NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@/lib/supabase';
 import { runtimeUsers } from '@/lib/runtime-store';
 import { hashPassword } from '@/lib/auth-security';
+import { buildSessionToken, setSessionCookie } from '@/lib/session';
 import { guardRequest } from '@/lib/request-guard';
-import { canExposeDebugVerificationCode, createOrRefreshEmailVerification } from '@/lib/email-verification';
+import { verifyEmailCode } from '@/lib/email-verification';
 
 function normalizeUsername(input: string) {
   const value = input.trim().toLowerCase();
   return value.length > 0 ? value : null;
+}
+
+function buildSessionUser(input: { id: string; email: string; name: string }) {
+  return {
+    id: input.id,
+    email: input.email,
+    name: input.name,
+    role: 'author' as const
+  };
 }
 
 export async function POST(request: Request) {
@@ -17,10 +27,11 @@ export async function POST(request: Request) {
     const email = String(body.email ?? '').trim().toLowerCase();
     const username = normalizeUsername(String(body.username ?? ''));
     const password = String(body.password ?? '');
+    const verificationCode = String(body.verification_code ?? '').trim();
     const name = String(body.name ?? '').trim();
 
-    if (!email || !password) {
-      return NextResponse.json({ error: 'email and password are required' }, { status: 400 });
+    if (!email || !password || !verificationCode) {
+      return NextResponse.json({ error: 'email, password, and verification_code are required' }, { status: 400 });
     }
 
     const registerGuard = await guardRequest(request, {
@@ -51,6 +62,11 @@ export async function POST(request: Request) {
         }
       }
 
+      const verification = await verifyEmailCode({ email, code: verificationCode });
+      if (!verification.ok) {
+        return NextResponse.json({ error: verification.error }, { status: verification.status });
+      }
+
       const insert = await supabase
         .from('user_accounts')
         .insert({
@@ -67,22 +83,21 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: `Failed to create account in Supabase: ${insert.error.message}` }, { status: 500 });
       }
 
-      const verification = await createOrRefreshEmailVerification({ email, userId: insert.data.id });
-      const debugVerificationCode = canExposeDebugVerificationCode() ? verification.code : undefined;
+      const sessionUser = buildSessionUser({
+        id: insert.data.id,
+        email: insert.data.email ?? email,
+        name: insert.data.name ?? name ?? username ?? email
+      });
+      setSessionCookie(buildSessionToken(sessionUser));
 
       return NextResponse.json(
         {
           data: {
-            id: insert.data.id,
-            email: insert.data.email ?? email,
-            name: insert.data.name ?? name ?? username ?? email,
+            ...sessionUser,
             username: insert.data.username ?? username,
-            created_at: insert.data.created_at,
-            role: 'author'
+            created_at: insert.data.created_at
           },
-          mode: 'supabase',
-          requires_verification: true,
-          ...(debugVerificationCode ? { debug_verification_code: debugVerificationCode } : {})
+          mode: 'supabase'
         },
         { status: 201 }
       );
@@ -100,6 +115,11 @@ export async function POST(request: Request) {
       }
     }
 
+    const verification = await verifyEmailCode({ email, code: verificationCode });
+    if (!verification.ok) {
+      return NextResponse.json({ error: verification.error }, { status: verification.status });
+    }
+
     const created = {
       id: randomUUID(),
       email,
@@ -109,18 +129,15 @@ export async function POST(request: Request) {
       created_at: now
     };
     runtimeUsers.push(created);
-    const verification = await createOrRefreshEmailVerification({ email, userId: created.id });
-    const debugVerificationCode = canExposeDebugVerificationCode() ? verification.code : undefined;
 
-    return NextResponse.json(
-      {
-        data: { id: created.id, email: created.email, name: created.name, username: created.username, role: 'author' },
-        mode: 'memory',
-        requires_verification: true,
-        ...(debugVerificationCode ? { debug_verification_code: debugVerificationCode } : {})
-      },
-      { status: 201 }
-    );
+    const sessionUser = buildSessionUser({
+      id: created.id,
+      email: created.email,
+      name: created.name
+    });
+    setSessionCookie(buildSessionToken(sessionUser));
+
+    return NextResponse.json({ data: { ...sessionUser, username: created.username }, mode: 'memory' }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
     return NextResponse.json({ error: message }, { status: 500 });

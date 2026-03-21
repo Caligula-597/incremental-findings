@@ -13,7 +13,7 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - Public mission and community roadmap page (`/community`)
 
 ## What is implemented now
-- Email account register/login API with email verification codes (memory fallback if DB table unavailable)
+- Email account register/login API where signup requires an emailed verification code before the account is created (memory fallback if DB table unavailable)
 - ORCID connect flow scaffolding (`/api/orcid/start`, `/api/orcid/callback`, `/api/orcid/status`)
 - Author agreements + terms version capture in submission flow
 - Package upload support: manuscript PDF + cover letter + optional supporting files
@@ -58,6 +58,7 @@ If you see submissions disappearing after refresh or editor queues missing data,
 When `REQUIRE_SUPABASE=true`, write/read APIs will fail fast instead of silently falling back to memory mode.
 
 ## APIs
+- `POST /api/auth/register/request-code`
 - `POST /api/auth/register`
 - `POST /api/auth/login`
 - `POST /api/auth/verify-email`

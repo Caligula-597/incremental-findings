@@ -46,6 +46,17 @@ async function main() {
   if (!Array.isArray(integrations?.providers)) throw new Error('integrations providers missing');
   console.log('[smoke] /api/public/integrations/requirements ok');
 
+  const requestCode = await mustFetch('/api/auth/register/request-code', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email })
+  });
+  const verificationCode = requestCode.debug_verification_code;
+  if (!verificationCode) {
+    throw new Error('request-code response missing debug_verification_code; start the app with ALLOW_DEBUG_VERIFICATION_CODE=true for smoke tests when not using a real inbox');
+  }
+  console.log('[smoke] /api/auth/register/request-code ok');
+
   const register = await mustFetch('/api/auth/register', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -53,26 +64,14 @@ async function main() {
       name: 'Smoke User',
       email,
       password,
-      username: `smoke_${random}`
+      username: `smoke_${random}`,
+      verification_code: verificationCode
     })
   });
-  if (!register?.data?.email || !register?.requires_verification) {
-    throw new Error('register response missing email verification payload');
+  if (!register?.data?.email) {
+    throw new Error('register response missing data.email');
   }
   console.log('[smoke] /api/auth/register ok');
-
-  const verificationCode = register.debug_verification_code;
-  if (!verificationCode) {
-    throw new Error('register response missing debug_verification_code; start the app with ALLOW_DEBUG_VERIFICATION_CODE=true for smoke tests when not using a real inbox');
-  }
-
-  const verifyEmail = await mustFetch('/api/auth/verify-email', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email, code: verificationCode })
-  });
-  if (!verifyEmail?.data?.email) throw new Error('verify-email response missing data.email');
-  console.log('[smoke] /api/auth/verify-email ok');
 
   const login = await mustFetch('/api/auth/login', {
     method: 'POST',
