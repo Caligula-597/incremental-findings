@@ -4,7 +4,7 @@ import { readRuntimeAuditLogs, writeRuntimeAuditLogs } from '@/lib/runtime-persi
 import { runtimeAuditLogs } from '@/lib/runtime-store';
 import { SubmissionStatus } from '@/lib/types';
 
-export type EditorRecommendation = 'publish' | 'major_revision' | 'minor_revision' | 'reject';
+export type EditorRecommendation = 'accept' | 'major_revision' | 'minor_revision' | 'reject';
 
 export interface EditorRecommendationRecord {
   id: string;
@@ -35,23 +35,10 @@ function parseJsonDetail<T>(detail: string): T | null {
   }
 }
 
-function getManagingEditors() {
-  return String(process.env.MANAGING_EDITOR_EMAILS ?? '')
-    .split(',')
-    .map((item) => item.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-export function isManagingEditor(email: string) {
-  const allowlist = getManagingEditors();
-  if (allowlist.length === 0) return true;
-  return allowlist.includes(email.toLowerCase());
-}
-
 function mapDecisionToStatus(decision: EditorRecommendation): SubmissionStatus {
-  if (decision === 'publish') return 'published';
+  if (decision === 'accept') return 'accepted';
   if (decision === 'reject') return 'rejected';
-  return 'pending';
+  return 'under_review';
 }
 
 export function mapFinalDecisionToStatus(decision: EditorRecommendation): SubmissionStatus {
@@ -238,7 +225,7 @@ export async function listReviewBoard(submissionIds: string[]) {
       recommendations: Array.from(latestByEditor.values()),
       final_decision: final,
       recommendation_count: latestByEditor.size,
-      can_finalize: latestByEditor.size >= 3
+      can_finalize: latestByEditor.size > 0
     };
   }
 

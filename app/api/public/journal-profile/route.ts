@@ -4,10 +4,12 @@ import { listSubmissions } from '@/lib/submission-repository';
 
 export async function GET() {
   try {
-    const [published, pending, underReview] = await Promise.all([
+    const [published, underReview, accepted, inProduction, rejected] = await Promise.all([
       listSubmissions('published'),
-      listSubmissions('pending'),
-      listSubmissions('under_review')
+      listSubmissions('under_review'),
+      listSubmissions('accepted'),
+      listSubmissions('in_production'),
+      listSubmissions('rejected')
     ]);
 
     const withDoi = published.filter((item) => Boolean(item.doi)).length;
@@ -18,8 +20,10 @@ export async function GET() {
         programs: JOURNAL_PUBLIC_PROGRAMS,
         live_metrics: {
           published_count: published.length,
-          pending_count: pending.length,
           under_review_count: underReview.length,
+          accepted_count: accepted.length,
+          in_production_count: inProduction.length,
+          rejected_count: rejected.length,
           doi_coverage_ratio: published.length > 0 ? Number((withDoi / published.length).toFixed(3)) : 0
         }
       }

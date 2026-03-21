@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSessionUser } from '@/lib/session';
+import { isManagingEditor } from '@/lib/editor-workspace-service';
 import { getSubmissionById } from '@/lib/submission-repository';
 import { listProductionEvents } from '@/lib/production-service';
 
@@ -8,6 +9,9 @@ export async function GET(_request: Request, context: { params: { id: string } }
     const user = getServerSessionUser();
     if (!user || user.role !== 'editor') {
       return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
+    }
+    if (!isManagingEditor(user.email)) {
+      return NextResponse.json({ error: 'Managing editor authorization required' }, { status: 403 });
     }
 
     const submission = await getSubmissionById(context.params.id);

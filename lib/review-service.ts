@@ -125,9 +125,9 @@ export async function listSubmissionReviewReports(submissionId: string): Promise
 }
 
 export function mapDecisionToStatus(decision: EditorDecisionRecord['decision']): SubmissionStatus {
-  if (decision === 'accept') return 'published';
+  if (decision === 'accept') return 'accepted';
   if (decision === 'reject') return 'rejected';
-  return 'pending';
+  return 'under_review';
 }
 
 export async function recordEditorDecision(input: {

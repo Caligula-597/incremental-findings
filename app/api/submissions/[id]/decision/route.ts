@@ -3,12 +3,16 @@ import { getServerSessionUser } from '@/lib/session';
 import { getSubmissionById, updateSubmissionStatus } from '@/lib/submission-repository';
 import { canTransitionStatus } from '@/lib/workflow';
 import { mapDecisionToStatus, recordEditorDecision } from '@/lib/review-service';
+import { isManagingEditor } from '@/lib/editor-workspace-service';
 
 export async function POST(request: Request, context: { params: { id: string } }) {
   try {
     const sessionUser = getServerSessionUser();
     if (!sessionUser || sessionUser.role !== 'editor') {
       return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
+    }
+    if (!isManagingEditor(sessionUser.email)) {
+      return NextResponse.json({ error: 'Managing editor authorization required' }, { status: 403 });
     }
 
     const body = await request.json();

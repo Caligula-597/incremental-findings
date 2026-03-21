@@ -38,7 +38,7 @@ function normalizeSubmission(data: Partial<Submission>): Submission {
     discipline: data.discipline ?? category,
     topic: data.topic ?? null,
     article_type: data.article_type ?? null,
-    status: (data.status as SubmissionStatus) ?? 'pending',
+    status: (data.status as SubmissionStatus) ?? 'under_review',
     file_url: data.file_url ?? null,
     created_at: data.created_at ?? new Date().toISOString(),
     doi: (data as { doi?: string | null }).doi ?? null,
@@ -104,7 +104,7 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
       topic: input.topic ?? null,
       article_type: input.article_type ?? null,
       file_url: input.file_url ?? null,
-      status: 'pending',
+      status: 'under_review',
       doi: input.doi ?? null,
       doi_registered_at: input.doi_registered_at ?? null,
       submitter_email: input.submitter_email ?? null
@@ -142,7 +142,7 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
         authors: input.authors ?? null,
         abstract: input.abstract ?? null,
         file_url: input.file_url ?? null,
-        status: 'pending',
+        status: 'under_review',
         author_id: input.author_id ?? null,
         submitter_email: input.submitter_email ?? null
       })
@@ -164,7 +164,7 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
           authors: input.authors ?? null,
           abstract: input.abstract ?? null,
           file_url: input.file_url ?? null,
-          status: 'pending',
+          status: 'under_review',
           submitter_email: input.submitter_email ?? null
         })
         .select('id,title,authors,abstract,status,file_url,created_at,author_id,submitter_email')
@@ -184,7 +184,7 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
         title: input.title,
         abstract: input.abstract ?? null,
         file_url: input.file_url ?? null,
-        status: 'pending',
+        status: 'under_review',
         category: input.category ?? input.discipline ?? null,
         author_id: input.author_id ?? null,
         submitter_email: input.submitter_email ?? null
@@ -200,7 +200,7 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
             title: input.title,
             abstract: input.abstract ?? null,
             file_url: input.file_url ?? null,
-            status: 'pending',
+            status: 'under_review',
             category: input.category ?? input.discipline ?? null,
             submitter_email: input.submitter_email ?? null
           })
@@ -232,7 +232,7 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
     discipline: input.discipline ?? input.category ?? null,
     topic: input.topic ?? null,
     article_type: input.article_type ?? null,
-    status: 'pending',
+    status: 'under_review',
     file_url: input.file_url ?? null,
     created_at: new Date().toISOString(),
     doi: input.doi ?? null,

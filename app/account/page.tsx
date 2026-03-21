@@ -196,8 +196,10 @@ export default function AccountPage() {
 
   function getWorkflowLabel(status: string) {
     if (status === 'published') return lang === 'zh' ? '已发表' : 'Published';
-    if (status === 'rejected') return lang === 'zh' ? '已完成' : 'Completed';
-    if (status === 'under_review' || status === 'pending') return lang === 'zh' ? '待审核' : 'Pending review';
+    if (status === 'rejected') return lang === 'zh' ? '已拒稿' : 'Rejected';
+    if (status === 'under_review') return lang === 'zh' ? '审稿中' : 'Under review';
+    if (status === 'accepted') return lang === 'zh' ? '已接收' : 'Accepted';
+    if (status === 'in_production') return lang === 'zh' ? '制作中' : 'In production';
     return status;
   }
 
@@ -245,7 +247,7 @@ export default function AccountPage() {
           <div className="mt-6 rounded border border-zinc-200 bg-white p-4 text-sm">
             <p className="font-semibold">{lang === 'zh' ? '我的投稿记录' : 'My submissions'}</p>
             <p className="mt-1 text-xs text-zinc-500">
-              {(lang === 'zh' ? '草稿箱' : 'Drafts')}: 0 · {(lang === 'zh' ? '待审核' : 'Pending review')}: {mySubmissions.filter((item) => ['pending', 'under_review'].includes(item.status)).length} · {(lang === 'zh' ? '已完成' : 'Completed')}: {mySubmissions.filter((item) => item.status === 'rejected').length} · {(lang === 'zh' ? '已发表' : 'Published')}: {mySubmissions.filter((item) => item.status === 'published').length}
+              {lang === 'zh' ? '审稿中' : 'Under review'}: {mySubmissions.filter((item) => item.status === 'under_review').length} · {lang === 'zh' ? '已接收' : 'Accepted'}: {mySubmissions.filter((item) => item.status === 'accepted').length} · {lang === 'zh' ? '制作中' : 'In production'}: {mySubmissions.filter((item) => item.status === 'in_production').length} · {(lang === 'zh' ? '已拒稿' : 'Rejected')}: {mySubmissions.filter((item) => item.status === 'rejected').length} · {(lang === 'zh' ? '已发表' : 'Published')}: {mySubmissions.filter((item) => item.status === 'published').length}
             </p>
             {mySubmissions.length === 0 ? (
               <p className="mt-2 text-zinc-600">{lang === 'zh' ? '暂时没有投稿记录。' : 'No submissions yet.'}</p>

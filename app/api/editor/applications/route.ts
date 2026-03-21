@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
 import { getServerSessionUser } from '@/lib/session';
+import { isManagingEditor } from '@/lib/editor-workspace-service';
 import { listEditorApplications, submitEditorApplication } from '@/lib/editor-access';
 
 export async function GET(request: Request) {
   const user = getServerSessionUser();
   if (!user || user.role !== 'editor') {
     return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
+  }
+  if (!isManagingEditor(user.email)) {
+    return NextResponse.json({ error: 'Managing editor authorization required' }, { status: 403 });
   }
 
   const { searchParams } = new URL(request.url);

@@ -3,6 +3,7 @@ import { getServerSessionUser } from '@/lib/session';
 import { getSubmissionById, updateSubmissionStatus } from '@/lib/submission-repository';
 import { canTransitionStatus } from '@/lib/workflow';
 import { publishProductionPackage } from '@/lib/production-service';
+import { isManagingEditor } from '@/lib/editor-workspace-service';
 
 export async function POST(request: Request, context: { params: { id: string } }) {
   try {
@@ -10,10 +11,16 @@ export async function POST(request: Request, context: { params: { id: string } }
     if (!user || user.role !== 'editor') {
       return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
     }
+    if (!isManagingEditor(user.email)) {
+      return NextResponse.json({ error: 'Managing editor authorization required' }, { status: 403 });
+    }
 
     const submission = await getSubmissionById(context.params.id);
     if (!submission) {
       return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
+    }
+    if (!canTransitionStatus(submission.status, 'published')) {
+      return NextResponse.json({ error: `Invalid workflow transition: ${submission.status} -> published` }, { status: 409 });
     }
 
     const body = await request.json();
@@ -33,18 +40,12 @@ export async function POST(request: Request, context: { params: { id: string } }
       note: note || undefined
     });
 
-    let updatedSubmission = submission;
-    if (submission.status !== 'published' && canTransitionStatus(submission.status, 'published')) {
-      const next = await updateSubmissionStatus(submission.id, 'published');
-      if (next) {
-        updatedSubmission = next;
-      }
-    }
+    const updatedSubmission = await updateSubmissionStatus(submission.id, 'published');
 
     return NextResponse.json({
       data: {
         production: result,
-        submission: updatedSubmission
+        submission: updatedSubmission ?? submission
       }
     }, { status: 201 });
   } catch (error) {

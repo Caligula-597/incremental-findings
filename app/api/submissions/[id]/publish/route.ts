@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSubmissionById, publishSubmission } from '@/lib/submission-repository';
 import { getServerSessionUser } from '@/lib/session';
+import { isManagingEditor } from '@/lib/editor-workspace-service';
 import { canTransitionStatus } from '@/lib/workflow';
 
 export async function POST(_: Request, context: { params: { id: string } }) {
@@ -8,6 +9,9 @@ export async function POST(_: Request, context: { params: { id: string } }) {
     const sessionUser = getServerSessionUser();
     if (!sessionUser || sessionUser.role !== 'editor') {
       return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
+    }
+    if (!isManagingEditor(sessionUser.email)) {
+      return NextResponse.json({ error: 'Managing editor authorization required' }, { status: 403 });
     }
 
     const existing = await getSubmissionById(context.params.id);

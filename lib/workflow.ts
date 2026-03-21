@@ -1,8 +1,9 @@
 import { SubmissionStatus } from '@/lib/types';
 
 const transitions: Record<SubmissionStatus, SubmissionStatus[]> = {
-  pending: ['under_review', 'rejected'],
-  under_review: ['published', 'rejected', 'pending'],
+  under_review: ['accepted', 'rejected'],
+  accepted: ['in_production', 'under_review', 'rejected'],
+  in_production: ['published'],
   published: [],
   rejected: []
 };

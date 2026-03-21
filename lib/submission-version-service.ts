@@ -20,7 +20,7 @@ function normalizeVersionRow(row: Partial<SubmissionVersionRecord>): SubmissionV
     id: String(row.id ?? ''),
     submission_id: String(row.submission_id ?? ''),
     version_index: Number(row.version_index ?? 1),
-    status_snapshot: (row.status_snapshot as Submission['status']) ?? 'pending',
+    status_snapshot: (row.status_snapshot as Submission['status']) ?? 'under_review',
     file_url: row.file_url ?? null,
     revision_summary: String(row.revision_summary ?? ''),
     actor_email: String(row.actor_email ?? ''),

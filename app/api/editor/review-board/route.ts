@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createEditorRecommendation, EditorRecommendation, listReviewBoard } from '@/lib/editor-review-service';
 import { getServerSessionUser } from '@/lib/session';
-import { createEditorRecommendation, EditorRecommendation, isManagingEditor, listReviewBoard } from '@/lib/editor-review-service';
+import { getEditorialRole, listAssignedSubmissionIdsForEditor } from '@/lib/editor-workspace-service';
 
-const allowed = new Set<EditorRecommendation>(['publish', 'major_revision', 'minor_revision', 'reject']);
+const allowed = new Set<EditorRecommendation>(['accept', 'major_revision', 'minor_revision', 'reject']);
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,7 +14,7 @@ export async function GET(request: NextRequest) {
 
     const ids = request.nextUrl.searchParams.getAll('submission_id');
     const board = await listReviewBoard(ids);
-    return NextResponse.json({ data: board, is_managing_editor: isManagingEditor(user.email) });
+    return NextResponse.json({ data: board, editor_role: getEditorialRole(user.email) });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
     return NextResponse.json({ error: message }, { status: 500 });
@@ -26,6 +27,9 @@ export async function POST(request: NextRequest) {
     if (!user || user.role !== 'editor') {
       return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
     }
+    if (getEditorialRole(user.email) !== 'review_editor') {
+      return NextResponse.json({ error: 'Only review editors can submit recommendations' }, { status: 403 });
+    }
 
     const body = await request.json();
     const submissionId = String(body?.submission_id ?? '').trim();
@@ -37,6 +41,11 @@ export async function POST(request: NextRequest) {
     }
     if (!allowed.has(recommendation)) {
       return NextResponse.json({ error: 'Invalid recommendation' }, { status: 400 });
+    }
+
+    const assignedIds = new Set(await listAssignedSubmissionIdsForEditor(user.email));
+    if (!assignedIds.has(submissionId)) {
+      return NextResponse.json({ error: 'You can only review manuscripts assigned to you' }, { status: 403 });
     }
 
     const created = await createEditorRecommendation({

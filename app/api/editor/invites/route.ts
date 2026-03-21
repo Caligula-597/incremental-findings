@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
 import { getServerSessionUser } from '@/lib/session';
+import { isManagingEditor } from '@/lib/editor-workspace-service';
 import { createEditorInvite, listEditorApplications } from '@/lib/editor-access';
 
 export async function GET() {
   const user = getServerSessionUser();
   if (!user || user.role !== 'editor') {
     return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
+  }
+  if (!isManagingEditor(user.email)) {
+    return NextResponse.json({ error: 'Managing editor authorization required' }, { status: 403 });
   }
 
   const pending = await listEditorApplications('pending');
@@ -16,6 +20,9 @@ export async function POST(request: Request) {
   const user = getServerSessionUser();
   if (!user || user.role !== 'editor') {
     return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
+  }
+  if (!isManagingEditor(user.email)) {
+    return NextResponse.json({ error: 'Managing editor authorization required' }, { status: 403 });
   }
 
   const body = await request.json().catch(() => ({}));

@@ -6,11 +6,12 @@ import { getSubmissionById, updateSubmissionStatus } from '@/lib/submission-repo
 import { SubmissionStatus } from '@/lib/types';
 import { getServerSessionUser } from '@/lib/session';
 import { canTransitionStatus, requiresDecisionReason } from '@/lib/workflow';
+import { isManagingEditor } from '@/lib/editor-workspace-service';
 import { getSupabaseServerClient } from '@/lib/supabase';
 import { getRuntimeStorageDir, writeRuntimeAuditLogs, writeRuntimeSubmissionFiles } from '@/lib/runtime-persistence';
 import { runtimeAuditLogs, runtimeSubmissionFileBlobs, runtimeSubmissionFiles } from '@/lib/runtime-store';
 
-const allowedStatus = new Set<SubmissionStatus>(['pending', 'under_review', 'published', 'rejected']);
+const allowedStatus = new Set<SubmissionStatus>(['under_review', 'accepted', 'in_production', 'published', 'rejected']);
 
 async function uploadEditorResponseFile(file: File) {
   const supabase = getSupabaseServerClient();
@@ -47,6 +48,9 @@ export async function PATCH(request: Request, context: { params: { id: string } 
     const sessionUser = getServerSessionUser();
     if (!sessionUser || sessionUser.role !== 'editor') {
       return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
+    }
+    if (!isManagingEditor(sessionUser.email)) {
+      return NextResponse.json({ error: 'Managing editor authorization required' }, { status: 403 });
     }
 
     const contentType = request.headers.get('content-type') ?? '';

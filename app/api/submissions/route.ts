@@ -2,9 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSubmission, listSubmissions } from '@/lib/submission-repository';
 import { listSubmissionFilesBySubmissionIds } from '@/lib/submission-files-repository';
 import { getServerSessionUser } from '@/lib/session';
-import { SubmissionStatus } from '@/lib/types';
+import { listAssignedSubmissionIdsForEditor, isManagingEditor } from '@/lib/editor-workspace-service';
+import { Submission, SubmissionStatus } from '@/lib/types';
 
-const allowedStatus = new Set<SubmissionStatus>(['pending', 'under_review', 'published', 'rejected']);
+const allowedStatus = new Set<SubmissionStatus>(['under_review', 'accepted', 'in_production', 'published', 'rejected']);
+
+async function filterVisibleEditorialSubmissions(items: Submission[], email: string) {
+  if (isManagingEditor(email)) return items;
+  const assignedIds = new Set(await listAssignedSubmissionIdsForEditor(email));
+  return items.filter((item) => assignedIds.has(item.id));
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,15 +24,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
     }
 
-    // Only published records are public; editorial queues require editor role.
+    const sessionUser = getServerSessionUser();
+
     if (status && status !== 'published') {
-      const sessionUser = getServerSessionUser();
       if (!sessionUser || sessionUser.role !== 'editor') {
         return NextResponse.json({ error: 'Editor authorization required for non-public queues' }, { status: 403 });
       }
     }
 
-    const data = await listSubmissions(status ?? undefined);
+    let data = await listSubmissions(status ?? undefined);
+
+    if (!status && (!sessionUser || sessionUser.role !== 'editor')) {
+      data = data.filter((item) => item.status === 'published');
+    }
+
+    if (sessionUser?.role === 'editor' && ((status && status !== 'published') || !status)) {
+      data = await filterVisibleEditorialSubmissions(data, sessionUser.email);
+    }
 
     const filtered = data.filter((item) => {
       const disciplineMatch = discipline ? item.discipline === discipline : true;
@@ -34,7 +49,6 @@ export async function GET(request: NextRequest) {
     });
 
     if (includeFiles) {
-      const sessionUser = getServerSessionUser();
       if (!sessionUser || sessionUser.role !== 'editor') {
         return NextResponse.json({ error: 'Editor authorization required for file visibility' }, { status: 403 });
       }

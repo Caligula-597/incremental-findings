@@ -1,4 +1,4 @@
-export type SubmissionStatus = 'pending' | 'under_review' | 'published' | 'rejected';
+export type SubmissionStatus = 'under_review' | 'accepted' | 'in_production' | 'published' | 'rejected';
 
 export interface Submission {
   id: string;

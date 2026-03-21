@@ -5,7 +5,7 @@ import { readRuntimeAuditLogs } from '@/lib/runtime-persistence';
 import { runtimeAuditLogs } from '@/lib/runtime-store';
 import { getSubmissionById } from '@/lib/submission-repository';
 
-const trackedActions = new Set(['editor_file_viewed', 'editor_status_updated', 'editor_response_uploaded']);
+const trackedActions = new Set(['editor_file_viewed', 'editor_status_updated', 'editor_response_uploaded', 'editor_submission_assigned', 'editor_review_recommendation', 'editor_review_final_decision']);
 
 export async function GET() {
   try {

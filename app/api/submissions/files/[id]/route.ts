@@ -8,6 +8,7 @@ import { getSubmissionFileById } from '@/lib/submission-files-repository';
 import { getSupabaseServerClient } from '@/lib/supabase';
 import { runtimeAuditLogs, runtimeSubmissionFileBlobs } from '@/lib/runtime-store';
 import { getRuntimeStorageDir, writeRuntimeAuditLogs } from '@/lib/runtime-persistence';
+import { isManagingEditor, listAssignedSubmissionIdsForEditor } from '@/lib/editor-workspace-service';
 
 export async function GET(_request: Request, context: { params: { id: string } }) {
   try {
@@ -31,10 +32,20 @@ export async function GET(_request: Request, context: { params: { id: string } }
       submission.author_id === sessionUser.id ||
       submission.submitter_email?.toLowerCase() === sessionUser.email.toLowerCase() ||
       submission.authors.toLowerCase().includes(sessionUser.email.toLowerCase());
-    if (!isEditor && !isOwner) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+    let editorCanAccess = false;
+    if (isEditor) {
+      if (isManagingEditor(sessionUser.email)) {
+        editorCanAccess = true;
+      } else {
+        const assignedIds = new Set(await listAssignedSubmissionIdsForEditor(sessionUser.email));
+        editorCanAccess = assignedIds.has(submission.id);
+      }
     }
 
+    if (!editorCanAccess && !isOwner) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     if (isEditor) {
       const audit = {
@@ -62,7 +73,6 @@ export async function GET(_request: Request, context: { params: { id: string } }
         }
       });
     }
-
 
     if (file.file_path.startsWith('local://')) {
       const rel = file.file_path.slice('local://'.length);
@@ -109,7 +119,6 @@ export async function GET(_request: Request, context: { params: { id: string } }
         }
       });
     }
-
 
     const supabase = getSupabaseServerClient();
     if (supabase) {
