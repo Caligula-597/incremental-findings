@@ -304,6 +304,33 @@ export default function LoginPage() {
           </>
         ) : (
           <>
+            {mode === 'editor' ? (
+              <div className="mb-5 space-y-3 rounded-xl border border-zinc-200 bg-white/70 p-4">
+                <p className="text-sm text-zinc-700">{copy.login.editorAccessIntro}</p>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 p-4">
+                    <p className="text-sm font-semibold text-emerald-900">{copy.login.managingEditorTitle}</p>
+                    <p className="mt-2 text-xs leading-5 text-emerald-800">{copy.login.managingEditorBody}</p>
+                  </div>
+                  <div className="rounded-lg border border-sky-200 bg-sky-50/80 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-sky-900">{copy.login.reviewEditorTitle}</p>
+                        <p className="mt-2 text-xs leading-5 text-sky-800">{copy.login.reviewEditorBody}</p>
+                      </div>
+                      <button
+                        className="btn btn-secondary shrink-0"
+                        onClick={() => { setMode('apply-editor'); resetRegisterVerification(); setMessage(''); }}
+                        type="button"
+                      >
+                        {copy.login.reviewEditorCta}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
             {mode !== 'login' ? (
               <label className="grid gap-1 text-sm">
                 {copy.login.name}
