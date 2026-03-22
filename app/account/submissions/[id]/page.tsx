@@ -84,7 +84,8 @@ export default function AccountSubmissionDetailPage({ params, searchParams }: { 
             <p>{lang === 'zh' ? '状态' : 'Status'}: {item.status}</p>
             <p>{lang === 'zh' ? '创建时间' : 'Created at'}: {new Date(item.created_at).toLocaleString()}</p>
             <p>{lang === 'zh' ? '作者' : 'Authors'}: {item.authors}</p>
-            <p>{lang === 'zh' ? '学科' : 'Discipline'}: {item.discipline ?? item.category ?? '-'}</p>
+            <p>{lang === 'zh' ? '分区' : 'Track'}: {item.category === 'entertainment' ? (lang === 'zh' ? '自由创作区' : 'Creative / Entertainment') : (lang === 'zh' ? '学术研讨区' : 'Academic Review Track')}</p>
+            <p>{lang === 'zh' ? '学科' : 'Discipline'}: {item.discipline ?? '-'}</p>
             <p>{lang === 'zh' ? '稿件类型' : 'Article type'}: {item.article_type ?? '-'}</p>
             <p>{lang === 'zh' ? '主题' : 'Topic'}: {item.topic ?? '-'}</p>
             <p>{lang === 'zh' ? '摘要' : 'Abstract'}: {item.abstract ?? '-'}</p>

@@ -1,149 +1,143 @@
 import { SiteLang } from '@/lib/site-copy';
 
-export const TERMS_VERSION = '2026-03-IF-v2';
+export const TERMS_VERSION = '2026-03-IF-v3';
 
 export const AUTHOR_AGREEMENT_CHECKBOXES = {
   zh: [
     '我确认已获得所有署名作者的明确授权，并有权代表全体作者提交本稿件。',
     '我确认稿件为原创成果，未侵犯第三方权利，且对引用、改编、复用内容已进行准确标注并说明许可状态。',
-    '我确认本研究已遵守适用的伦理、隐私、数据安全、资助披露与机构合规要求。',
-    '我同意平台依据用户协议、隐私说明和编辑流程需要处理稿件、作者身份与联系信息。'
+    '我确认本研究或作品已遵守适用的伦理、隐私、数据安全、资助披露、平台合规与机构要求。',
+    '我同意平台依据用户协议、隐私说明和编辑流程需要处理稿件、作者身份、版本记录与联系信息。'
   ],
   en: [
     'I confirm that I have explicit authorization from all listed co-authors and am permitted to submit this manuscript on their behalf.',
     'I confirm that the manuscript is original, does not infringe third-party rights, and that reused or adapted material is accurately cited with permission status disclosed.',
-    'I confirm that this work complies with applicable ethics, privacy, data-security, funding-disclosure, and institutional compliance requirements.',
-    'I agree that the platform may process manuscript, identity, and contact information as required by the user agreement, privacy notice, and editorial workflow.'
+    'I confirm that this research or creative work complies with applicable ethics, privacy, data-security, funding-disclosure, platform, and institutional requirements.',
+    'I agree that the platform may process manuscript, identity, version-history, and contact information as required by the user agreement, privacy notice, and editorial workflow.'
   ]
 } as const;
 
 export const AUTHOR_AGREEMENT_OVERVIEW = {
   zh: {
-    title: '作者协议与用户条款摘要',
-    subtitle: '以下条款用于明确作者、共同作者、编辑部与平台之间的责任边界。提交前请完整阅读并确认。',
+    title: '作者协议与双轨投稿条款摘要',
+    subtitle: '平台同时接收学术研讨稿与自由创作稿。提交前请确认你选择的分区、版本目标、版权安排与 DOI 规则。',
     summary: [
-      '本平台主要发表严谨的增量研究、重复研究、阴性结果与方法改进工作。我们鼓励透明、可核查、可复现实证。',
-      '提交行为代表通信作者已获得所有共同作者授权，并同意稿件进入编辑初筛、分配编辑、收集意见、做出决定、制作与发表的完整流程。',
-      '用户协议不仅约束投稿时的勾选确认，也约束作者在修回、撤稿申请、伦理调查、版权说明、数据可得性说明中的持续义务。'
+      '学术研讨区主要面向增量研究、重复研究、阴性结果、方法改进与讨论稿，强调可核查、可修订、可转正。',
+      '自由创作区主要面向科普评论、研究随笔、实验性表达与娱乐化内容，平台重点审核合法合规、署名与版权，不按学术论文标准要求 DOI。',
+      '投稿行为代表通信作者已获得共同作者授权，并同意稿件进入编辑初筛、版本记录、修订沟通、公开展示与后续出版决策流程。'
     ],
-    protocolAck: '我已完整阅读并理解下列作者协议、平台用户条款、编辑流程与数据处理说明，并同意按其要求投稿。'
+    protocolAck: '我已完整阅读并理解下列作者协议、双轨审核规则、版本控制方案、版权安排与 DOI 触发机制，并同意按其要求投稿。'
   },
   en: {
-    title: 'Author agreement and user terms overview',
-    subtitle: 'These terms define responsibility boundaries among authors, co-authors, the editorial office, and the platform. Please read them carefully before submission.',
+    title: 'Author agreement and dual-track submission overview',
+    subtitle: 'The platform accepts both academic-review submissions and creative/entertainment submissions. Please confirm the selected track, version goal, rights arrangement, and DOI rules before submission.',
     summary: [
-      'This platform primarily publishes rigorous incremental studies, replications, negative findings, and methodological improvements. We value transparent, auditable, and reproducible evidence.',
-      'Submission represents that the corresponding author has authorization from all co-authors and agrees to the full editorial lifecycle: screening, editor assignment, recommendation collection, decision, production, and publication.',
-      'The user agreement applies not only to the submission checkboxes, but also to the author’s continuing obligations during revision, withdrawal requests, ethics review, rights declarations, and data-availability updates.'
+      'The academic review track is designed for incremental studies, replications, negative findings, methodological improvements, and discussion drafts with an emphasis on auditable revision and eventual formalization.',
+      'The creative/entertainment track is designed for science communication, commentary, playful experiments, and other compliant public-facing pieces; the main review focus is legality, attribution, and platform safety rather than formal scholarly DOI qualification.',
+      'Submitting represents that the corresponding author has authorization from all co-authors and agrees to screening, version logging, revision communication, public display, and any later publication decision.'
     ],
-    protocolAck: 'I have fully read and understood the author agreement, platform user terms, editorial workflow, and data-processing notice below, and I agree to submit under those terms.'
+    protocolAck: 'I have fully read and understood the author agreement, dual-track review rules, version-control policy, rights arrangement, and DOI trigger mechanism below, and I agree to submit under those terms.'
   }
 } as const;
 
 export const AUTHOR_AGREEMENT_SECTIONS = {
   zh: [
     {
-      title: '一、作者资格与署名责任',
+      title: '一、分区选择与适用标准',
       points: [
-        '通信作者必须确保所有署名作者都实际参与了研究或稿件形成，并已知晓本次投稿。',
-        '作者顺序、单位、通讯方式应与稿件首页、元数据、补充材料中的声明保持一致。',
-        '如存在共同一作、共同通讯作者、数据贡献者或技术支持者，应在 cover letter 或文稿说明中清晰披露。',
-        '未获授权擅自加入、删除或调整署名顺序，可能导致退稿、撤稿或伦理调查。'
+        '学术研讨区适用较严格的研究诚信、方法透明与证据可核查标准；伪造、篡改、抄袭或误导性署名将导致拒稿、撤稿或伦理调查。',
+        '自由创作区可采用评论、随笔、戏仿、实验性叙事等表达方式，但仍必须遵守适用法律、平台合规、署名真实与版权规则。',
+        '作者应在投稿时如实选择分区。平台可在必要时要求作者改投另一分区，或在沟通后调整公开展示定位。'
       ]
     },
     {
-      title: '二、原创性、重复投稿与版权说明',
+      title: '二、作者资格、署名与原创性责任',
       points: [
-        '稿件应为作者拥有合法提交权利的原创工作；对已公开版本、预印本、会议摘要、注册报告或并行投稿，应在投稿信中明确说明。',
-        '任何复用图表、照片、数据表、问卷、代码片段或长段落文本，都必须标明来源并说明是否已获得许可。',
-        '平台鼓励与预印本、开放代码库和开放数据配套，但作者需要保证这些公开材料与投稿版本之间的关系可解释、可追溯。'
+        '通信作者必须确保所有署名作者都实际参与了研究、创作或稿件形成，并已知晓本次投稿。',
+        '作者顺序、单位、通讯方式应与稿件首页、元数据与补充说明一致；共同一作、共同通讯作者或特别贡献者应明确披露。',
+        '投稿内容必须由作者合法持有提交权利。预印本、会议摘要、外部平台已公开版本或改编来源，应在投稿信中说明关系与差异。'
       ]
     },
     {
-      title: '三、伦理、隐私与合规',
+      title: '三、版权、首发与优先出版权',
       points: [
-        '涉及人类参与者、动物实验、敏感数据、机构内部材料或受限制样本的研究，作者应披露伦理审批、知情同意和适用限制。',
-        '如研究不需要伦理审批，也应提供合理说明，而不是简单留空。',
-        '投稿文件中不得包含违法披露的个人敏感信息、受保护健康信息、未脱敏身份标识或不应公开的商业秘密。',
-        '若后续发现伦理、版权或数据合规问题，作者应及时通知编辑部并配合修正、勘误、撤回或调查。'
+        '未获得 DOI 或正式出版决定前，作者保留作品原始版权；平台仅获得为审核、存档、展示讨论版与保存版本记录所必需的非独占许可。',
+        '若作者申请将学术研讨稿转为正式版并进入制作发布流程，作者同意平台对该正式版享有优先出版权与首发记录权。',
+        '自由创作区内容默认作为公开展示作品处理，除非另有书面说明，平台不主张独占版权，但保留维持公开页面与审计记录的必要权利。'
       ]
     },
     {
-      title: '四、数据、方法与可复现性义务',
+      title: '四、版本控制与正式版关系',
       points: [
-        '作者应尽可能提供足够的方法细节，使同行能够理解研究设计、复现实验逻辑或审查分析路径。',
-        '如数据、代码、材料不能公开，应说明限制原因、可申请访问方式或替代验证方案。',
-        '阴性结果、失败复现、边界条件修正与增量改进同样具有学术价值，作者不得为了“更好看”而隐藏关键结果。'
+        '平台会对投稿与修订记录进行版本管理。V1 可作为讨论稿或孵化稿公开，后续 V2/V3 等修订版可继续追加回应、补证与说明。',
+        '如学术研讨稿后续通过正式审核并进入出版，DOI 仅指向最终定稿版；早期讨论版继续保留为可追溯历史版本。',
+        '作者在修回、撤回、勘误或版权澄清时，应配合说明各版本差异，避免不同公开版本之间发生实质性冲突或误导。'
       ]
     },
     {
-      title: '五、编辑流程、修回与发表',
+      title: '五、DOI 触发机制与编辑流程',
       points: [
-        '作者理解并同意稿件会经过编辑初筛、稿件分配、意见收集、最终决定、制作与公开发布等流程节点。',
-        '如收到小修或大修意见，作者应在合理期限内提交修订说明，并对主要问题逐项回应。',
-        '稿件被接收后，作者仍需配合制作、元数据校对、版权说明、DOI/发布信息确认及公开页面核对。',
-        '平台保留对明显不符合范围、合规要求或质量底线的稿件作出拒稿、暂缓、要求补件或启动伦理审查的权利。'
+        'DOI 不是自动分配。作者需在学术研讨区稿件达到正式发表标准后主动申请，编辑部完成审核、制作与元数据核验后方可分配。',
+        '学术研讨区稿件可先以“讨论版 / 孵化版”身份公开，再在修订充分后进入正式版流程。编辑部保留要求补件、继续修订或拒绝 DOI 申请的权利。',
+        '自由创作区内容原则上不分配 DOI，也不承诺进入正式学术出版流程，但仍可能获得编辑推荐、专题展示或公开归档。'
       ]
     },
     {
-      title: '六、平台数据处理与服务边界',
+      title: '六、伦理、隐私、数据与平台边界',
       points: [
-        '平台会处理投稿元数据、文件、审稿流程记录、联系信息和必要的审计日志，以维持编辑流程、安全风控和发布服务。',
-        '平台不承诺所有稿件都会被接收，也不承诺特定审稿时长、引用表现或外部数据库收录结果。',
-        '作者可请求更正账户信息或稿件元数据；但涉及已发布记录、审计记录或合规要求的内容，平台可能保留必要历史痕迹。'
+        '涉及人类参与者、动物实验、敏感数据、受限制样本或机构内部材料的稿件，作者应披露伦理审批、同意机制与适用限制。',
+        '如数据、代码、材料不能公开，应说明限制原因、可申请访问方式或替代验证方案；自由创作内容如含虚构、戏仿或 AI 辅助生成，也应避免误导性呈现。',
+        '平台处理投稿元数据、文件、版本记录、审核日志与联系信息，以支持编辑流程、安全风控、公开展示与合规审计；平台不保证接收、审稿时长、引用表现或第三方数据库收录。'
       ]
     }
   ],
   en: [
     {
-      title: '1. Authorship qualification and responsibility',
+      title: '1. Track selection and applicable standards',
       points: [
-        'The corresponding author must ensure that every listed author made a genuine contribution to the work or manuscript and is aware of this submission.',
-        'Author order, affiliations, and contact information should match the manuscript front page, metadata, and supporting declarations.',
-        'Shared first authorship, co-corresponding authorship, data contributors, or technical contributors should be disclosed clearly in the cover letter or manuscript notes.',
-        'Unauthorized addition, removal, or reordering of authors may result in rejection, withdrawal, or an ethics review.'
+        'The academic review track applies stricter standards for research integrity, methodological transparency, and auditable evidence; fabrication, falsification, plagiarism, or misleading authorship may lead to rejection, removal, or an ethics review.',
+        'The creative/entertainment track may use commentary, essays, parody, or experimental narrative forms, but it must still comply with applicable law, platform rules, authentic attribution, and copyright obligations.',
+        'Authors should select the track truthfully at submission time. The platform may request transfer to another track or adjust the public presentation after editorial communication.'
       ]
     },
     {
-      title: '2. Originality, duplicate submission, and rights notice',
+      title: '2. Authorship, attribution, and originality responsibility',
       points: [
-        'The manuscript should be an original work that the authors have the legal right to submit; preprints, conference abstracts, registered reports, or parallel submissions must be disclosed in the cover letter.',
-        'Any reused figures, images, tables, questionnaires, code snippets, or substantial text must be cited properly and accompanied by a permission-status statement when required.',
-        'The platform welcomes linkage to preprints, open code repositories, and open datasets, but the relationship between those materials and the submitted version must remain interpretable and traceable.'
+        'The corresponding author must ensure that all listed authors genuinely contributed to the research, creative work, or manuscript and are aware of this submission.',
+        'Author order, affiliations, and contact details should match the manuscript front page, metadata, and supporting notes; shared-first, co-corresponding, or special contributors should be disclosed clearly.',
+        'The submitted content must be something the authors legally have the right to submit. Preprints, conference abstracts, publicly posted versions on other platforms, or adapted source material must be disclosed in the cover letter together with their relationship to this version.'
       ]
     },
     {
-      title: '3. Ethics, privacy, and compliance',
+      title: '3. Rights, first release, and publication priority',
       points: [
-        'Research involving human participants, animals, sensitive data, institutional materials, or restricted samples should disclose ethics approval, consent context, and applicable limitations.',
-        'If no formal ethics approval was required, authors should provide a reasoned statement rather than leaving the field blank.',
-        'Submission files must not contain unlawfully disclosed personal sensitive information, protected health data, unanonymized identifiers, or confidential trade secrets that should not be public.',
-        'If ethics, copyright, or data-compliance issues are discovered later, authors must promptly notify the editorial office and cooperate with corrections, withdrawals, or investigations.'
+        'Before DOI assignment or a formal publication decision, authors retain the underlying copyright in the work; the platform only receives the non-exclusive rights needed to review, archive, display the discussion version, and preserve version history.',
+        'If the author requests conversion of an academic discussion draft into a formal publication and it enters production, the author agrees that the platform has first-publication priority for that formal version.',
+        'Creative/entertainment submissions are treated as public-display works by default. Unless otherwise agreed in writing, the platform does not claim exclusive rights, but it does retain the rights necessary to preserve the public page and audit trail.'
       ]
     },
     {
-      title: '4. Data, methods, and reproducibility obligations',
+      title: '4. Version control and formal-version relationship',
       points: [
-        'Authors should provide sufficient methodological detail so that peers can understand the design, reproduce the logic, or audit the analysis path.',
-        'If data, code, or materials cannot be shared openly, the submission should explain the restriction, access conditions, or alternative verification arrangements.',
-        'Negative findings, failed replications, boundary-condition clarifications, and incremental improvements remain valuable contributions; authors should not hide essential results for presentation reasons.'
+        'The platform maintains version control for submissions and revisions. V1 may appear as a discussion or incubation draft, with later V2/V3 revisions adding responses, evidence, and clarifications.',
+        'If an academic-track submission later passes formal review and enters publication, the DOI points only to the final version of record; earlier discussion versions remain available as traceable history.',
+        'When revising, withdrawing, correcting, or clarifying rights, authors should explain differences among versions so that no materially conflicting or misleading public record is created.'
       ]
     },
     {
-      title: '5. Editorial workflow, revision, and publication',
+      title: '5. DOI trigger mechanism and editorial workflow',
       points: [
-        'Authors understand and agree that the manuscript may pass through editorial screening, assignment, recommendation collection, final decision, production, and public release stages.',
-        'If minor or major revision is requested, authors should return a revision explanation within a reasonable timeframe and respond point-by-point to the major concerns.',
-        'After acceptance, authors are still expected to cooperate with production checks, metadata review, rights clarifications, DOI/publication information confirmation, and final public-page verification.',
-        'The platform reserves the right to reject, pause, request supplementary materials for, or place under ethics review any manuscript that falls outside scope or fails basic compliance or quality requirements.'
+        'A DOI is not assigned automatically. The author must request it after an academic-track submission reaches formal-publication quality, and the editorial office must complete review, production, and metadata verification before registration.',
+        'Academic-track submissions may first appear publicly as discussion/incubation versions and move into a formal version only after adequate revision. The editorial office may require supplementary materials, further revision, or deny a DOI request.',
+        'Creative/entertainment submissions generally do not receive a DOI and are not promised a formal scholarly-publication path, although they may still receive editorial recommendation, thematic placement, or archival display.'
       ]
     },
     {
-      title: '6. Platform data processing and service boundaries',
+      title: '6. Ethics, privacy, data, and platform boundaries',
       points: [
-        'The platform processes submission metadata, files, review-flow records, contact information, and necessary audit logs to operate editorial workflow, security, and publication services.',
-        'The platform does not guarantee acceptance, a specific review duration, citation performance, or inclusion in third-party indexes.',
-        'Authors may request corrections to account or manuscript metadata; however, published records, audit trails, and compliance-related history may require preservation of an immutable record.'
+        'Submissions involving human participants, animals, sensitive data, restricted samples, or internal institutional materials should disclose ethics approval, consent context, and applicable restrictions.',
+        'If data, code, or materials cannot be shared openly, the submission should explain the restriction, access conditions, or alternative verification arrangements; creative pieces involving fiction, parody, or AI-assisted generation should likewise avoid misleading presentation.',
+        'The platform processes metadata, files, version records, workflow logs, and contact information to support editorial workflow, safety controls, public display, and compliance audit; it does not guarantee acceptance, review duration, citation performance, or third-party indexing.'
       ]
     }
   ]

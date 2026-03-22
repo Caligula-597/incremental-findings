@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
     const discipline = request.nextUrl.searchParams.get('discipline');
     const articleType = request.nextUrl.searchParams.get('article_type');
     const includeFiles = request.nextUrl.searchParams.get('include_files') === 'true';
+    const track = request.nextUrl.searchParams.get('track') ?? request.nextUrl.searchParams.get('category');
 
     if (status && !allowedStatus.has(status)) {
       return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
@@ -45,7 +46,8 @@ export async function GET(request: NextRequest) {
     const filtered = data.filter((item) => {
       const disciplineMatch = discipline ? item.discipline === discipline : true;
       const articleTypeMatch = articleType ? item.article_type === articleType : true;
-      return disciplineMatch && articleTypeMatch;
+      const trackMatch = track ? item.category === track : true;
+      return disciplineMatch && articleTypeMatch && trackMatch;
     });
 
     if (includeFiles) {
@@ -85,7 +87,8 @@ export async function POST(request: NextRequest) {
       topic: body.topic ? String(body.topic) : undefined,
       article_type: body.article_type ? String(body.article_type) : undefined,
       file_url: body.file_url ? String(body.file_url) : undefined,
-      author_id: body.author_id ? String(body.author_id) : undefined
+      author_id: body.author_id ? String(body.author_id) : undefined,
+      category: body.category ? String(body.category) : body.track ? String(body.track) : undefined
     });
 
     return NextResponse.json({ data: created }, { status: 201 });

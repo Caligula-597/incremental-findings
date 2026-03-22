@@ -6,6 +6,7 @@ import { TERMS_VERSION, getAuthorAgreement } from '@/lib/legal';
 import { ARTICLE_TYPES, DISCIPLINES, TOPIC_MAP } from '@/lib/taxonomy';
 import { SectionTitle } from '@/components/ui-kit';
 import { getSiteCopy, getSiteLang } from '@/lib/site-copy';
+import { SUBMISSION_TRACKS, SubmissionTrack } from '@/lib/submission-track';
 import { withLang } from '@/lib/lang';
 
 export default function SubmitPage() {
@@ -23,6 +24,7 @@ export default function SubmitPage() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [discipline, setDiscipline] = useState<string>(DISCIPLINES[0]);
+  const [submissionTrack, setSubmissionTrack] = useState<SubmissionTrack>(SUBMISSION_TRACKS[0]);
   const [userEmail, setUserEmail] = useState('');
   const [userId, setUserId] = useState('');
   const [orcidId, setOrcidId] = useState<string | null>(null);
@@ -93,6 +95,7 @@ export default function SubmitPage() {
     const formElement = event.currentTarget;
     const formData = new FormData(formElement);
     formData.set('terms_version', TERMS_VERSION);
+    formData.set('submission_track', submissionTrack);
 
     const response = await fetch('/api/submissions/complete', {
       method: 'POST',
@@ -111,8 +114,13 @@ export default function SubmitPage() {
     setMessage(`${copy.submit.success}${warningText}`);
     formElement.reset();
     setDiscipline(DISCIPLINES[0]);
+    setSubmissionTrack(SUBMISSION_TRACKS[0]);
     setLoading(false);
   }
+
+  const trackHint = submissionTrack === 'academic' ? copy.submit.trackAcademicHint : copy.submit.trackEntertainmentHint;
+  const versionPolicy = submissionTrack === 'academic' ? copy.submit.versionPolicyAcademic : copy.submit.versionPolicyEntertainment;
+  const rightsPolicy = submissionTrack === 'academic' ? copy.submit.rightsPolicyAcademic : copy.submit.rightsPolicyEntertainment;
 
   return (
     <main>
@@ -222,6 +230,30 @@ export default function SubmitPage() {
 
         <section className="rounded-xl border border-zinc-200 bg-white/80 p-4">
           <h3 className="font-semibold">{copy.submit.metadata}</h3>
+
+          <div className="mt-3 rounded-xl border border-indigo-200 bg-indigo-50/70 px-4 py-4">
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:items-start">
+              <label className="grid gap-1 text-sm">
+                {copy.submit.submissionTrack}
+                <select
+                  name="submission_track"
+                  className="rounded-lg border border-zinc-300 px-3 py-2"
+                  value={submissionTrack}
+                  onChange={(event) => setSubmissionTrack(event.target.value as SubmissionTrack)}
+                >
+                  <option value="academic">{copy.submit.trackAcademic}</option>
+                  <option value="entertainment">{copy.submit.trackEntertainment}</option>
+                </select>
+              </label>
+
+              <div className="space-y-2 text-sm text-zinc-700">
+                <p className="font-semibold text-zinc-900">{trackHint}</p>
+                <p>{versionPolicy}</p>
+                <p>{rightsPolicy}</p>
+              </div>
+            </div>
+          </div>
+
           <div className="mt-2 grid gap-3">
             <input required name="title" placeholder={copy.submit.titleField} className="rounded-lg border border-zinc-300 px-3 py-2" />
             <input required name="authors" placeholder={copy.submit.authorsField} className="rounded-lg border border-zinc-300 px-3 py-2" />
@@ -280,7 +312,7 @@ export default function SubmitPage() {
 
             <label className="grid gap-1 text-sm">
               {copy.submit.supporting}
-              <input name="supporting" type="file" multiple className="rounded-lg border border-zinc-300 px-3 py-2" />
+              <input name="supporting_files" type="file" multiple className="rounded-lg border border-zinc-300 px-3 py-2" />
             </label>
           </div>
         </section>

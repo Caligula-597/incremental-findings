@@ -35,7 +35,7 @@ function normalizeSubmission(data: Partial<Submission>): Submission {
     title: String(data.title ?? ''),
     authors: String(data.authors ?? (authorId ? `Author ${authorId.slice(0, 8)}` : 'Unknown author')),
     abstract: data.abstract ?? null,
-    discipline: data.discipline ?? category,
+    discipline: data.discipline ?? null,
     topic: data.topic ?? null,
     article_type: data.article_type ?? null,
     status: (data.status as SubmissionStatus) ?? 'under_review',
@@ -185,7 +185,7 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
         abstract: input.abstract ?? null,
         file_url: input.file_url ?? null,
         status: 'under_review',
-        category: input.category ?? input.discipline ?? null,
+        category: input.category ?? null,
         author_id: input.author_id ?? null,
         submitter_email: input.submitter_email ?? null
       })
@@ -201,7 +201,7 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
             abstract: input.abstract ?? null,
             file_url: input.file_url ?? null,
             status: 'under_review',
-            category: input.category ?? input.discipline ?? null,
+            category: input.category ?? null,
             submitter_email: input.submitter_email ?? null
           })
           .select('id,title,abstract,status,category,file_url,created_at,author_id,submitter_email')
@@ -229,7 +229,7 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
     title: input.title,
     authors: input.authors ?? (input.author_id ? `Author ${input.author_id.slice(0, 8)}` : 'Unknown author'),
     abstract: input.abstract ?? null,
-    discipline: input.discipline ?? input.category ?? null,
+    discipline: input.discipline ?? null,
     topic: input.topic ?? null,
     article_type: input.article_type ?? null,
     status: 'under_review',
@@ -238,7 +238,7 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
     doi: input.doi ?? null,
     doi_registered_at: input.doi_registered_at ?? null,
     author_id: input.author_id ?? null,
-    category: input.category ?? input.discipline ?? null,
+    category: input.category ?? null,
     submitter_email: input.submitter_email ?? null
   };
 

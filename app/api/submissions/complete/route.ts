@@ -8,6 +8,7 @@ import { getRuntimeStorageDir, writeRuntimeAuditLogs, writeRuntimeSubmissionFile
 import { createSubmission } from '@/lib/submission-repository';
 import { getSupabaseServerClient } from '@/lib/supabase';
 import { getServerSessionUser } from '@/lib/session';
+import { isSubmissionTrack } from '@/lib/submission-track';
 
 const MAX_MANUSCRIPT_BYTES = 50 * 1024 * 1024;
 const MAX_SUPPORTING_BYTES = 100 * 1024 * 1024;
@@ -85,6 +86,11 @@ export async function POST(request: Request) {
 
     const title = String(form.get('title') ?? '').trim();
     const authors = String(form.get('authors') ?? '').trim();
+    const submissionTrackValue = String(form.get('submission_track') ?? 'academic').trim();
+
+    if (!isSubmissionTrack(submissionTrackValue)) {
+      return NextResponse.json({ error: 'submission_track must be academic or entertainment' }, { status: 400 });
+    }
 
     if (!title) {
       return NextResponse.json({ error: 'title is required' }, { status: 400 });
@@ -134,7 +140,7 @@ export async function POST(request: Request) {
       authors: authors || userEmail || (userId ? `Author ${userId.slice(0, 8)}` : 'Unknown author'),
       abstract: String(form.get('abstract') ?? ''),
       discipline: String(form.get('discipline') ?? ''),
-      category: String(form.get('discipline') ?? ''),
+      category: submissionTrackValue,
       topic: String(form.get('topic') ?? ''),
       article_type: String(form.get('article_type') ?? ''),
       file_url: manuscriptUpload.path,
@@ -210,6 +216,7 @@ export async function POST(request: Request) {
       authors: authors || userEmail || (userId ? `Author ${userId.slice(0, 8)}` : 'Unknown author'),
       abstract: String(form.get('abstract') ?? ''),
       discipline: String(form.get('discipline') ?? ''),
+      category: submissionTrackValue,
       topic: String(form.get('topic') ?? ''),
       article_type: String(form.get('article_type') ?? '')
     };

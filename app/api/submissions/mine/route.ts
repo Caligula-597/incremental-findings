@@ -17,6 +17,7 @@ function parseMetaB64(detail: string | undefined) {
       discipline: string;
       topic: string;
       article_type: string;
+      category: string;
       doi: string;
     }>;
   } catch {
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
     });
 
     const mineByAuditIds = new Set<string>();
-    const metadataBySubmissionId = new Map<string, Partial<{ authors: string; abstract: string; discipline: string; topic: string; article_type: string; doi: string }>>();
+    const metadataBySubmissionId = new Map<string, Partial<{ authors: string; abstract: string; discipline: string; topic: string; article_type: string; category: string; doi: string }>>();
     const supabase = getSupabaseServerClient();
     if (supabase) {
       const logs = await supabase
@@ -89,7 +90,7 @@ export async function GET(request: NextRequest) {
         topic: item.topic || meta.topic || item.topic,
         article_type: item.article_type || meta.article_type || item.article_type,
         doi: item.doi || meta.doi || item.doi,
-        category: item.category || meta.discipline || item.category
+        category: item.category || meta.category || item.category
       };
     });
 
