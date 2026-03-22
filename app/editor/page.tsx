@@ -393,8 +393,8 @@ export default function EditorPage() {
         subtitle={
           isManagingEditor
             ? (lang === 'zh'
-              ? '行政编辑：查看编辑列表、邀请审稿编辑、分配稿件、收集意见并做最终决定。'
-              : 'Managing editor: view the editor roster, invite review editors, assign manuscripts, collect recommendations, and make the final decision.')
+              ? '行政编辑：使用环境编辑码进入，负责审核审稿编辑申请、发放邀请码、分配稿件并做最终决定。'
+              : 'Managing editor: enter with the managing-editor access code, approve review-editor applications, issue invites, assign manuscripts, and make final decisions.')
             : (lang === 'zh'
               ? '审稿编辑：只查看分配给自己的稿件、下载文件并提交接受/小修/大修/拒稿意见。'
               : 'Review editor: only see manuscripts assigned to you, open files, and submit accept/minor revision/major revision/reject recommendations.')
@@ -447,7 +447,7 @@ export default function EditorPage() {
 
       {isManagingEditor ? (
         <section className="mt-6">
-          <SectionTitle title={lang === 'zh' ? '编辑列表与邀请' : 'Editor roster & invites'} subtitle={lang === 'zh' ? '行政编辑可以查看当前编辑列表，并处理新的编辑申请。' : 'Managing editors can review the current editorial roster and process new editor applications.'} />
+          <SectionTitle title={lang === 'zh' ? '编辑列表与邀请' : 'Editor roster & invites'} subtitle={lang === 'zh' ? '行政编辑可以查看当前编辑列表，并处理审稿编辑申请。' : 'Managing editors can review the editorial roster and process review-editor applications.'} />
           <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
             <div className="glass-panel p-4">
               <h4 className="font-serif text-xl">{lang === 'zh' ? '编辑列表' : 'Editorial roster'}</h4>
@@ -465,7 +465,7 @@ export default function EditorPage() {
               </div>
             </div>
             <div className="glass-panel p-4">
-              <h4 className="font-serif text-xl">{lang === 'zh' ? '待处理编辑申请' : 'Pending editor applications'}</h4>
+              <h4 className="font-serif text-xl">{lang === 'zh' ? '待处理审稿编辑申请' : 'Pending review-editor applications'}</h4>
               <div className="mt-3 grid gap-3">
                 {applications.length === 0 ? <p className="text-sm text-zinc-600">{copy.editor.noPendingApplications}</p> : null}
                 {applications.map((application) => (

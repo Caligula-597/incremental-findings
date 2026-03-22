@@ -3,6 +3,7 @@ import { getSupabaseServerClient } from '@/lib/supabase';
 import { readRuntimeAuditLogs, writeRuntimeAuditLogs } from '@/lib/runtime-persistence';
 import { runtimeAuditLogs, runtimeEditorApplications, runtimeEditorInvites } from '@/lib/runtime-store';
 import { EditorApplicationRecord } from '@/lib/types';
+import { SessionUser } from '@/lib/session';
 
 export type EditorialRole = 'managing_editor' | 'review_editor';
 
@@ -31,15 +32,25 @@ export function getManagingEditors() {
     .filter(Boolean);
 }
 
-export function isManagingEditor(email: string) {
+export function canUseManagingEditorCode(email: string) {
   const normalized = email.trim().toLowerCase();
   const allowlist = getManagingEditors();
   if (allowlist.length === 0) return true;
   return allowlist.includes(normalized);
 }
 
-export function getEditorialRole(email: string): EditorialRole {
-  return isManagingEditor(email) ? 'managing_editor' : 'review_editor';
+export function isManagingEditor(userOrEmail: string | Pick<SessionUser, 'email' | 'editor_role'>, editorRole?: EditorialRole | null) {
+  const normalized = typeof userOrEmail === 'string' ? userOrEmail.trim().toLowerCase() : userOrEmail.email.trim().toLowerCase();
+  const roleHint = typeof userOrEmail === 'string' ? editorRole : userOrEmail.editor_role;
+  if (roleHint) return roleHint === 'managing_editor';
+  return getManagingEditors().includes(normalized);
+}
+
+export function getEditorialRole(userOrEmail: string | Pick<SessionUser, 'email' | 'editor_role'>): EditorialRole {
+  if (typeof userOrEmail !== 'string' && userOrEmail.editor_role) {
+    return userOrEmail.editor_role;
+  }
+  return isManagingEditor(userOrEmail) ? 'managing_editor' : 'review_editor';
 }
 
 export async function createSubmissionEditorAssignment(input: {
@@ -187,10 +198,15 @@ export async function listAssignedSubmissionIdsForEditor(email: string) {
   return Array.from(ids);
 }
 
-function mergeRosterEmail(map: Map<string, { email: string; role: EditorialRole; source: string }>, email: string, source: string) {
+function mergeRosterEmail(
+  map: Map<string, { email: string; role: EditorialRole; source: string }>,
+  email: string,
+  source: string,
+  roleHint?: EditorialRole
+) {
   const normalized = email.trim().toLowerCase();
   if (!normalized) return;
-  const role = getEditorialRole(normalized);
+  const role = roleHint ?? (getManagingEditors().includes(normalized) ? 'managing_editor' : 'review_editor');
   const existing = map.get(normalized);
   if (!existing) {
     map.set(normalized, { email: normalized, role, source });
@@ -207,7 +223,7 @@ export async function listEditorialRoster() {
   const roster = new Map<string, { email: string; role: EditorialRole; source: string }>();
 
   for (const email of getManagingEditors()) {
-    mergeRosterEmail(roster, email, 'managing_allowlist');
+    mergeRosterEmail(roster, email, 'managing_allowlist', 'managing_editor');
   }
 
   const supabase = getSupabaseServerClient();
@@ -220,24 +236,24 @@ export async function listEditorialRoster() {
 
     if (!applications.error) {
       for (const row of (applications.data ?? []) as Pick<EditorApplicationRecord, 'applicant_email'>[]) {
-        mergeRosterEmail(roster, row.applicant_email, 'approved_application');
+        mergeRosterEmail(roster, row.applicant_email, 'approved_application', 'review_editor');
       }
     }
 
     if (!invites.error) {
       for (const row of invites.data ?? []) {
-        mergeRosterEmail(roster, String((row as { applicant_email: string }).applicant_email), 'editor_invite');
+        mergeRosterEmail(roster, String((row as { applicant_email: string }).applicant_email), 'editor_invite', 'review_editor');
       }
     }
 
     if (!logs.error) {
       for (const row of logs.data ?? []) {
         const action = String((row as { action: string }).action);
-        mergeRosterEmail(roster, String((row as { actor_email: string }).actor_email), action);
+        mergeRosterEmail(roster, String((row as { actor_email: string }).actor_email), action, action === 'editor_review_final_decision' ? 'managing_editor' : 'review_editor');
         if (action === assignmentAction) {
           const parsed = parseJsonDetail<{ assigned_editor_email?: string }>(String((row as { detail: string }).detail ?? ''));
           if (parsed?.assigned_editor_email) {
-            mergeRosterEmail(roster, parsed.assigned_editor_email, action);
+            mergeRosterEmail(roster, parsed.assigned_editor_email, action, 'review_editor');
           }
         }
       }
@@ -245,18 +261,18 @@ export async function listEditorialRoster() {
   }
 
   for (const row of runtimeEditorApplications.filter((item) => item.status === 'approved')) {
-    mergeRosterEmail(roster, row.applicant_email, 'approved_application');
+    mergeRosterEmail(roster, row.applicant_email, 'approved_application', 'review_editor');
   }
   for (const row of runtimeEditorInvites) {
-    mergeRosterEmail(roster, row.applicant_email, 'editor_invite');
+    mergeRosterEmail(roster, row.applicant_email, 'editor_invite', 'review_editor');
   }
   for (const row of runtimeAuditLogs) {
     if (!['editor_review_recommendation', assignmentAction, 'editor_review_final_decision'].includes(row.action)) continue;
-    mergeRosterEmail(roster, row.actor_email, row.action);
+    mergeRosterEmail(roster, row.actor_email, row.action, row.action === 'editor_review_final_decision' ? 'managing_editor' : 'review_editor');
     if (row.action === assignmentAction) {
       const parsed = parseJsonDetail<{ assigned_editor_email?: string }>(row.detail);
       if (parsed?.assigned_editor_email) {
-        mergeRosterEmail(roster, parsed.assigned_editor_email, row.action);
+        mergeRosterEmail(roster, parsed.assigned_editor_email, row.action, 'review_editor');
       }
     }
   }

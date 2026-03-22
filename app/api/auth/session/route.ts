@@ -11,7 +11,7 @@ export async function GET() {
   return NextResponse.json({
     data: {
       ...user,
-      editor_role: user.role === 'editor' ? getEditorialRole(user.email) : null
+      editor_role: user.role === 'editor' ? getEditorialRole(user) : null
     }
   });
 }

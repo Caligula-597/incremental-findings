@@ -18,15 +18,15 @@ export async function GET(request: NextRequest) {
     }
 
     const requestedIds = request.nextUrl.searchParams.getAll('submission_id');
-    const submissionIds = isManagingEditor(user.email) ? requestedIds : await listAssignedSubmissionIdsForEditor(user.email);
+    const submissionIds = isManagingEditor(user) ? requestedIds : await listAssignedSubmissionIdsForEditor(user.email);
     const assignments = await listSubmissionEditorAssignments(submissionIds);
-    const roster = isManagingEditor(user.email) ? await listEditorialRoster() : [];
+    const roster = isManagingEditor(user) ? await listEditorialRoster() : [];
 
     return NextResponse.json({
       data: {
         assignments,
         roster,
-        editor_role: getEditorialRole(user.email)
+        editor_role: getEditorialRole(user)
       }
     });
   } catch (error) {
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     if (!user || user.role !== 'editor') {
       return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
     }
-    if (!isManagingEditor(user.email)) {
+    if (!isManagingEditor(user)) {
       return NextResponse.json({ error: 'Managing editor authorization required' }, { status: 403 });
     }
 
@@ -54,6 +54,12 @@ export async function POST(request: Request) {
     }
     if (isManagingEditor(assignedEditorEmail)) {
       return NextResponse.json({ error: 'Assign manuscripts to review editors, not managing editors' }, { status: 400 });
+    }
+
+    const roster = await listEditorialRoster();
+    const matchedReviewEditor = roster.find((entry) => entry.email === assignedEditorEmail && entry.role === 'review_editor');
+    if (!matchedReviewEditor) {
+      return NextResponse.json({ error: 'Assign manuscripts only to approved or invited review editors' }, { status: 400 });
     }
 
     const submission = await getSubmissionById(submissionId);

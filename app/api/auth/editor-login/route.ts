@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
-import { buildSessionToken, setSessionCookie } from '@/lib/session';
+import { buildSessionToken, SessionEditorRole, setSessionCookie } from '@/lib/session';
+import { canUseManagingEditorCode } from '@/lib/editor-workspace-service';
 import { guardRequest } from '@/lib/request-guard';
 import { countRecentSecurityEvents, recordSecurityEvent } from '@/lib/security-service';
 import { validateAndConsumeEditorInvite } from '@/lib/editor-access';
@@ -93,11 +94,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid editor access code' }, { status: 401 });
     }
 
+    const editorRole: SessionEditorRole = matchedCodeIndex >= 0 ? 'managing_editor' : 'review_editor';
+
+    if (editorRole === 'managing_editor' && !canUseManagingEditorCode(email)) {
+      return NextResponse.json({ error: 'This editor access code is reserved for managing editors.' }, { status: 403 });
+    }
+
     const sessionUser = {
       id: randomUUID(),
       email,
       name,
-      role: 'editor' as const
+      role: 'editor' as const,
+      editor_role: editorRole
     };
 
     setSessionCookie(buildSessionToken(sessionUser));

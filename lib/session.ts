@@ -2,12 +2,14 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import { cookies } from 'next/headers';
 
 export type SessionRole = 'author' | 'editor';
+export type SessionEditorRole = 'managing_editor' | 'review_editor';
 
 export interface SessionUser {
   id: string;
   email: string;
   name: string;
   role: SessionRole;
+  editor_role?: SessionEditorRole | null;
 }
 
 const COOKIE_NAME = 'if_session';
@@ -51,6 +53,9 @@ export function parseSessionToken(token?: string): SessionUser | null {
   try {
     const parsed = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as SessionUser;
     if (!parsed?.id || !parsed?.email || !parsed?.name || (parsed.role !== 'author' && parsed.role !== 'editor')) {
+      return null;
+    }
+    if (parsed.editor_role && parsed.editor_role !== 'managing_editor' && parsed.editor_role !== 'review_editor') {
       return null;
     }
     return parsed;

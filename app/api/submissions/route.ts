@@ -7,9 +7,9 @@ import { Submission, SubmissionStatus } from '@/lib/types';
 
 const allowedStatus = new Set<SubmissionStatus>(['under_review', 'accepted', 'in_production', 'published', 'rejected']);
 
-async function filterVisibleEditorialSubmissions(items: Submission[], email: string) {
-  if (isManagingEditor(email)) return items;
-  const assignedIds = new Set(await listAssignedSubmissionIdsForEditor(email));
+async function filterVisibleEditorialSubmissions(items: Submission[], user: { email: string; editor_role?: 'managing_editor' | 'review_editor' | null }) {
+  if (isManagingEditor(user)) return items;
+  const assignedIds = new Set(await listAssignedSubmissionIdsForEditor(user.email));
   return items.filter((item) => assignedIds.has(item.id));
 }
 
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (sessionUser?.role === 'editor' && ((status && status !== 'published') || !status)) {
-      data = await filterVisibleEditorialSubmissions(data, sessionUser.email);
+      data = await filterVisibleEditorialSubmissions(data, sessionUser);
     }
 
     const filtered = data.filter((item) => {

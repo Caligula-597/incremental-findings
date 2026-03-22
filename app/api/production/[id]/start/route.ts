@@ -11,7 +11,7 @@ export async function POST(request: Request, context: { params: { id: string } }
     if (!user || user.role !== 'editor') {
       return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
     }
-    if (!isManagingEditor(user.email)) {
+    if (!isManagingEditor(user)) {
       return NextResponse.json({ error: 'Managing editor authorization required' }, { status: 403 });
     }
 

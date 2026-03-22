@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
     const ids = request.nextUrl.searchParams.getAll('submission_id');
     const board = await listReviewBoard(ids);
-    return NextResponse.json({ data: board, editor_role: getEditorialRole(user.email) });
+    return NextResponse.json({ data: board, editor_role: getEditorialRole(user) });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
     return NextResponse.json({ error: message }, { status: 500 });
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     if (!user || user.role !== 'editor') {
       return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
     }
-    if (getEditorialRole(user.email) !== 'review_editor') {
+    if (getEditorialRole(user) !== 'review_editor') {
       return NextResponse.json({ error: 'Only review editors can submit recommendations' }, { status: 403 });
     }
 

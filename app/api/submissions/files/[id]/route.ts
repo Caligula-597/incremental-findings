@@ -35,7 +35,7 @@ export async function GET(_request: Request, context: { params: { id: string } }
 
     let editorCanAccess = false;
     if (isEditor) {
-      if (isManagingEditor(sessionUser.email)) {
+      if (isManagingEditor(sessionUser)) {
         editorCanAccess = true;
       } else {
         const assignedIds = new Set(await listAssignedSubmissionIdsForEditor(sessionUser.email));
