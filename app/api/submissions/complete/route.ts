@@ -131,9 +131,23 @@ export async function POST(request: Request) {
     }
 
     const warnings: string[] = [];
+    const storageDiagnostics: Array<{
+      file_name: string;
+      file_kind: 'manuscript' | 'cover_letter' | 'supporting';
+      storage_mode: 'memory' | 'supabase';
+      storage_path: string;
+      warning?: string;
+    }> = [];
 
     const manuscriptUpload = await uploadToStorage(manuscript, 'manuscripts');
     if (manuscriptUpload.warning) warnings.push(`Manuscript storage fallback: ${manuscriptUpload.warning}`);
+    storageDiagnostics.push({
+      file_name: manuscript.name,
+      file_kind: 'manuscript',
+      storage_mode: manuscriptUpload.mode,
+      storage_path: manuscriptUpload.path,
+      ...(manuscriptUpload.warning ? { warning: manuscriptUpload.warning } : {})
+    });
 
     const created = await createSubmission({
       title,
@@ -154,6 +168,13 @@ export async function POST(request: Request) {
 
     const coverUpload = await uploadToStorage(coverLetter, 'cover-letters');
     if (coverUpload.warning) warnings.push(`Cover letter storage fallback: ${coverUpload.warning}`);
+    storageDiagnostics.push({
+      file_name: coverLetter.name,
+      file_kind: 'cover_letter',
+      storage_mode: coverUpload.mode,
+      storage_path: coverUpload.path,
+      ...(coverUpload.warning ? { warning: coverUpload.warning } : {})
+    });
     filesToRecord.push({ file: coverLetter, kind: 'cover_letter', path: coverUpload.path, mode: coverUpload.mode });
 
     for (const item of supporting) {
@@ -166,6 +187,13 @@ export async function POST(request: Request) {
 
         const supportUpload = await uploadToStorage(item, 'supporting-files');
         if (supportUpload.warning) warnings.push(`Supporting file fallback (${item.name}): ${supportUpload.warning}`);
+        storageDiagnostics.push({
+          file_name: item.name,
+          file_kind: 'supporting',
+          storage_mode: supportUpload.mode,
+          storage_path: supportUpload.path,
+          ...(supportUpload.warning ? { warning: supportUpload.warning } : {})
+        });
         filesToRecord.push({ file: item, kind: 'supporting', path: supportUpload.path, mode: supportUpload.mode });
       }
     }
@@ -257,7 +285,8 @@ export async function POST(request: Request) {
           consent,
           files: fileRows,
           file_integrity: fileIntegrity,
-          audit
+          audit,
+          storage_diagnostics: storageDiagnostics
         },
         warnings
       },

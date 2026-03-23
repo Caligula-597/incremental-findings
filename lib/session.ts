@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import { cookies } from 'next/headers';
 
 export type SessionRole = 'author' | 'editor';
@@ -13,6 +13,7 @@ export interface SessionUser {
 }
 
 const COOKIE_NAME = 'if_session';
+const devSessionSecret = randomBytes(32).toString('hex');
 
 function getSessionSecret() {
   const secret = process.env.SESSION_SECRET;
@@ -20,7 +21,11 @@ function getSessionSecret() {
     return secret;
   }
 
-  return 'dev-only-session-secret-change-me-please-32chars';
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('SESSION_SECRET must be set with at least 32 characters in production.');
+  }
+
+  return devSessionSecret;
 }
 
 function sign(payloadBase64: string) {

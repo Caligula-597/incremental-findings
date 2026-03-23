@@ -17,6 +17,7 @@ interface RateLimitOptions {
 }
 
 const store = new Map<string, RateLimitRecord>();
+const IP_PATTERN = /^(?:\d{1,3}\.){3}\d{1,3}$|^[a-fA-F0-9:]+$/;
 
 function nowMs() {
   return Date.now();
@@ -31,11 +32,19 @@ function cleanupExpired(current: number) {
 }
 
 export function getClientIp(request: Request) {
-  return (
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    request.headers.get('x-real-ip') ||
-    'unknown'
-  );
+  const trustProxyHeaders = process.env.TRUST_PROXY_IP_HEADERS === 'true';
+  if (!trustProxyHeaders) {
+    return 'unknown';
+  }
+
+  const forwarded = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
+  const real = request.headers.get('x-real-ip')?.trim();
+  const candidate = forwarded || real || '';
+  if (candidate && IP_PATTERN.test(candidate)) {
+    return candidate;
+  }
+
+  return 'unknown';
 }
 
 export function checkRateLimit(options: RateLimitOptions): RateLimitDecision {
