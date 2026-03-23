@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
-import { readFileSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { getServerSessionUser } from '@/lib/session';
 import { getSubmissionById } from '@/lib/submission-repository';
@@ -9,6 +9,7 @@ import { getSupabaseServerClient } from '@/lib/supabase';
 import { runtimeAuditLogs, runtimeSubmissionFileBlobs } from '@/lib/runtime-store';
 import { getRuntimeStorageDir, writeRuntimeAuditLogs } from '@/lib/runtime-persistence';
 import { isManagingEditor, listAssignedSubmissionIdsForEditor } from '@/lib/editor-workspace-service';
+import { getRuntimeModeSnapshot } from '@/lib/runtime-mode';
 
 export async function GET(_request: Request, context: { params: { id: string } }) {
   try {
@@ -86,7 +87,25 @@ export async function GET(_request: Request, context: { params: { id: string } }
           }
         });
       } catch {
-        return NextResponse.json({ error: 'File not found on local runtime storage' }, { status: 404 });
+        const mode = getRuntimeModeSnapshot();
+        return NextResponse.json(
+          {
+            error: 'File not found on local runtime storage',
+            code: 'LOCAL_RUNTIME_FILE_MISSING',
+            detail: {
+              file_id: file.id,
+              file_path: file.file_path,
+              resolved_path: fullPath,
+              runtime_storage_dir: getRuntimeStorageDir(),
+              runtime_blob_present: runtimeSubmissionFileBlobs.has(file.id),
+              file_exists_on_disk: existsSync(fullPath),
+              runtime_mode: mode.mode,
+              supabase_configured: mode.mode === 'supabase',
+              hint: 'This file was stored with local:// fallback. Ensure Supabase storage is available and re-upload if file is lost.'
+            }
+          },
+          { status: 404 }
+        );
       }
     }
 
@@ -103,7 +122,20 @@ export async function GET(_request: Request, context: { params: { id: string } }
 
       const supabase = getSupabaseServerClient();
       if (!supabase) {
-        return NextResponse.json({ error: 'Storage unavailable in current runtime mode' }, { status: 503 });
+        const mode = getRuntimeModeSnapshot();
+        return NextResponse.json(
+          {
+            error: 'Storage unavailable in current runtime mode',
+            code: 'SUPABASE_STORAGE_UNAVAILABLE',
+            detail: {
+              file_id: file.id,
+              file_path: file.file_path,
+              runtime_mode: mode.mode,
+              supabase_configured: mode.mode === 'supabase'
+            }
+          },
+          { status: 503 }
+        );
       }
 
       const download = await supabase.storage.from(bucket).download(objectPath);
