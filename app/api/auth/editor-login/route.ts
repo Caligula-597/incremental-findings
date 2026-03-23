@@ -6,10 +6,6 @@ import { guardRequest } from '@/lib/request-guard';
 import { countRecentSecurityEvents, recordSecurityEvent } from '@/lib/security-service';
 import { validateAndConsumeEditorInvite } from '@/lib/editor-access';
 
-const DEFAULT_EDITOR_CODE = 'review-demo';
-
-
-
 async function maybeRecordEditorLoginFailureAlert(email: string) {
   const threshold = Number(process.env.EDITOR_LOGIN_ALERT_THRESHOLD ?? '5') || 5;
   const windowMs = Number(process.env.EDITOR_LOGIN_ALERT_WINDOW_MS ?? '300000') || 300000;
@@ -41,11 +37,15 @@ function parseEditorCodes() {
     .filter(Boolean);
 
   const merged = [primary, ...rolloverCodes].filter(Boolean);
-  if (merged.length === 0) {
-    return [DEFAULT_EDITOR_CODE];
-  }
-
   return Array.from(new Set(merged));
+}
+
+function parseRequestedEditorRole(value: unknown): SessionEditorRole | null {
+  const role = String(value ?? '').trim().toLowerCase();
+  if (role === 'managing_editor' || role === 'review_editor') {
+    return role;
+  }
+  return null;
 }
 
 export async function POST(request: Request) {
@@ -54,6 +54,7 @@ export async function POST(request: Request) {
     const email = String(body.email ?? '').trim().toLowerCase();
     const name = String(body.name ?? '').trim() || 'Editorial Reviewer';
     const code = String(body.editor_code ?? '').trim();
+    const requestedEditorRole = parseRequestedEditorRole(body.editor_role);
 
     if (!email || !code) {
       await recordSecurityEvent({
@@ -80,6 +81,14 @@ export async function POST(request: Request) {
     }
 
     const acceptedCodes = parseEditorCodes();
+    if (acceptedCodes.length === 0) {
+      await recordSecurityEvent({
+        kind: 'alert',
+        actorEmail: email || null,
+        route: '/api/auth/editor-login',
+        detail: 'editor_login_blocked_missing_editor_access_code'
+      });
+    }
     const matchedCodeIndex = acceptedCodes.findIndex((candidate) => code === candidate);
     const inviteValidation = matchedCodeIndex < 0 ? await validateAndConsumeEditorInvite({ applicant_email: email, invite_code: code }) : { matched: false as const };
 
@@ -94,10 +103,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid editor access code' }, { status: 401 });
     }
 
-    const editorRole: SessionEditorRole = matchedCodeIndex >= 0 ? 'managing_editor' : 'review_editor';
-
-    if (editorRole === 'managing_editor' && !canUseManagingEditorCode(email)) {
-      return NextResponse.json({ error: 'This editor access code is reserved for managing editors.' }, { status: 403 });
+    let editorRole: SessionEditorRole = 'review_editor';
+    if (matchedCodeIndex >= 0) {
+      if (!canUseManagingEditorCode(email)) {
+        return NextResponse.json({ error: 'This editor access code is reserved for managing editors.' }, { status: 403 });
+      }
+      editorRole = requestedEditorRole ?? 'managing_editor';
     }
 
     const sessionUser = {
