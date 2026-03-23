@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { SiteHeader } from '@/components/header';
 import { TERMS_VERSION, getAuthorAgreement } from '@/lib/legal';
-import { ARTICLE_TYPES, DISCIPLINES, TOPIC_MAP } from '@/lib/taxonomy';
+import { getArticleTypeOptions, getDisciplineOptions, getTaxonomyLabel, getTopicOptions } from '@/lib/taxonomy';
 import { SectionTitle } from '@/components/ui-kit';
 import { getSiteCopy, getSiteLang } from '@/lib/site-copy';
 import { SUBMISSION_TRACKS, SubmissionTrack } from '@/lib/submission-track';
@@ -32,14 +32,24 @@ export default function SubmitPage() {
 
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [discipline, setDiscipline] = useState<string>(DISCIPLINES[0]);
   const [submissionTrack, setSubmissionTrack] = useState<SubmissionTrack>(SUBMISSION_TRACKS[0]);
+  const [discipline, setDiscipline] = useState<string>('Mathematics');
   const [campaignTheme, setCampaignTheme] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [userId, setUserId] = useState('');
   const [orcidId, setOrcidId] = useState<string | null>(null);
 
-  const topics = useMemo(() => TOPIC_MAP[discipline as (typeof DISCIPLINES)[number]] ?? [], [discipline]);
+  const disciplineOptions = useMemo(() => getDisciplineOptions(submissionTrack), [submissionTrack]);
+  const articleTypeOptions = useMemo(() => getArticleTypeOptions(submissionTrack), [submissionTrack]);
+  const topicOptions = useMemo(() => getTopicOptions(discipline, submissionTrack), [discipline, submissionTrack]);
+
+  useEffect(() => {
+    const firstDiscipline = disciplineOptions[0]?.value;
+    if (!firstDiscipline) return;
+    if (!disciplineOptions.some((item) => item.value === discipline)) {
+      setDiscipline(firstDiscipline);
+    }
+  }, [disciplineOptions, discipline]);
 
   useEffect(() => {
     async function loadSessionIdentity() {
@@ -126,8 +136,8 @@ export default function SubmitPage() {
     const warningText = Array.isArray(body.warnings) && body.warnings.length > 0 ? ` ${copy.submit.warningPrefix}${body.warnings.join(' | ')}` : '';
     setMessage(`${copy.submit.success}${warningText}`);
     formElement.reset();
-    setDiscipline(DISCIPLINES[0]);
     setSubmissionTrack(SUBMISSION_TRACKS[0]);
+    setDiscipline(getDisciplineOptions('academic')[0]?.value ?? 'Mathematics');
     setCampaignTheme('');
     setLoading(false);
   }
@@ -299,9 +309,9 @@ export default function SubmitPage() {
               <label className="grid gap-1 text-sm">
                 {copy.submit.discipline}
                 <select name="discipline" className="rounded-lg border border-zinc-300 px-3 py-2" value={discipline} onChange={(event) => setDiscipline(event.target.value)}>
-                  {DISCIPLINES.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
+                  {disciplineOptions.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {getTaxonomyLabel(item.value, lang, 'discipline')}
                     </option>
                   ))}
                 </select>
@@ -309,10 +319,15 @@ export default function SubmitPage() {
 
               <label className="grid gap-1 text-sm">
                 {copy.submit.topic}
-                <select name="topic" className="rounded-lg border border-zinc-300 px-3 py-2" defaultValue={topics[0]}>
-                  {topics.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
+                <select
+                  key={`${submissionTrack}-${discipline}`}
+                  name="topic"
+                  className="rounded-lg border border-zinc-300 px-3 py-2"
+                  defaultValue={topicOptions[0]?.value ?? ''}
+                >
+                  {topicOptions.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label[lang]}
                     </option>
                   ))}
                 </select>
@@ -320,10 +335,10 @@ export default function SubmitPage() {
 
               <label className="grid gap-1 text-sm">
                 {copy.submit.articleType}
-                <select name="article_type" className="rounded-lg border border-zinc-300 px-3 py-2" defaultValue={ARTICLE_TYPES[0]}>
-                  {ARTICLE_TYPES.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
+                <select key={submissionTrack} name="article_type" className="rounded-lg border border-zinc-300 px-3 py-2" defaultValue={articleTypeOptions[0]?.value ?? ''}>
+                  {articleTypeOptions.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label[lang]}
                     </option>
                   ))}
                 </select>
