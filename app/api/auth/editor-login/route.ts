@@ -40,12 +40,21 @@ function parseEditorCodes() {
   return Array.from(new Set(merged));
 }
 
+function parseRequestedEditorRole(value: unknown): SessionEditorRole | null {
+  const role = String(value ?? '').trim().toLowerCase();
+  if (role === 'managing_editor' || role === 'review_editor') {
+    return role;
+  }
+  return null;
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const email = String(body.email ?? '').trim().toLowerCase();
     const name = String(body.name ?? '').trim() || 'Editorial Reviewer';
     const code = String(body.editor_code ?? '').trim();
+    const requestedEditorRole = parseRequestedEditorRole(body.editor_role);
 
     if (!email || !code) {
       await recordSecurityEvent({
@@ -94,10 +103,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid editor access code' }, { status: 401 });
     }
 
-    const editorRole: SessionEditorRole = matchedCodeIndex >= 0 ? 'managing_editor' : 'review_editor';
-
-    if (editorRole === 'managing_editor' && !canUseManagingEditorCode(email)) {
-      return NextResponse.json({ error: 'This editor access code is reserved for managing editors.' }, { status: 403 });
+    let editorRole: SessionEditorRole = 'review_editor';
+    if (matchedCodeIndex >= 0) {
+      if (!canUseManagingEditorCode(email)) {
+        return NextResponse.json({ error: 'This editor access code is reserved for managing editors.' }, { status: 403 });
+      }
+      editorRole = requestedEditorRole ?? 'managing_editor';
     }
 
     const sessionUser = {
