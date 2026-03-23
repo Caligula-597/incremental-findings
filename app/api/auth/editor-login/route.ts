@@ -53,10 +53,11 @@ export async function POST(request: Request) {
     const body = await request.json();
     const email = String(body.email ?? '').trim().toLowerCase();
     const name = String(body.name ?? '').trim() || 'Editorial Reviewer';
-    const code = String(body.editor_code ?? '').trim();
+    const editorCode = String(body.editor_code ?? '').trim();
+    const inviteCode = String(body.invite_code ?? '').trim();
     const requestedEditorRole = parseRequestedEditorRole(body.editor_role);
 
-    if (!email || !code) {
+    if (!email || (!editorCode && !inviteCode)) {
       await recordSecurityEvent({
         kind: 'alert',
         actorEmail: email || null,
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
         detail: 'editor_login_invalid_payload'
       });
       await maybeRecordEditorLoginFailureAlert(email);
-      return NextResponse.json({ error: 'email and editor_code are required' }, { status: 400 });
+      return NextResponse.json({ error: 'email and (editor_code or invite_code) are required' }, { status: 400 });
     }
 
 
@@ -89,18 +90,20 @@ export async function POST(request: Request) {
         detail: 'editor_login_blocked_missing_editor_access_code'
       });
     }
-    const matchedCodeIndex = acceptedCodes.findIndex((candidate) => code === candidate);
-    const inviteValidation = matchedCodeIndex < 0 ? await validateAndConsumeEditorInvite({ applicant_email: email, invite_code: code }) : { matched: false as const };
+    const matchedCodeIndex = editorCode ? acceptedCodes.findIndex((candidate) => editorCode === candidate) : -1;
+    const inviteValidation = inviteCode
+      ? await validateAndConsumeEditorInvite({ applicant_email: email, invite_code: inviteCode })
+      : { matched: false as const };
 
     if (matchedCodeIndex < 0 && !inviteValidation.matched) {
       await recordSecurityEvent({
         kind: 'alert',
         actorEmail: email,
         route: '/api/auth/editor-login',
-        detail: 'editor_login_invalid_code'
+        detail: 'editor_login_invalid_code_or_invite'
       });
       await maybeRecordEditorLoginFailureAlert(email);
-      return NextResponse.json({ error: 'Invalid editor access code' }, { status: 401 });
+      return NextResponse.json({ error: 'Invalid editor access code or invite code' }, { status: 401 });
     }
 
     let editorRole: SessionEditorRole = 'review_editor';
