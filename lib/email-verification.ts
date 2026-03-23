@@ -5,6 +5,7 @@ import { EmailVerificationRecord } from '@/lib/types';
 
 const CODE_TTL_MINUTES = Number(process.env.EMAIL_VERIFICATION_TTL_MINUTES ?? '15') || 15;
 const RESEND_COOLDOWN_SECONDS = Number(process.env.EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS ?? '60') || 60;
+const MAX_VERIFY_ATTEMPTS = Number(process.env.EMAIL_VERIFICATION_MAX_ATTEMPTS ?? '5') || 5;
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL?.trim() || '';
 
 type VerificationLookup = {
@@ -215,6 +216,14 @@ export async function verifyEmailCode(input: { email: string; code: string }) {
 
   if (new Date(record.expires_at).getTime() < Date.now()) {
     return { ok: false as const, status: 410, error: 'Verification code expired. Please resend the verification email.' };
+  }
+
+  if (record.attempt_count >= MAX_VERIFY_ATTEMPTS) {
+    return {
+      ok: false as const,
+      status: 429,
+      error: `Too many invalid verification attempts. Please request a new code before trying again.`
+    };
   }
 
   if (hashCode(code) !== record.code_hash) {
