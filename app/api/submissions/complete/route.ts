@@ -87,6 +87,7 @@ export async function POST(request: Request) {
     const title = String(form.get('title') ?? '').trim();
     const authors = String(form.get('authors') ?? '').trim();
     const submissionTrackValue = String(form.get('submission_track') ?? 'academic').trim();
+    const campaignTheme = String(form.get('campaign_theme') ?? '').trim();
 
     if (!isSubmissionTrack(submissionTrackValue)) {
       return NextResponse.json({ error: 'submission_track must be academic or entertainment' }, { status: 400 });
@@ -248,6 +249,9 @@ export async function POST(request: Request) {
       topic: String(form.get('topic') ?? ''),
       article_type: String(form.get('article_type') ?? '')
     };
+    if (campaignTheme) {
+      (metadataPayload as Record<string, string>).campaign_theme = campaignTheme;
+    }
 
     const audit = {
       id: randomUUID(),
@@ -282,6 +286,7 @@ export async function POST(request: Request) {
       {
         data: {
           submission: created,
+          campaign_theme: campaignTheme || null,
           consent,
           files: fileRows,
           file_integrity: fileIntegrity,
