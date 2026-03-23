@@ -7,6 +7,7 @@ import { ARTICLE_TYPES, DISCIPLINES, TOPIC_MAP } from '@/lib/taxonomy';
 import { SectionTitle } from '@/components/ui-kit';
 import { getSiteCopy, getSiteLang } from '@/lib/site-copy';
 import { SUBMISSION_TRACKS, SubmissionTrack } from '@/lib/submission-track';
+import { CREATIVE_CAMPAIGN_MANIFESTO, CREATIVE_CAMPAIGN_THEMES, isCreativeCampaignTheme } from '@/lib/creative-campaign';
 import { withLang } from '@/lib/lang';
 
 export default function SubmitPage() {
@@ -16,6 +17,14 @@ export default function SubmitPage() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       setLang(getSiteLang(params.get('lang')));
+      const track = params.get('track');
+      if (track === 'academic' || track === 'entertainment') {
+        setSubmissionTrack(track);
+      }
+      const theme = params.get('campaign_theme');
+      if (isCreativeCampaignTheme(theme)) {
+        setCampaignTheme(theme);
+      }
     }
   }, []);
   const copy = useMemo(() => getSiteCopy(lang), [lang]);
@@ -25,6 +34,7 @@ export default function SubmitPage() {
   const [loading, setLoading] = useState(false);
   const [discipline, setDiscipline] = useState<string>(DISCIPLINES[0]);
   const [submissionTrack, setSubmissionTrack] = useState<SubmissionTrack>(SUBMISSION_TRACKS[0]);
+  const [campaignTheme, setCampaignTheme] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [userId, setUserId] = useState('');
   const [orcidId, setOrcidId] = useState<string | null>(null);
@@ -96,6 +106,9 @@ export default function SubmitPage() {
     const formData = new FormData(formElement);
     formData.set('terms_version', TERMS_VERSION);
     formData.set('submission_track', submissionTrack);
+    if (campaignTheme) {
+      formData.set('campaign_theme', campaignTheme);
+    }
 
     const response = await fetch('/api/submissions/complete', {
       method: 'POST',
@@ -115,6 +128,7 @@ export default function SubmitPage() {
     formElement.reset();
     setDiscipline(DISCIPLINES[0]);
     setSubmissionTrack(SUBMISSION_TRACKS[0]);
+    setCampaignTheme('');
     setLoading(false);
   }
 
@@ -255,6 +269,29 @@ export default function SubmitPage() {
           </div>
 
           <div className="mt-2 grid gap-3">
+            {submissionTrack === 'entertainment' ? (
+              <div className="rounded-xl border border-purple-200 bg-purple-50/70 px-4 py-4">
+                <p className="text-sm font-semibold text-purple-950">{lang === 'zh' ? '自由创作区首期双主题征稿' : 'Creative Track First Call for Submissions'}</p>
+                <p className="mt-2 text-sm text-purple-900">{CREATIVE_CAMPAIGN_MANIFESTO[lang]}</p>
+                <label className="mt-3 grid gap-1 text-sm">
+                  {lang === 'zh' ? '活动主题（可选）' : 'Campaign theme (optional)'}
+                  <select
+                    name="campaign_theme"
+                    className="rounded-lg border border-zinc-300 px-3 py-2"
+                    value={campaignTheme}
+                    onChange={(event) => setCampaignTheme(event.target.value)}
+                  >
+                    <option value="">{lang === 'zh' ? '不指定主题' : 'No specific theme'}</option>
+                    {CREATIVE_CAMPAIGN_THEMES.map((theme) => (
+                      <option key={theme.slug} value={theme.slug}>
+                        {theme.title[lang]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            ) : null}
+
             <input required name="title" placeholder={copy.submit.titleField} className="rounded-lg border border-zinc-300 px-3 py-2" />
             <input required name="authors" placeholder={copy.submit.authorsField} className="rounded-lg border border-zinc-300 px-3 py-2" />
 

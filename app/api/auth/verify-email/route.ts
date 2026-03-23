@@ -3,6 +3,7 @@ import { getSupabaseServerClient } from '@/lib/supabase';
 import { runtimeUsers } from '@/lib/runtime-store';
 import { buildSessionToken, setSessionCookie } from '@/lib/session';
 import { verifyEmailCode } from '@/lib/email-verification';
+import { guardRequest } from '@/lib/request-guard';
 
 function buildSessionUser(account: { id: string; email: string; name: string }) {
   return {
@@ -21,6 +22,18 @@ export async function POST(request: Request) {
 
     if (!email || !code) {
       return NextResponse.json({ error: 'email and code are required' }, { status: 400 });
+    }
+
+    const verifyGuard = await guardRequest(request, {
+      route: '/api/auth/verify-email',
+      bucketPrefix: 'auth-verify-email',
+      bucketKeySuffix: email,
+      maxRequests: Number(process.env.AUTH_VERIFY_EMAIL_RATE_LIMIT_MAX ?? '20') || 20,
+      windowMs: Number(process.env.AUTH_VERIFY_EMAIL_RATE_LIMIT_WINDOW_MS ?? '60000') || 60000,
+      limitError: 'Too many email verification attempts. Please try again later.'
+    });
+    if (verifyGuard.response) {
+      return verifyGuard.response;
     }
 
     const verification = await verifyEmailCode({ email, code });
