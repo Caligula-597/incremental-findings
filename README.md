@@ -364,6 +364,7 @@ ORCID_CLIENT_SECRET=xxx
 ORCID_REDIRECT_URI=http://localhost:3000/api/orcid/callback
 RESEND_API_KEY=your_resend_api_key
 RESEND_FROM_EMAIL=verified_sender@yourdomain.com
+SUPPORT_CONTACT_EMAIL=contact@yourdomain.com
 EDITOR_ACCESS_CODE=your_editor_access_code
 EDITOR_ACCESS_CODE_ROLLOVER=old_code_1,old_code_2
 SESSION_SECRET=at_least_32_chars_random_secret
