@@ -369,6 +369,30 @@ export default function SubmitPage() {
           </div>
         </section>
 
+        <section className="rounded-xl border border-zinc-200 bg-white/80 p-4">
+          <h3 className="font-semibold">{copy.submit.signatureTitle}</h3>
+          <p className="mt-1 text-sm text-zinc-600">{copy.submit.signatureSubtitle}</p>
+          <div className="mt-3 grid gap-3">
+            <label className="flex gap-2 text-sm">
+              <input required type="checkbox" name="all_authors_authorized" value="true" />
+              <span>{copy.submit.signatureAuthorization}</span>
+            </label>
+            <label className="grid gap-1 text-sm">
+              {copy.submit.authorSignature}
+              <input required name="author_signature" className="rounded-lg border border-zinc-300 px-3 py-2" placeholder={copy.submit.authorSignaturePlaceholder} />
+            </label>
+            <label className="grid gap-1 text-sm">
+              {copy.submit.coauthorSignatures}
+              <textarea
+                name="coauthor_signatures"
+                rows={3}
+                className="rounded-lg border border-zinc-300 px-3 py-2"
+                placeholder={copy.submit.coauthorSignaturesPlaceholder}
+              />
+            </label>
+          </div>
+        </section>
+
         <div className="flex flex-wrap items-center gap-3">
           <button className="btn btn-primary" disabled={loading} type="submit">
             {loading ? copy.submit.submitting : copy.submit.submitButton}
