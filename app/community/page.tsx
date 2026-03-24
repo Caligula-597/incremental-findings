@@ -8,6 +8,7 @@ import { ACADEMIC_CAMPAIGN_MANIFESTO, ACADEMIC_CAMPAIGN_THEMES, CREATIVE_CAMPAIG
 export default function CommunityPage({ searchParams }: { searchParams?: { lang?: string } }) {
   const lang = getSiteLang(searchParams?.lang);
   const copy = getSiteCopy(lang);
+  const supportEmail = process.env.SUPPORT_CONTACT_EMAIL?.trim() ?? '';
 
   const sectionCopy = {
     programsTitle: lang === 'zh' ? '公众项目' : 'Public-facing programs',
@@ -31,7 +32,8 @@ export default function CommunityPage({ searchParams }: { searchParams?: { lang?
     creditsBug: lang === 'zh'
       ? '如在浏览或投稿过程中遇到技术异常（Bug），或有系统优化建议，欢迎联系开发者：'
       : 'If you encounter bugs during browsing/submission, or have optimization suggestions, please contact the developer:',
-    creditsEmailLabel: lang === 'zh' ? '开发者邮箱' : 'Developer email'
+    creditsEmailLabel: lang === 'zh' ? '开发者邮箱' : 'Developer email',
+    creditsEmailFallback: lang === 'zh' ? '未配置（请联系管理员）' : 'Not configured (contact administrator)'
   };
 
   return (
@@ -138,9 +140,13 @@ export default function CommunityPage({ searchParams }: { searchParams?: { lang?
           <p className="mt-3 text-sm text-zinc-700">{sectionCopy.creditsBug}</p>
           <p className="mt-2 text-sm">
             <span className="font-semibold text-zinc-800">{sectionCopy.creditsEmailLabel}：</span>
-            <a className="text-indigo-700 underline underline-offset-2 hover:text-indigo-900" href="mailto:jing597277@gmail.com">
-              jing597277@gmail.com
-            </a>
+            {supportEmail ? (
+              <a className="text-indigo-700 underline underline-offset-2 hover:text-indigo-900" href={`mailto:${supportEmail}`}>
+                {supportEmail}
+              </a>
+            ) : (
+              <span className="text-zinc-600">{sectionCopy.creditsEmailFallback}</span>
+            )}
           </p>
         </div>
       </section>
