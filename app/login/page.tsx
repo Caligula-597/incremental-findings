@@ -108,8 +108,16 @@ export default function LoginPage() {
       identifier: String(formData.get('email') ?? ''),
       password: String(formData.get('password') ?? ''),
       editor_code: String(formData.get('editor_code') ?? ''),
+      invite_code: String(formData.get('invite_code') ?? ''),
+      editor_role: String(formData.get('editor_role') ?? ''),
       verification_code: verificationCode
     };
+
+    if (mode === 'editor' && !payload.editor_code.trim() && !payload.invite_code.trim()) {
+      setMessage(copy.login.editorNeedsCredential);
+      setLoading(false);
+      return;
+    }
 
     if (mode === 'register') {
       if (!verificationRequested || !pendingVerificationEmail || pendingVerificationEmail !== payload.email.trim().toLowerCase()) {
@@ -394,10 +402,24 @@ export default function LoginPage() {
             ) : null}
 
             {mode === 'editor' ? (
-              <label className="mt-4 grid gap-1 text-sm">
-                {copy.login.editorAccessCode}
-                <input name="editor_code" required type="password" className="rounded border border-zinc-300 px-3 py-2" placeholder={copy.login.editorCodePlaceholder} />
-              </label>
+              <div className="mt-4 grid gap-3 rounded border border-zinc-200 bg-white/60 p-4">
+                <label className="grid gap-1 text-sm">
+                  {copy.login.editorRole}
+                  <select name="editor_role" className="rounded border border-zinc-300 px-3 py-2">
+                    <option value="managing_editor">{copy.login.managingEditorRoleOption}</option>
+                    <option value="review_editor">{copy.login.reviewEditorRoleOption}</option>
+                  </select>
+                </label>
+                <label className="grid gap-1 text-sm">
+                  {copy.login.editorAccessCode}
+                  <input name="editor_code" type="password" className="rounded border border-zinc-300 px-3 py-2" placeholder={copy.login.editorCodePlaceholder} />
+                </label>
+                <p className="text-xs text-zinc-500">{copy.login.editorOrInviteDivider}</p>
+                <label className="grid gap-1 text-sm">
+                  {copy.login.editorInviteCode}
+                  <input name="invite_code" type="password" className="rounded border border-zinc-300 px-3 py-2" placeholder={copy.login.editorInviteCodePlaceholder} />
+                </label>
+              </div>
             ) : (
               <label className="mt-4 grid gap-1 text-sm">
                 {copy.login.password}
