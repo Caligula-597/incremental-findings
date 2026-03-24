@@ -87,6 +87,10 @@ export async function POST(request: Request) {
     const title = String(form.get('title') ?? '').trim();
     const authors = String(form.get('authors') ?? '').trim();
     const submissionTrackValue = String(form.get('submission_track') ?? 'academic').trim();
+    const campaignTheme = String(form.get('campaign_theme') ?? '').trim();
+    const allAuthorsAuthorized = form.get('all_authors_authorized') === 'true';
+    const authorSignature = String(form.get('author_signature') ?? '').trim();
+    const coauthorSignaturesRaw = String(form.get('coauthor_signatures') ?? '').trim();
 
     if (!isSubmissionTrack(submissionTrackValue)) {
       return NextResponse.json({ error: 'submission_track must be academic or entertainment' }, { status: 400 });
@@ -94,6 +98,32 @@ export async function POST(request: Request) {
 
     if (!title) {
       return NextResponse.json({ error: 'title is required' }, { status: 400 });
+    }
+
+    if (!allAuthorsAuthorized) {
+      return NextResponse.json({ error: 'All authors authorization checkbox is required' }, { status: 400 });
+    }
+
+    if (!authorSignature) {
+      return NextResponse.json({ error: 'Submitting author electronic signature is required' }, { status: 400 });
+    }
+
+    const authorsList = authors
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+    const coauthorSignatures = coauthorSignaturesRaw
+      .split('\n')
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    if (authorsList.length > 1 && coauthorSignatures.length < authorsList.length - 1) {
+      return NextResponse.json(
+        {
+          error: `Co-author signatures are required for all non-submitting authors. Expected at least ${authorsList.length - 1} signature lines.`
+        },
+        { status: 400 }
+      );
     }
 
     const consent = {
@@ -131,9 +161,23 @@ export async function POST(request: Request) {
     }
 
     const warnings: string[] = [];
+    const storageDiagnostics: Array<{
+      file_name: string;
+      file_kind: 'manuscript' | 'cover_letter' | 'supporting';
+      storage_mode: 'memory' | 'supabase';
+      storage_path: string;
+      warning?: string;
+    }> = [];
 
     const manuscriptUpload = await uploadToStorage(manuscript, 'manuscripts');
     if (manuscriptUpload.warning) warnings.push(`Manuscript storage fallback: ${manuscriptUpload.warning}`);
+    storageDiagnostics.push({
+      file_name: manuscript.name,
+      file_kind: 'manuscript',
+      storage_mode: manuscriptUpload.mode,
+      storage_path: manuscriptUpload.path,
+      ...(manuscriptUpload.warning ? { warning: manuscriptUpload.warning } : {})
+    });
 
     const created = await createSubmission({
       title,
@@ -154,6 +198,13 @@ export async function POST(request: Request) {
 
     const coverUpload = await uploadToStorage(coverLetter, 'cover-letters');
     if (coverUpload.warning) warnings.push(`Cover letter storage fallback: ${coverUpload.warning}`);
+    storageDiagnostics.push({
+      file_name: coverLetter.name,
+      file_kind: 'cover_letter',
+      storage_mode: coverUpload.mode,
+      storage_path: coverUpload.path,
+      ...(coverUpload.warning ? { warning: coverUpload.warning } : {})
+    });
     filesToRecord.push({ file: coverLetter, kind: 'cover_letter', path: coverUpload.path, mode: coverUpload.mode });
 
     for (const item of supporting) {
@@ -166,6 +217,13 @@ export async function POST(request: Request) {
 
         const supportUpload = await uploadToStorage(item, 'supporting-files');
         if (supportUpload.warning) warnings.push(`Supporting file fallback (${item.name}): ${supportUpload.warning}`);
+        storageDiagnostics.push({
+          file_name: item.name,
+          file_kind: 'supporting',
+          storage_mode: supportUpload.mode,
+          storage_path: supportUpload.path,
+          ...(supportUpload.warning ? { warning: supportUpload.warning } : {})
+        });
         filesToRecord.push({ file: item, kind: 'supporting', path: supportUpload.path, mode: supportUpload.mode });
       }
     }
@@ -211,15 +269,23 @@ export async function POST(request: Request) {
       }
     }
 
-    const metadataPayload = {
+    const metadataPayload: Record<string, unknown> = {
       title,
       authors: authors || userEmail || (userId ? `Author ${userId.slice(0, 8)}` : 'Unknown author'),
       abstract: String(form.get('abstract') ?? ''),
       discipline: String(form.get('discipline') ?? ''),
       category: submissionTrackValue,
       topic: String(form.get('topic') ?? ''),
-      article_type: String(form.get('article_type') ?? '')
+      article_type: String(form.get('article_type') ?? ''),
+      signatures: {
+        all_authors_authorized: allAuthorsAuthorized,
+        submitting_author_signature: authorSignature,
+        coauthor_signatures: coauthorSignatures
+      }
     };
+    if (campaignTheme) {
+      metadataPayload.campaign_theme = campaignTheme;
+    }
 
     const audit = {
       id: randomUUID(),
@@ -254,10 +320,17 @@ export async function POST(request: Request) {
       {
         data: {
           submission: created,
+          campaign_theme: campaignTheme || null,
+          signatures: {
+            all_authors_authorized: allAuthorsAuthorized,
+            submitting_author_signature: authorSignature,
+            coauthor_signature_count: coauthorSignatures.length
+          },
           consent,
           files: fileRows,
           file_integrity: fileIntegrity,
-          audit
+          audit,
+          storage_diagnostics: storageDiagnostics
         },
         warnings
       },
