@@ -3,6 +3,7 @@ import { SiteHeader } from '@/components/header';
 import { SectionTitle } from '@/components/ui-kit';
 import { JOURNAL_POSITIONING, JOURNAL_PUBLIC_PROGRAMS } from '@/lib/journal-plan';
 import { getSiteCopy, getSiteLang } from '@/lib/site-copy';
+import { ACADEMIC_CAMPAIGN_MANIFESTO, ACADEMIC_CAMPAIGN_THEMES, CREATIVE_CAMPAIGN_MANIFESTO, CREATIVE_CAMPAIGN_THEMES } from '@/lib/creative-campaign';
 
 export default function CommunityPage({ searchParams }: { searchParams?: { lang?: string } }) {
   const lang = getSiteLang(searchParams?.lang);
@@ -11,6 +12,10 @@ export default function CommunityPage({ searchParams }: { searchParams?: { lang?
   const sectionCopy = {
     programsTitle: lang === 'zh' ? '公众项目' : 'Public-facing programs',
     programsSubtitle: lang === 'zh' ? '让期刊内容不只服务同行评审，也服务公众理解。' : 'Make journal content useful not only for peer review, but also for public understanding.',
+    campaignTitle: lang === 'zh' ? '首期征稿活动（学术 + 自由创作）' : 'First Call for Submissions (Academic + Creative)',
+    campaignSubtitle: lang === 'zh' ? '学术研究区与自由创作区都已开启主题征稿。' : 'Both academic and creative tracks now have active themed calls.',
+    academicCampaignTitle: lang === 'zh' ? '学术研究区主题征稿' : 'Academic Track Themes',
+    creativeCampaignTitle: lang === 'zh' ? '自由创作区主题征稿' : 'Creative Track Themes',
     missionDetailsTitle: lang === 'zh' ? '期刊使命（扩展）' : 'Extended mission',
     missionDetailsSubtitle: lang === 'zh' ? '我们强调“增量但可靠”的学术价值观。' : 'Our editorial philosophy emphasizes “incremental yet reliable” science.',
     pillarsTitle: lang === 'zh' ? '办刊原则' : 'Editorial pillars',
@@ -63,6 +68,42 @@ export default function CommunityPage({ searchParams }: { searchParams?: { lang?
               <p className="mt-2 text-sm text-zinc-700">{program.description}</p>
             </article>
           ))}
+        </div>
+      </section>
+
+      <section className="mt-8 glass-panel p-6">
+        <SectionTitle title={sectionCopy.campaignTitle} subtitle={sectionCopy.campaignSubtitle} />
+        <div className="mt-2 grid gap-4 lg:grid-cols-2">
+          <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-4">
+            <h4 className="font-semibold text-indigo-950">{sectionCopy.academicCampaignTitle}</h4>
+            <p className="mt-2 rounded-lg border border-indigo-200 bg-indigo-50/70 px-4 py-3 text-sm text-indigo-900">{ACADEMIC_CAMPAIGN_MANIFESTO[lang]}</p>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              {ACADEMIC_CAMPAIGN_THEMES.map((theme) => (
+                <article key={theme.slug} className="rounded-xl border border-zinc-200 bg-white/90 p-4">
+                  <h4 className="font-semibold">{theme.title[lang]}</h4>
+                  <p className="mt-2 text-sm text-zinc-700">{theme.summary[lang]}</p>
+                  <Link className="btn btn-secondary btn-sm mt-3" href={`/submit?lang=${lang}&track=academic&campaign_theme=${theme.slug}`}>
+                    {theme.cta[lang]}
+                  </Link>
+                </article>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-xl border border-purple-200 bg-purple-50/50 p-4">
+            <h4 className="font-semibold text-purple-950">{sectionCopy.creativeCampaignTitle}</h4>
+            <p className="mt-2 rounded-lg border border-purple-200 bg-purple-50/70 px-4 py-3 text-sm text-purple-900">{CREATIVE_CAMPAIGN_MANIFESTO[lang]}</p>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              {CREATIVE_CAMPAIGN_THEMES.map((theme) => (
+                <article key={theme.slug} className="rounded-xl border border-zinc-200 bg-white/90 p-4">
+                  <h4 className="font-semibold">{theme.title[lang]}</h4>
+                  <p className="mt-2 text-sm text-zinc-700">{theme.summary[lang]}</p>
+                  <Link className="btn btn-secondary btn-sm mt-3" href={`/submit?lang=${lang}&track=entertainment&campaign_theme=${theme.slug}`}>
+                    {theme.cta[lang]}
+                  </Link>
+                </article>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 

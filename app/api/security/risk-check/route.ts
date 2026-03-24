@@ -22,10 +22,8 @@ export async function POST(request: Request) {
       return riskGuard.response;
     }
 
-    const ip = String(body?.ip ?? riskGuard.ip).trim() || 'unknown';
-
     const data = await runRiskCheck({
-      ip,
+      ip: riskGuard.ip,
       route,
       actorEmail: sessionUser?.email,
       userAgent
