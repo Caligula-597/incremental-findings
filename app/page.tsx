@@ -8,7 +8,7 @@ import { listSubmissions } from '@/lib/submission-repository';
 import { getArticleTypeOptions, getDisciplineOptions, getTaxonomyLabel } from '@/lib/taxonomy';
 import { getSiteCopy, getSiteLang } from '@/lib/site-copy';
 import { getSubmissionTrack, getSubmissionTrackDoiNote, getSubmissionTrackLabel } from '@/lib/submission-track';
-import { CREATIVE_CAMPAIGN_MANIFESTO, CREATIVE_CAMPAIGN_THEMES } from '@/lib/creative-campaign';
+import { ACADEMIC_CAMPAIGN_MANIFESTO, ACADEMIC_CAMPAIGN_THEMES, CREATIVE_CAMPAIGN_MANIFESTO, CREATIVE_CAMPAIGN_THEMES } from '@/lib/creative-campaign';
 
 export const revalidate = 60;
 
@@ -44,8 +44,10 @@ export default async function HomePage({
     entertainmentSubtitle: lang === 'zh' ? '合法合规公开展示，不分配 DOI。' : 'Publicly displayed for discussion, without DOI assignment.',
     emptyAcademic: lang === 'zh' ? '当前暂无学术区已发布内容。' : 'No published academic-track items yet.',
     emptyEntertainment: lang === 'zh' ? '当前暂无娱乐区已发布内容。' : 'No published creative-track items yet.',
-    campaignTitle: lang === 'zh' ? '自由创作区征稿活动' : 'Creative Track Calls',
-    campaignSubtitle: lang === 'zh' ? '双主题同步进行，直接进入投稿。' : 'Two themes are live in parallel. Jump directly to submission.'
+    campaignTitle: lang === 'zh' ? '首期征稿活动（学术 + 自由创作）' : 'First Calls for Submissions (Academic + Creative)',
+    campaignSubtitle: lang === 'zh' ? '两个分区都已开启主题征稿，可直接进入对应投稿入口。' : 'Both tracks are now accepting themed submissions with direct submission links.',
+    academicCampaignTitle: lang === 'zh' ? '学术研究区征稿活动' : 'Academic Track Call',
+    creativeCampaignTitle: lang === 'zh' ? '自由创作区征稿活动' : 'Creative Track Call'
   };
 
   const disciplineOptions = selectedTrack
@@ -221,17 +223,37 @@ export default async function HomePage({
 
       <section className="mt-10 glass-panel p-6">
         <SectionTitle title={sectionCopy.campaignTitle} subtitle={sectionCopy.campaignSubtitle} className="mb-3" />
-        <p className="rounded-lg border border-indigo-200 bg-indigo-50/70 px-4 py-3 text-sm text-indigo-900">{CREATIVE_CAMPAIGN_MANIFESTO[lang]}</p>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {CREATIVE_CAMPAIGN_THEMES.map((theme) => (
-            <article key={theme.slug} className="rounded-lg border border-zinc-200 bg-white/90 p-4">
-              <h4 className="font-semibold">{theme.title[lang]}</h4>
-              <p className="mt-2 text-sm text-zinc-700">{theme.summary[lang]}</p>
-              <Link className="btn btn-secondary btn-sm mt-3" href={`/submit?lang=${lang}&track=entertainment&campaign_theme=${theme.slug}`}>
-                {theme.cta[lang]}
-              </Link>
-            </article>
-          ))}
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-4">
+            <h4 className="text-sm font-semibold text-indigo-950">{sectionCopy.academicCampaignTitle}</h4>
+            <p className="mt-2 rounded-lg border border-indigo-200 bg-indigo-50/70 px-4 py-3 text-sm text-indigo-900">{ACADEMIC_CAMPAIGN_MANIFESTO[lang]}</p>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {ACADEMIC_CAMPAIGN_THEMES.map((theme) => (
+                <article key={theme.slug} className="rounded-lg border border-zinc-200 bg-white/90 p-4">
+                  <h4 className="font-semibold">{theme.title[lang]}</h4>
+                  <p className="mt-2 text-sm text-zinc-700">{theme.summary[lang]}</p>
+                  <Link className="btn btn-secondary btn-sm mt-3" href={`/submit?lang=${lang}&track=academic&campaign_theme=${theme.slug}`}>
+                    {theme.cta[lang]}
+                  </Link>
+                </article>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-xl border border-purple-200 bg-purple-50/50 p-4">
+            <h4 className="text-sm font-semibold text-purple-950">{sectionCopy.creativeCampaignTitle}</h4>
+            <p className="mt-2 rounded-lg border border-purple-200 bg-purple-50/70 px-4 py-3 text-sm text-purple-900">{CREATIVE_CAMPAIGN_MANIFESTO[lang]}</p>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {CREATIVE_CAMPAIGN_THEMES.map((theme) => (
+                <article key={theme.slug} className="rounded-lg border border-zinc-200 bg-white/90 p-4">
+                  <h4 className="font-semibold">{theme.title[lang]}</h4>
+                  <p className="mt-2 text-sm text-zinc-700">{theme.summary[lang]}</p>
+                  <Link className="btn btn-secondary btn-sm mt-3" href={`/submit?lang=${lang}&track=entertainment&campaign_theme=${theme.slug}`}>
+                    {theme.cta[lang]}
+                  </Link>
+                </article>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 

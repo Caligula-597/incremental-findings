@@ -7,7 +7,13 @@ import { getArticleTypeOptions, getDisciplineOptions, getTaxonomyLabel, getTopic
 import { SectionTitle } from '@/components/ui-kit';
 import { getSiteCopy, getSiteLang } from '@/lib/site-copy';
 import { SUBMISSION_TRACKS, SubmissionTrack } from '@/lib/submission-track';
-import { CREATIVE_CAMPAIGN_MANIFESTO, CREATIVE_CAMPAIGN_THEMES, isCreativeCampaignTheme } from '@/lib/creative-campaign';
+import {
+  ACADEMIC_CAMPAIGN_MANIFESTO,
+  ACADEMIC_CAMPAIGN_THEMES,
+  CREATIVE_CAMPAIGN_MANIFESTO,
+  CREATIVE_CAMPAIGN_THEMES,
+  isCreativeCampaignTheme
+} from '@/lib/creative-campaign';
 import { withLang } from '@/lib/lang';
 
 export default function SubmitPage() {
@@ -279,28 +285,32 @@ export default function SubmitPage() {
           </div>
 
           <div className="mt-2 grid gap-3">
-            {submissionTrack === 'entertainment' ? (
-              <div className="rounded-xl border border-purple-200 bg-purple-50/70 px-4 py-4">
-                <p className="text-sm font-semibold text-purple-950">{lang === 'zh' ? '自由创作区首期双主题征稿' : 'Creative Track First Call for Submissions'}</p>
-                <p className="mt-2 text-sm text-purple-900">{CREATIVE_CAMPAIGN_MANIFESTO[lang]}</p>
-                <label className="mt-3 grid gap-1 text-sm">
-                  {lang === 'zh' ? '活动主题（可选）' : 'Campaign theme (optional)'}
-                  <select
-                    name="campaign_theme"
-                    className="rounded-lg border border-zinc-300 px-3 py-2"
-                    value={campaignTheme}
-                    onChange={(event) => setCampaignTheme(event.target.value)}
-                  >
-                    <option value="">{lang === 'zh' ? '不指定主题' : 'No specific theme'}</option>
-                    {CREATIVE_CAMPAIGN_THEMES.map((theme) => (
-                      <option key={theme.slug} value={theme.slug}>
-                        {theme.title[lang]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            ) : null}
+            <div className={`rounded-xl px-4 py-4 ${submissionTrack === 'academic' ? 'border border-indigo-200 bg-indigo-50/70' : 'border border-purple-200 bg-purple-50/70'}`}>
+              <p className={`text-sm font-semibold ${submissionTrack === 'academic' ? 'text-indigo-950' : 'text-purple-950'}`}>
+                {submissionTrack === 'academic'
+                  ? (lang === 'zh' ? '学术研究区首期双主题征稿' : 'Academic Track First Call for Submissions')
+                  : (lang === 'zh' ? '自由创作区首期双主题征稿' : 'Creative Track First Call for Submissions')}
+              </p>
+              <p className={`mt-2 text-sm ${submissionTrack === 'academic' ? 'text-indigo-900' : 'text-purple-900'}`}>
+                {submissionTrack === 'academic' ? ACADEMIC_CAMPAIGN_MANIFESTO[lang] : CREATIVE_CAMPAIGN_MANIFESTO[lang]}
+              </p>
+              <label className="mt-3 grid gap-1 text-sm">
+                {lang === 'zh' ? '活动主题（可选）' : 'Campaign theme (optional)'}
+                <select
+                  name="campaign_theme"
+                  className="rounded-lg border border-zinc-300 px-3 py-2"
+                  value={campaignTheme}
+                  onChange={(event) => setCampaignTheme(event.target.value)}
+                >
+                  <option value="">{lang === 'zh' ? '不指定主题' : 'No specific theme'}</option>
+                  {(submissionTrack === 'academic' ? ACADEMIC_CAMPAIGN_THEMES : CREATIVE_CAMPAIGN_THEMES).map((theme) => (
+                    <option key={theme.slug} value={theme.slug}>
+                      {theme.title[lang]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
 
             <input required name="title" placeholder={copy.submit.titleField} className="rounded-lg border border-zinc-300 px-3 py-2" />
             <input required name="authors" placeholder={copy.submit.authorsField} className="rounded-lg border border-zinc-300 px-3 py-2" />
