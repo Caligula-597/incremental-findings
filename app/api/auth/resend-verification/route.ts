@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@/lib/supabase';
 import { runtimeUsers } from '@/lib/runtime-store';
 import { canExposeDebugVerificationCode, canResendVerification, createOrRefreshEmailVerification, getEmailVerification, getResendCooldownSeconds } from '@/lib/email-verification';
+import { guardRequest } from '@/lib/request-guard';
 
 export async function POST(request: Request) {
   try {
@@ -10,6 +11,18 @@ export async function POST(request: Request) {
 
     if (!email) {
       return NextResponse.json({ error: 'email is required' }, { status: 400 });
+    }
+
+    const resendGuard = await guardRequest(request, {
+      route: '/api/auth/resend-verification',
+      bucketPrefix: 'auth-resend-verification',
+      bucketKeySuffix: email,
+      maxRequests: Number(process.env.AUTH_RESEND_VERIFICATION_RATE_LIMIT_MAX ?? '10') || 10,
+      windowMs: Number(process.env.AUTH_RESEND_VERIFICATION_RATE_LIMIT_WINDOW_MS ?? '60000') || 60000,
+      limitError: 'Too many resend requests. Please try again later.'
+    });
+    if (resendGuard.response) {
+      return resendGuard.response;
     }
 
     const supabase = getSupabaseServerClient();
