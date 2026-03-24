@@ -35,7 +35,7 @@ export function getManagingEditors() {
 export function canUseManagingEditorCode(email: string) {
   const normalized = email.trim().toLowerCase();
   const allowlist = getManagingEditors();
-  if (allowlist.length === 0) return true;
+  if (allowlist.length === 0) return false;
   return allowlist.includes(normalized);
 }
 
