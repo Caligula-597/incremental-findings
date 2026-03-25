@@ -385,6 +385,9 @@ DEFAULT_REVIEW_DUE_DAYS=21
 ALLOW_DEBUG_VERIFICATION_CODE=false
 ```
 
+> `SUPPORT_CONTACT_EMAIL` is optional.  
+> If you want the community page technical-credits section to show a contact email in production, set this env var in Vercel (`Project Settings -> Environment Variables`); otherwise the UI shows a safe fallback text.
+
 > Server-side persistent writes require both `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
 > When either one is missing, the project runs in memory fallback mode (safe for local demo only).
 > In `NODE_ENV=production`, missing integration/security keys are logged as configuration warnings and server data access degrades to safe fallback mode where possible; set `SESSION_SECRET`, `EDITOR_ACCESS_CODE`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` for full production behavior.
