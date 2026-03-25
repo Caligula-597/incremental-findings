@@ -364,6 +364,7 @@ ORCID_CLIENT_SECRET=xxx
 ORCID_REDIRECT_URI=http://localhost:3000/api/orcid/callback
 RESEND_API_KEY=your_resend_api_key
 RESEND_FROM_EMAIL=verified_sender@yourdomain.com
+SUPPORT_CONTACT_EMAIL=contact@yourdomain.com
 EDITOR_ACCESS_CODE=your_editor_access_code
 EDITOR_ACCESS_CODE_ROLLOVER=old_code_1,old_code_2
 SESSION_SECRET=at_least_32_chars_random_secret
@@ -383,6 +384,9 @@ ENFORCE_REVIEWER_AUTHOR_SEPARATION=true
 DEFAULT_REVIEW_DUE_DAYS=21
 ALLOW_DEBUG_VERIFICATION_CODE=false
 ```
+
+> `SUPPORT_CONTACT_EMAIL` is optional.  
+> If you want the community page technical-credits section to show a contact email in production, set this env var in Vercel (`Project Settings -> Environment Variables`); otherwise the UI shows a safe fallback text.
 
 > Server-side persistent writes require both `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
 > When either one is missing, the project runs in memory fallback mode (safe for local demo only).
