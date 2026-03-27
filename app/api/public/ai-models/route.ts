@@ -8,13 +8,6 @@ interface ModelsBody {
   api_key?: string;
 }
 
-const fallbackModels: Record<Provider, string[]> = {
-  openai: ['gpt-5', 'gpt-5-mini', 'gpt-4.1-mini'],
-  deepseek: ['deepseek-chat', 'deepseek-reasoner'],
-  anthropic: ['claude-3-7-sonnet-latest', 'claude-3-5-sonnet-latest'],
-  gemini: ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-1.5-pro']
-};
-
 export async function POST(request: Request) {
   try {
     const body = (await request.json().catch(() => ({}))) as ModelsBody;
@@ -22,12 +15,12 @@ export async function POST(request: Request) {
     const apiKey = String(body.api_key ?? '').trim();
 
     if (!apiKey) {
-      return NextResponse.json({ data: { provider, models: fallbackModels[provider], source: 'fallback' as const } });
+      return NextResponse.json({ error: 'api_key is required to fetch provider model list.' }, { status: 400 });
     }
 
     const models = await listModelsByProvider({ provider, apiKey });
     if (models.length === 0) {
-      return NextResponse.json({ data: { provider, models: fallbackModels[provider], source: 'fallback' as const } });
+      return NextResponse.json({ error: 'No models returned from provider. Please verify provider/api_key permissions.' }, { status: 502 });
     }
 
     const filtered = models
@@ -37,12 +30,12 @@ export async function POST(request: Request) {
         if (provider === 'anthropic') return /^claude/i.test(name);
         return true;
       })
-      .slice(0, 40);
+      .slice(0, 100);
 
     return NextResponse.json({
       data: {
         provider,
-        models: filtered.length > 0 ? filtered : models.slice(0, 40),
+        models: filtered.length > 0 ? filtered : models.slice(0, 100),
         source: 'provider' as const
       }
     });

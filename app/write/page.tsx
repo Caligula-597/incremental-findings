@@ -14,13 +14,6 @@ interface DraftResponse {
   markdown: string;
 }
 
-const fallbackModelOptions: Record<Provider, string[]> = {
-  openai: ['gpt-4.1-mini', 'gpt-4.1', 'gpt-4o-mini'],
-  deepseek: ['deepseek-chat', 'deepseek-reasoner'],
-  anthropic: ['claude-3-5-sonnet-latest', 'claude-3-7-sonnet-latest'],
-  gemini: ['gemini-1.5-pro', 'gemini-1.5-flash']
-};
-
 export default function WritePage({ searchParams }: { searchParams?: { lang?: string } }) {
   const lang = useMemo(() => getSiteLang(searchParams?.lang), [searchParams?.lang]);
   const [topic, setTopic] = useState('');
@@ -29,8 +22,9 @@ export default function WritePage({ searchParams }: { searchParams?: { lang?: st
 
   const [provider, setProvider] = useState<Provider>('openai');
   const [apiKey, setApiKey] = useState('');
-  const [availableModels, setAvailableModels] = useState<string[]>(fallbackModelOptions.openai);
-  const [model, setModel] = useState(fallbackModelOptions.openai[0]);
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [model, setModel] = useState('');
+  const [modelFetchMessage, setModelFetchMessage] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -44,29 +38,54 @@ export default function WritePage({ searchParams }: { searchParams?: { lang?: st
     let alive = true;
 
     async function loadModels() {
+      if (!apiKey.trim()) {
+        setAvailableModels([]);
+        setModel('');
+        setModelFetchMessage(lang === 'zh' ? '请先输入 API Key 再检索模型。' : 'Enter API key first to fetch models.');
+        return;
+      }
+
+      setModelFetchMessage(lang === 'zh' ? '正在从模型服务商检索模型列表…' : 'Fetching models from provider...');
       const response = await fetch('/api/public/ai-models', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ provider, api_key: apiKey })
       });
 
-      const body = await response.json().catch(() => ({ data: null }));
-      const models = (body?.data?.models as string[] | undefined) ?? fallbackModelOptions[provider];
+      const body = await response.json().catch(() => ({ data: null, error: 'Unknown error' }));
       if (!alive) return;
-      setAvailableModels(models.length > 0 ? models : fallbackModelOptions[provider]);
-      setModel((current) => (models.includes(current) ? current : (models[0] ?? fallbackModelOptions[provider][0])));
+
+      if (!response.ok) {
+        setAvailableModels([]);
+        setModel('');
+        setModelFetchMessage(body.error ?? (lang === 'zh' ? '模型列表检索失败。' : 'Failed to fetch model list.'));
+        return;
+      }
+
+      const models = (body?.data?.models as string[] | undefined) ?? [];
+      setAvailableModels(models);
+      setModel(models[0] ?? '');
+      setModelFetchMessage(
+        models.length > 0
+          ? (lang === 'zh' ? `已检索到 ${models.length} 个模型。` : `${models.length} models retrieved.`)
+          : (lang === 'zh' ? '该 API Key 未返回可用模型。' : 'No models returned for this API key.')
+      );
     }
 
     void loadModels();
     return () => {
       alive = false;
     };
-  }, [provider, apiKey]);
+  }, [provider, apiKey, lang]);
 
   async function generateDraft(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!topic.trim()) {
       setMessage(lang === 'zh' ? '请先输入主题。' : 'Please enter a topic first.');
+      return;
+    }
+    if (!apiKey.trim() || !model) {
+      setMessage(lang === 'zh' ? '请先完成模型检索并选择模型。' : 'Fetch models first and select one model.');
       return;
     }
 
@@ -105,6 +124,10 @@ export default function WritePage({ searchParams }: { searchParams?: { lang?: st
       setCollabOutput(lang === 'zh' ? '请输入你要和模型讨论的问题。' : 'Please enter your collaboration prompt.');
       return;
     }
+    if (!apiKey.trim() || !model) {
+      setCollabOutput(lang === 'zh' ? '请先完成模型检索并选择模型。' : 'Fetch models first and select one model.');
+      return;
+    }
 
     setCollabLoading(true);
     setCollabOutput('');
@@ -138,8 +161,8 @@ export default function WritePage({ searchParams }: { searchParams?: { lang?: st
         title={lang === 'zh' ? '论文写作工作台（Beta）' : 'Paper Writing Studio (Beta)'}
         subtitle={
           lang === 'zh'
-            ? '选择模型品牌和模型名，输入 API Key 后即可协作写作。'
-            : 'Select provider + model and input your API key to collaborate on writing.'
+            ? '先检索你的 API Key 可用模型，再进行写作协作。'
+            : 'Fetch models available to your API key first, then collaborate.'
         }
       />
 
@@ -154,22 +177,24 @@ export default function WritePage({ searchParams }: { searchParams?: { lang?: st
               <option value="gemini">Google Gemini</option>
             </select>
           </div>
+          <div className="md:col-span-2">
+            <label className="text-sm font-medium">API Key</label>
+            <input type="password" className="mt-1 w-full rounded border border-zinc-300 px-3 py-2" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="sk-..." />
+          </div>
           <div>
             <label className="text-sm font-medium">Model</label>
-            <select className="mt-1 w-full rounded border border-zinc-300 px-3 py-2" value={model} onChange={(e) => setModel(e.target.value)}>
+            <select className="mt-1 w-full rounded border border-zinc-300 px-3 py-2" value={model} onChange={(e) => setModel(e.target.value)} disabled={availableModels.length === 0}>
+              {availableModels.length === 0 ? <option value="">{lang === 'zh' ? '先检索模型' : 'Fetch models first'}</option> : null}
               {availableModels.map((item) => (
                 <option key={item} value={item}>{item}</option>
               ))}
             </select>
           </div>
-          <div className="md:col-span-2">
-            <label className="text-sm font-medium">API Key</label>
-            <input type="password" className="mt-1 w-full rounded border border-zinc-300 px-3 py-2" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="sk-..." />
-          </div>
+          <p className="text-xs text-zinc-500 md:col-span-2">{modelFetchMessage}</p>
           <p className="text-xs text-zinc-500 md:col-span-2">
             {lang === 'zh'
-              ? '提示：密钥仅用于当前请求，不会写入数据库。Base URL 由服务端统一配置。'
-              : 'Note: keys are used only for the current request and are not persisted. Base URL is server-configured.'}
+              ? '密钥仅用于当前请求，不会写入数据库。模型选项来自对应服务商实时返回。'
+              : 'Keys are not persisted. Model options are fetched live from provider APIs.'}
           </p>
         </div>
 
@@ -207,7 +232,6 @@ export default function WritePage({ searchParams }: { searchParams?: { lang?: st
               <h3 className="font-semibold">{lang === 'zh' ? '摘要草稿' : 'Draft Abstract'}</h3>
               <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-800">{draft.abstract}</p>
             </div>
-
             <div>
               <h3 className="font-semibold">{lang === 'zh' ? '章节建议' : 'Section Suggestions'}</h3>
               <ol className="mt-2 list-decimal space-y-2 pl-5 text-sm text-zinc-800">
@@ -219,7 +243,6 @@ export default function WritePage({ searchParams }: { searchParams?: { lang?: st
                 ))}
               </ol>
             </div>
-
             <div>
               <h3 className="font-semibold">Markdown</h3>
               <textarea className="mt-2 h-64 w-full rounded border border-zinc-300 bg-zinc-50 p-3 text-xs" value={draft.markdown} readOnly />
