@@ -4,7 +4,7 @@ import { listIndexingExports } from '@/lib/indexing-service';
 
 export async function GET(request: Request) {
   try {
-    const user = getServerSessionUser();
+    const user = await getServerSessionUser();
     if (!user || user.role !== 'editor') {
       return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
     }

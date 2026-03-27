@@ -7,7 +7,7 @@ import { isManagingEditor } from '@/lib/editor-workspace-service';
 
 export async function POST(request: Request, context: { params: { id: string } }) {
   try {
-    const sessionUser = getServerSessionUser();
+    const sessionUser = await getServerSessionUser();
     if (!sessionUser || sessionUser.role !== 'editor') {
       return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
     }

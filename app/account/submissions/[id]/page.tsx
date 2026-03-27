@@ -76,6 +76,14 @@ export default function AccountSubmissionDetailPage({ params, searchParams }: { 
           {lang === 'zh' ? '← 返回账户页' : '← Back to account'}
         </a>
 
+        {item ? (
+          <div className="mt-2">
+            <a className="underline" href={withLang(`/account/submissions/${item.id}/timeline`, lang)}>
+              {lang === 'zh' ? '查看稿件时间线 →' : 'View timeline →'}
+            </a>
+          </div>
+        ) : null}
+
         {!item ? <p className="mt-4 text-zinc-700">{message || (lang === 'zh' ? '加载中…' : 'Loading…')}</p> : null}
 
         {item ? (
