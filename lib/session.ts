@@ -1,5 +1,6 @@
-import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
+import { createHmac, randomBytes, randomUUID, timingSafeEqual } from 'crypto';
 import { cookies } from 'next/headers';
+import { getSupabaseServerClient } from '@/lib/supabase';
 
 export type SessionRole = 'author' | 'editor';
 export type SessionEditorRole = 'managing_editor' | 'review_editor';
@@ -12,8 +13,37 @@ export interface SessionUser {
   editor_role?: SessionEditorRole | null;
 }
 
+interface SessionTokenPayload extends SessionUser {
+  sid: string;
+  iat: number;
+  exp: number;
+}
+
+interface SessionStateRecord {
+  sid: string;
+  user_id: string;
+  email: string;
+  name: string;
+  role: SessionRole;
+  editor_role: SessionEditorRole | null;
+  issued_at: string;
+  expires_at: string;
+  revoked_at: string | null;
+  last_seen_at: string;
+}
+
 const COOKIE_NAME = 'if_session';
+const SESSION_TTL_SECONDS = 60 * 60 * 24 * 14;
 const devSessionSecret = randomBytes(32).toString('hex');
+const runtimeSessionStates = new Map<string, SessionStateRecord>();
+
+function nowUnixSeconds() {
+  return Math.floor(Date.now() / 1000);
+}
+
+function toIsoFromUnix(seconds: number) {
+  return new Date(seconds * 1000).toISOString();
+}
 
 function getSessionSecret() {
   const secret = process.env.SESSION_SECRET;
@@ -32,13 +62,22 @@ function sign(payloadBase64: string) {
   return createHmac('sha256', getSessionSecret()).update(payloadBase64).digest('base64url');
 }
 
-export function buildSessionToken(user: SessionUser) {
-  const payload = Buffer.from(JSON.stringify(user), 'utf8').toString('base64url');
-  const signature = sign(payload);
-  return `${payload}.${signature}`;
+function buildTokenPayload(user: SessionUser, sid: string, iat = nowUnixSeconds(), ttlSeconds = SESSION_TTL_SECONDS): SessionTokenPayload {
+  return {
+    ...user,
+    sid,
+    iat,
+    exp: iat + ttlSeconds
+  };
 }
 
-export function parseSessionToken(token?: string): SessionUser | null {
+function encodeToken(payload: SessionTokenPayload) {
+  const payloadBase64 = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+  const signature = sign(payloadBase64);
+  return `${payloadBase64}.${signature}`;
+}
+
+function decodeSessionToken(token?: string): SessionTokenPayload | null {
   if (!token || !token.includes('.')) {
     return null;
   }
@@ -56,11 +95,20 @@ export function parseSessionToken(token?: string): SessionUser | null {
   }
 
   try {
-    const parsed = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as SessionUser;
-    if (!parsed?.id || !parsed?.email || !parsed?.name || (parsed.role !== 'author' && parsed.role !== 'editor')) {
+    const parsed = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as SessionTokenPayload;
+    if (!parsed?.id || !parsed?.email || !parsed?.name || !parsed?.sid) {
+      return null;
+    }
+    if (parsed.role !== 'author' && parsed.role !== 'editor') {
       return null;
     }
     if (parsed.editor_role && parsed.editor_role !== 'managing_editor' && parsed.editor_role !== 'review_editor') {
+      return null;
+    }
+    if (!Number.isFinite(parsed.iat) || !Number.isFinite(parsed.exp)) {
+      return null;
+    }
+    if (parsed.exp <= nowUnixSeconds()) {
       return null;
     }
     return parsed;
@@ -69,13 +117,89 @@ export function parseSessionToken(token?: string): SessionUser | null {
   }
 }
 
+async function persistSession(record: SessionStateRecord) {
+  const supabase = getSupabaseServerClient();
+  if (supabase) {
+    const insert = await supabase.from('session_states').insert(record);
+    if (!insert.error) {
+      return;
+    }
+  }
+
+  runtimeSessionStates.set(record.sid, record);
+}
+
+async function getSessionStateBySid(sid: string): Promise<SessionStateRecord | null> {
+  const supabase = getSupabaseServerClient();
+  if (supabase) {
+    const row = await supabase.from('session_states').select('*').eq('sid', sid).maybeSingle();
+    if (!row.error && row.data) {
+      return row.data as SessionStateRecord;
+    }
+  }
+
+  return runtimeSessionStates.get(sid) ?? null;
+}
+
+async function touchSessionState(sid: string, nowIso: string) {
+  const supabase = getSupabaseServerClient();
+  if (supabase) {
+    await supabase.from('session_states').update({ last_seen_at: nowIso }).eq('sid', sid);
+  }
+
+  const existing = runtimeSessionStates.get(sid);
+  if (existing) {
+    existing.last_seen_at = nowIso;
+  }
+}
+
+export function buildSessionToken(user: SessionUser) {
+  const sid = randomUUID();
+  return encodeToken(buildTokenPayload(user, sid));
+}
+
+export async function issueSessionToken(user: SessionUser) {
+  const sid = randomUUID();
+  const payload = buildTokenPayload(user, sid);
+  const record: SessionStateRecord = {
+    sid,
+    user_id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    editor_role: user.editor_role ?? null,
+    issued_at: toIsoFromUnix(payload.iat),
+    expires_at: toIsoFromUnix(payload.exp),
+    revoked_at: null,
+    last_seen_at: new Date().toISOString()
+  };
+
+  await persistSession(record);
+  return encodeToken(payload);
+}
+
+export function parseSessionToken(token?: string): SessionUser | null {
+  const payload = decodeSessionToken(token);
+  if (!payload) {
+    return null;
+  }
+
+  return {
+    id: payload.id,
+    email: payload.email,
+    name: payload.name,
+    role: payload.role,
+    editor_role: payload.editor_role ?? null
+  };
+}
+
 export function setSessionCookie(token: string) {
   cookies().set(COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
     path: '/',
-    maxAge: 60 * 60 * 24 * 14
+    maxAge: SESSION_TTL_SECONDS
   });
 }
 
@@ -89,7 +213,57 @@ export function clearSessionCookie() {
   });
 }
 
-export function getServerSessionUser(): SessionUser | null {
+export async function revokeCurrentSession() {
   const token = cookies().get(COOKIE_NAME)?.value;
-  return parseSessionToken(token);
+  const payload = decodeSessionToken(token);
+  if (!payload?.sid) {
+    return;
+  }
+
+  const nowIso = new Date().toISOString();
+  const supabase = getSupabaseServerClient();
+  if (supabase) {
+    await supabase.from('session_states').update({ revoked_at: nowIso, last_seen_at: nowIso }).eq('sid', payload.sid);
+  }
+
+  const runtimeRecord = runtimeSessionStates.get(payload.sid);
+  if (runtimeRecord) {
+    runtimeRecord.revoked_at = nowIso;
+    runtimeRecord.last_seen_at = nowIso;
+  }
+}
+
+export async function getServerSessionUser(): Promise<SessionUser | null> {
+  const token = cookies().get(COOKIE_NAME)?.value;
+  const payload = decodeSessionToken(token);
+  if (!payload) {
+    return null;
+  }
+
+  const state = await getSessionStateBySid(payload.sid);
+  const fallbackUser = {
+    id: payload.id,
+    email: payload.email,
+    name: payload.name,
+    role: payload.role,
+    editor_role: payload.editor_role ?? null
+  };
+
+  if (!state) {
+    // Compatibility mode: allow signed token when session state storage is unavailable.
+    // Set REQUIRE_SESSION_STATE=true to enforce strict revocation checks.
+    if (process.env.REQUIRE_SESSION_STATE === 'true') {
+      return null;
+    }
+    return fallbackUser;
+  }
+
+  const nowIso = new Date().toISOString();
+  if (state.revoked_at || state.expires_at <= nowIso) {
+    return null;
+  }
+
+  await touchSessionState(payload.sid, nowIso);
+
+  return fallbackUser;
 }
