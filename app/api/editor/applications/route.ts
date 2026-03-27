@@ -4,7 +4,7 @@ import { isManagingEditor } from '@/lib/editor-workspace-service';
 import { listEditorApplications, submitEditorApplication } from '@/lib/editor-access';
 
 export async function GET(request: Request) {
-  const user = getServerSessionUser();
+  const user = await getServerSessionUser();
   if (!user || user.role !== 'editor') {
     return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
   }
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const user = getServerSessionUser();
+  const user = await getServerSessionUser();
   if (!user) {
     return NextResponse.json({ error: 'Login required' }, { status: 401 });
   }

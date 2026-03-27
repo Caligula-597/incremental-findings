@@ -9,7 +9,7 @@ const trackedActions = new Set(['editor_file_viewed', 'editor_status_updated', '
 
 export async function GET() {
   try {
-    const user = getServerSessionUser();
+    const user = await getServerSessionUser();
     if (!user || user.role !== 'editor') {
       return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
     }
