@@ -4,7 +4,7 @@ import { getSupabaseServerClient } from '@/lib/supabase';
 import { runtimeEthicsCases } from '@/lib/runtime-store';
 
 export async function PATCH(request: Request, context: { params: { id: string } }) {
-  const sessionUser = getServerSessionUser();
+  const sessionUser = await getServerSessionUser();
   if (!sessionUser || sessionUser.role !== 'editor') {
     return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
   }

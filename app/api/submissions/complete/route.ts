@@ -71,7 +71,7 @@ export async function POST(request: Request) {
   try {
     const form = await request.formData();
 
-    const sessionUser = getServerSessionUser();
+    const sessionUser = await getServerSessionUser();
     if (!sessionUser) {
       return NextResponse.json({ error: 'Login required before submission' }, { status: 401 });
     }
