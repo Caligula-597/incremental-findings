@@ -241,8 +241,21 @@ export async function getServerSessionUser(): Promise<SessionUser | null> {
   }
 
   const state = await getSessionStateBySid(payload.sid);
+  const fallbackUser = {
+    id: payload.id,
+    email: payload.email,
+    name: payload.name,
+    role: payload.role,
+    editor_role: payload.editor_role ?? null
+  };
+
   if (!state) {
-    return null;
+    // Compatibility mode: allow signed token when session state storage is unavailable.
+    // Set REQUIRE_SESSION_STATE=true to enforce strict revocation checks.
+    if (process.env.REQUIRE_SESSION_STATE === 'true') {
+      return null;
+    }
+    return fallbackUser;
   }
 
   const nowIso = new Date().toISOString();
@@ -252,11 +265,5 @@ export async function getServerSessionUser(): Promise<SessionUser | null> {
 
   await touchSessionState(payload.sid, nowIso);
 
-  return {
-    id: payload.id,
-    email: payload.email,
-    name: payload.name,
-    role: payload.role,
-    editor_role: payload.editor_role ?? null
-  };
+  return fallbackUser;
 }
