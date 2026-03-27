@@ -3,7 +3,7 @@ import { getServerSessionUser } from '@/lib/session';
 import { listNotificationTemplates } from '@/lib/notification-service';
 
 export async function GET() {
-  const sessionUser = getServerSessionUser();
+  const sessionUser = await getServerSessionUser();
   if (!sessionUser || sessionUser.role !== 'editor') {
     return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
   }
