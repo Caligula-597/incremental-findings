@@ -5,8 +5,10 @@ import { SiteHeader } from '@/components/header';
 import { SectionTitle } from '@/components/ui-kit';
 import { getSiteLang } from '@/lib/site-copy';
 
+type Provider = 'openai' | 'deepseek' | 'anthropic' | 'gemini';
+
 interface DraftResponse {
-  mode: 'model' | 'local-template';
+  mode: string;
   abstract: string;
   sections: Array<{ order: number; title: string; notes: string }>;
   markdown: string;
@@ -17,9 +19,19 @@ export default function WritePage({ searchParams }: { searchParams?: { lang?: st
   const [topic, setTopic] = useState('');
   const [discipline, setDiscipline] = useState('');
   const [articleType, setArticleType] = useState('research_article');
+
+  const [provider, setProvider] = useState<Provider>('openai');
+  const [apiKey, setApiKey] = useState('');
+  const [baseUrl, setBaseUrl] = useState('');
+  const [model, setModel] = useState('');
+
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [draft, setDraft] = useState<DraftResponse | null>(null);
+
+  const [collabInput, setCollabInput] = useState('');
+  const [collabLoading, setCollabLoading] = useState(false);
+  const [collabOutput, setCollabOutput] = useState('');
 
   async function generateDraft(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -40,7 +52,11 @@ export default function WritePage({ searchParams }: { searchParams?: { lang?: st
         discipline,
         article_type: articleType,
         language: lang === 'en' ? 'en' : 'zh',
-        section_count: 6
+        section_count: 6,
+        provider,
+        api_key: apiKey,
+        base_url: baseUrl,
+        model
       })
     });
 
@@ -55,6 +71,38 @@ export default function WritePage({ searchParams }: { searchParams?: { lang?: st
     setLoading(false);
   }
 
+  async function collaborate() {
+    if (!collabInput.trim()) {
+      setCollabOutput(lang === 'zh' ? '请输入你要和模型讨论的问题。' : 'Please enter your collaboration prompt.');
+      return;
+    }
+
+    setCollabLoading(true);
+    setCollabOutput('');
+
+    const response = await fetch('/api/public/ai-collab', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: collabInput,
+        provider,
+        api_key: apiKey,
+        base_url: baseUrl,
+        model
+      })
+    });
+
+    const body = await response.json().catch(() => ({ data: null, error: 'Unknown error' }));
+    if (!response.ok) {
+      setCollabOutput(body.error ?? (lang === 'zh' ? '协作调用失败。' : 'Collaboration call failed.'));
+      setCollabLoading(false);
+      return;
+    }
+
+    setCollabOutput(body.data?.text ?? '');
+    setCollabLoading(false);
+  }
+
   return (
     <main>
       <SiteHeader />
@@ -62,12 +110,41 @@ export default function WritePage({ searchParams }: { searchParams?: { lang?: st
         title={lang === 'zh' ? '论文写作工作台（Beta）' : 'Paper Writing Studio (Beta)'}
         subtitle={
           lang === 'zh'
-            ? '输入主题后，系统会生成摘要草稿和章节建议。可直接复制到你的投稿草稿中。'
-            : 'Enter a topic to generate a draft abstract and recommended section structure.'
+            ? '输入你的品牌模型 API（OpenAI/DeepSeek/Anthropic/Gemini）后，可直接协作写作。'
+            : 'Bring your own model API (OpenAI/DeepSeek/Anthropic/Gemini) and collaborate on writing directly.'
         }
       />
 
       <section className="glass-panel p-6">
+        <div className="mb-6 grid gap-3 rounded border border-zinc-200 bg-white p-4 md:grid-cols-2">
+          <div>
+            <label className="text-sm font-medium">Provider</label>
+            <select className="mt-1 w-full rounded border border-zinc-300 px-3 py-2" value={provider} onChange={(e) => setProvider(e.target.value as Provider)}>
+              <option value="openai">OpenAI</option>
+              <option value="deepseek">DeepSeek</option>
+              <option value="anthropic">Anthropic</option>
+              <option value="gemini">Google Gemini</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Model (optional)</label>
+            <input className="mt-1 w-full rounded border border-zinc-300 px-3 py-2" value={model} onChange={(e) => setModel(e.target.value)} placeholder="gpt-4.1-mini / deepseek-chat / claude..." />
+          </div>
+          <div>
+            <label className="text-sm font-medium">API Key</label>
+            <input type="password" className="mt-1 w-full rounded border border-zinc-300 px-3 py-2" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="sk-..." />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Base URL (optional)</label>
+            <input className="mt-1 w-full rounded border border-zinc-300 px-3 py-2" value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://api.openai.com/v1" />
+          </div>
+          <p className="text-xs text-zinc-500 md:col-span-2">
+            {lang === 'zh'
+              ? '提示：密钥仅用于当前请求，不会写入数据库。'
+              : 'Note: keys are used only for the current request and are not persisted by this page.'}
+          </p>
+        </div>
+
         <form onSubmit={generateDraft} className="space-y-4">
           <div>
             <label className="text-sm font-medium">{lang === 'zh' ? '研究主题' : 'Topic'}</label>
@@ -121,6 +198,15 @@ export default function WritePage({ searchParams }: { searchParams?: { lang?: st
             </div>
           </div>
         ) : null}
+
+        <div className="mt-8 rounded border border-zinc-200 bg-white p-4">
+          <h3 className="font-semibold">{lang === 'zh' ? '与模型协作（问答）' : 'Collaborate with Model (Q&A)'}</h3>
+          <textarea className="mt-2 h-28 w-full rounded border border-zinc-300 p-3 text-sm" value={collabInput} onChange={(e) => setCollabInput(e.target.value)} placeholder={lang === 'zh' ? '例如：请帮我改写摘要并提高可读性。' : 'e.g. Help me refine this abstract for readability.'} />
+          <button type="button" onClick={collaborate} className="btn btn-secondary mt-3" disabled={collabLoading}>
+            {collabLoading ? (lang === 'zh' ? '请求中…' : 'Requesting...') : (lang === 'zh' ? '发送给模型' : 'Send to model')}
+          </button>
+          {collabOutput ? <pre className="mt-3 whitespace-pre-wrap rounded bg-zinc-50 p-3 text-sm text-zinc-800">{collabOutput}</pre> : null}
+        </div>
       </section>
     </main>
   );

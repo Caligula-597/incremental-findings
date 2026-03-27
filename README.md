@@ -11,7 +11,7 @@ This project is **not affiliated with Nature**. It only borrows a clean, publica
 - Editorial workspace (`/editor`) covering in-progress, under-review and published flows (editor login required)
 - Account center and login scaffolding (`/account`, `/login`)
 - Public mission and community roadmap page (`/community`)
-- AI-assisted writing studio page (`/write`) for outline/abstract draft generation
+- AI-assisted writing studio page (`/write`) for BYO-model draft generation and collaboration
 
 ## What is implemented now
 - Email account register/login API where signup requires an emailed verification code before the account is created (memory fallback if DB table unavailable)
@@ -104,7 +104,8 @@ When `REQUIRE_SUPABASE=true`, write/read APIs will fail fast instead of silently
 - `GET /api/public/professionalization-plan` (current implementation depth + prioritized next hardening actions)
 - `GET /api/public/backend-recommendation` (backend integration options + current config snapshot)
 - `GET /api/public/supabase-health` (current runtime mode + key config diagnostics)
-- `POST /api/public/draft-assistant` (AI/local-template abstract + section draft generator)
+- `POST /api/public/draft-assistant` (multi-provider draft generator; supports OpenAI/DeepSeek/Anthropic/Gemini with user key)
+- `POST /api/public/ai-collab` (multi-provider writing collaboration/chat endpoint)
 - `GET /api/public/operations-governance` (migration/audit retention/preservation governance snapshot)
 - `GET/POST /api/ethics/cases` (editor ethics case queue)
 - `PATCH /api/ethics/cases/:id` (editor ethics case status/resolution update)

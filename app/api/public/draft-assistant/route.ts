@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
+import { generateStructuredDraftByProvider } from '@/lib/ai-provider-client';
 import { buildLocalDraft } from '@/lib/writing-assistant';
+
+type Provider = 'openai' | 'deepseek' | 'anthropic' | 'gemini';
 
 interface DraftRequestBody {
   topic?: string;
@@ -7,6 +10,10 @@ interface DraftRequestBody {
   article_type?: string;
   language?: 'zh' | 'en';
   section_count?: number;
+  provider?: Provider;
+  api_key?: string;
+  base_url?: string;
+  model?: string;
 }
 
 function buildPrompt(input: Required<Pick<DraftRequestBody, 'topic' | 'discipline' | 'article_type' | 'language'>> & { section_count: number }) {
@@ -21,76 +28,6 @@ function buildPrompt(input: Required<Pick<DraftRequestBody, 'topic' | 'disciplin
     `Section count: ${input.section_count}`,
     `For sections[], include fields: order, title, notes.`
   ].join('\n');
-}
-
-async function generateByModel(body: Required<Pick<DraftRequestBody, 'topic' | 'discipline' | 'article_type' | 'language'>> & { section_count: number }) {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    return null;
-  }
-
-  const baseUrl = (process.env.OPENAI_BASE_URL ?? 'https://api.openai.com/v1').replace(/\/$/, '');
-  const model = process.env.OPENAI_DRAFT_MODEL ?? 'gpt-4.1-mini';
-
-  const response = await fetch(`${baseUrl}/responses`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model,
-      input: buildPrompt(body),
-      text: {
-        format: {
-          type: 'json_schema',
-          name: 'draft_schema',
-          schema: {
-            type: 'object',
-            additionalProperties: false,
-            properties: {
-              abstract: { type: 'string' },
-              sections: {
-                type: 'array',
-                items: {
-                  type: 'object',
-                  additionalProperties: false,
-                  properties: {
-                    order: { type: 'integer' },
-                    title: { type: 'string' },
-                    notes: { type: 'string' }
-                  },
-                  required: ['order', 'title', 'notes']
-                }
-              },
-              markdown: { type: 'string' }
-            },
-            required: ['abstract', 'sections', 'markdown']
-          }
-        }
-      }
-    })
-  });
-
-  if (!response.ok) {
-    return null;
-  }
-
-  const payload = await response.json().catch(() => null) as { output_text?: string } | null;
-  if (!payload?.output_text) {
-    return null;
-  }
-
-  const parsed = JSON.parse(payload.output_text) as {
-    abstract: string;
-    sections: Array<{ order: number; title: string; notes: string }>;
-    markdown: string;
-  };
-
-  return {
-    mode: 'model' as const,
-    ...parsed
-  };
 }
 
 export async function POST(request: Request) {
@@ -110,9 +47,31 @@ export async function POST(request: Request) {
       section_count: Math.max(3, Math.min(Number(body.section_count ?? 6) || 6, 8))
     };
 
-    const modelResult = await generateByModel(normalized);
-    if (modelResult) {
-      return NextResponse.json({ data: modelResult });
+    const provider = (body.provider ?? 'openai') as Provider;
+    const apiKey = String(body.api_key ?? process.env.OPENAI_API_KEY ?? '').trim();
+    const model = String(body.model ?? process.env.OPENAI_DRAFT_MODEL ?? '').trim();
+    const baseUrl = String(body.base_url ?? process.env.OPENAI_BASE_URL ?? '').trim();
+
+    if (apiKey) {
+      const structured = await generateStructuredDraftByProvider({
+        provider,
+        apiKey,
+        model: model || undefined,
+        baseUrl: baseUrl || undefined,
+        prompt: buildPrompt(normalized)
+      });
+
+      if (structured && typeof structured === 'object') {
+        const parsed = structured as {
+          abstract?: string;
+          sections?: Array<{ order: number; title: string; notes: string }>;
+          markdown?: string;
+        };
+
+        if (parsed.abstract && Array.isArray(parsed.sections) && parsed.markdown) {
+          return NextResponse.json({ data: { mode: `model:${provider}` as const, ...parsed } });
+        }
+      }
     }
 
     const local = buildLocalDraft({
