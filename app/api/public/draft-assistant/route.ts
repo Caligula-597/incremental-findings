@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { generateStructuredDraftByProvider } from '@/lib/ai-provider-client';
 import { buildLocalDraft } from '@/lib/writing-assistant';
+import { buildTruthAuditPrompt } from '@/lib/ai-prompt-architecture';
 
 type Provider = 'openai' | 'deepseek' | 'anthropic' | 'gemini';
 
@@ -15,19 +16,6 @@ interface DraftRequestBody {
   model?: string;
 }
 
-function buildPrompt(input: Required<Pick<DraftRequestBody, 'topic' | 'discipline' | 'article_type' | 'language'>> & { section_count: number }) {
-  const lang = input.language === 'zh' ? 'Chinese' : 'English';
-  return [
-    `You are a journal writing copilot.`,
-    `Return JSON with keys: abstract, sections[], markdown.`,
-    `Topic: ${input.topic}`,
-    `Discipline: ${input.discipline || 'general'}`,
-    `Article type: ${input.article_type || 'research article'}`,
-    `Language: ${lang}`,
-    `Section count: ${input.section_count}`,
-    `For sections[], include fields: order, title, notes.`
-  ].join('\n');
-}
 
 export async function POST(request: Request) {
   try {
@@ -55,7 +43,13 @@ export async function POST(request: Request) {
         provider,
         apiKey,
         model: model || undefined,
-        prompt: buildPrompt(normalized)
+        prompt: buildTruthAuditPrompt({
+          topic: normalized.topic,
+          discipline: normalized.discipline,
+          articleType: normalized.article_type,
+          language: normalized.language,
+          sectionCount: normalized.section_count
+        })
       });
 
       if (structured && typeof structured === 'object') {

@@ -14,6 +14,21 @@ interface DraftResponse {
   markdown: string;
 }
 
+const paperStructures: Record<string, { zh: string[]; en: string[] }> = {
+  research_article: {
+    zh: ['题目', '摘要', '引言', '方法', '结果', '讨论', '结论', '参考文献'],
+    en: ['Title', 'Abstract', 'Introduction', 'Methods', 'Results', 'Discussion', 'Conclusion', 'References']
+  },
+  review: {
+    zh: ['题目', '摘要', '研究背景', '主题综述', '争议与空白', '未来方向', '结论', '参考文献'],
+    en: ['Title', 'Abstract', 'Background', 'Thematic Review', 'Gaps & Debates', 'Future Directions', 'Conclusion', 'References']
+  },
+  short_communication: {
+    zh: ['题目', '摘要', '核心发现', '最小方法说明', '关键结果', '结论', '参考文献'],
+    en: ['Title', 'Abstract', 'Core Finding', 'Minimal Methods', 'Key Results', 'Conclusion', 'References']
+  }
+};
+
 export default function WritePage({ searchParams }: { searchParams?: { lang?: string } }) {
   const lang = useMemo(() => getSiteLang(searchParams?.lang), [searchParams?.lang]);
   const [topic, setTopic] = useState('');
@@ -33,6 +48,8 @@ export default function WritePage({ searchParams }: { searchParams?: { lang?: st
   const [collabInput, setCollabInput] = useState('');
   const [collabLoading, setCollabLoading] = useState(false);
   const [collabOutput, setCollabOutput] = useState('');
+
+  const currentStructure = (paperStructures[articleType] ?? paperStructures.research_article)[lang === 'en' ? 'en' : 'zh'];
 
   useEffect(() => {
     let alive = true;
@@ -196,6 +213,16 @@ export default function WritePage({ searchParams }: { searchParams?: { lang?: st
               ? '密钥仅用于当前请求，不会写入数据库。模型选项来自对应服务商实时返回。'
               : 'Keys are not persisted. Model options are fetched live from provider APIs.'}
           </p>
+        </div>
+
+
+        <div className="mb-6 rounded border border-zinc-200 bg-white p-4">
+          <h3 className="font-semibold">{lang === 'zh' ? '推荐基础论文架构' : 'Recommended Core Paper Structure'}</h3>
+          <ol className="mt-2 list-decimal pl-5 text-sm text-zinc-700">
+            {currentStructure.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ol>
         </div>
 
         <form onSubmit={generateDraft} className="space-y-4">
