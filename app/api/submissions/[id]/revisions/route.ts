@@ -8,7 +8,7 @@ import { getSupabaseServerClient } from '@/lib/supabase';
 
 export async function GET(_request: Request, context: { params: { id: string } }) {
   try {
-    const sessionUser = getServerSessionUser();
+    const sessionUser = await getServerSessionUser();
     if (!sessionUser) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
@@ -32,7 +32,7 @@ export async function GET(_request: Request, context: { params: { id: string } }
 
 export async function POST(request: Request, context: { params: { id: string } }) {
   try {
-    const sessionUser = getServerSessionUser();
+    const sessionUser = await getServerSessionUser();
     if (!sessionUser) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }

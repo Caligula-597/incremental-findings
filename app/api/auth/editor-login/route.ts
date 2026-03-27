@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
-import { buildSessionToken, SessionEditorRole, setSessionCookie } from '@/lib/session';
+import { issueSessionToken, SessionEditorRole, setSessionCookie } from '@/lib/session';
 import { canUseManagingEditorCode } from '@/lib/editor-workspace-service';
 import { guardRequest } from '@/lib/request-guard';
 import { countRecentSecurityEvents, recordSecurityEvent } from '@/lib/security-service';
@@ -122,7 +122,7 @@ export async function POST(request: Request) {
       editor_role: editorRole
     };
 
-    setSessionCookie(buildSessionToken(sessionUser));
+    setSessionCookie(await issueSessionToken(sessionUser));
     await recordSecurityEvent({
       kind: 'alert',
       actorEmail: email,
