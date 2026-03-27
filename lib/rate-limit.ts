@@ -1,3 +1,5 @@
+import { getSupabaseServerClient } from '@/lib/supabase';
+
 interface RateLimitRecord {
   count: number;
   windowStartMs: number;
@@ -45,6 +47,45 @@ export function getClientIp(request: Request) {
   }
 
   return 'unknown';
+}
+
+
+
+interface SupabaseRateLimitRow {
+  allowed: boolean;
+  limit_value: number;
+  remaining: number;
+  retry_after_seconds: number;
+}
+
+export async function checkRateLimitDistributed(options: RateLimitOptions): Promise<RateLimitDecision> {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    return checkRateLimit(options);
+  }
+
+  const result = await supabase.rpc('consume_rate_limit', {
+    p_bucket: options.bucket,
+    p_max_requests: options.maxRequests,
+    p_window_ms: options.windowMs
+  });
+
+  if (result.error) {
+    return checkRateLimit(options);
+  }
+
+  const row = (Array.isArray(result.data) ? result.data[0] : result.data) as SupabaseRateLimitRow | null;
+
+  if (!row) {
+    return checkRateLimit(options);
+  }
+
+  return {
+    allowed: Boolean(row.allowed),
+    limit: Number(row.limit_value) || options.maxRequests,
+    remaining: Math.max(0, Number(row.remaining) || 0),
+    retryAfterSeconds: Math.max(0, Number(row.retry_after_seconds) || 0)
+  };
 }
 
 export function checkRateLimit(options: RateLimitOptions): RateLimitDecision {

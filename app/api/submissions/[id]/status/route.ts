@@ -45,7 +45,7 @@ async function uploadEditorResponseFile(file: File) {
 
 export async function PATCH(request: Request, context: { params: { id: string } }) {
   try {
-    const sessionUser = getServerSessionUser();
+    const sessionUser = await getServerSessionUser();
     if (!sessionUser || sessionUser.role !== 'editor') {
       return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
     }

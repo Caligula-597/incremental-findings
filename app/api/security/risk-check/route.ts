@@ -5,7 +5,7 @@ import { guardRequest } from '@/lib/request-guard';
 
 export async function POST(request: Request) {
   try {
-    const sessionUser = getServerSessionUser();
+    const sessionUser = await getServerSessionUser();
     const body = await request.json().catch(() => ({}));
 
     const route = String(body?.route ?? request.headers.get('x-pathname') ?? 'unknown').trim() || 'unknown';

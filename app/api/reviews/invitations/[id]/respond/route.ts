@@ -4,7 +4,7 @@ import { respondReviewInvitation } from '@/lib/review-service';
 
 export async function POST(request: Request, context: { params: { id: string } }) {
   try {
-    const sessionUser = getServerSessionUser();
+    const sessionUser = await getServerSessionUser();
     if (!sessionUser) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }

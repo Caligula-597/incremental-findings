@@ -3,7 +3,7 @@ import { getServerSessionUser } from '@/lib/session';
 import { listNotificationJobs, NotificationTemplateKey, sendNotification } from '@/lib/notification-service';
 
 export async function GET(request: Request) {
-  const sessionUser = getServerSessionUser();
+  const sessionUser = await getServerSessionUser();
   if (!sessionUser || sessionUser.role !== 'editor') {
     return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
   }
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const sessionUser = getServerSessionUser();
+    const sessionUser = await getServerSessionUser();
     if (!sessionUser || sessionUser.role !== 'editor') {
       return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
     }
