@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { checkRateLimitDistributed, getClientIp } from '@/lib/rate-limit';
 import { enforceNotBlocked } from '@/lib/security-service';
 
 interface RequestGuardOptions {
@@ -23,7 +23,7 @@ export async function guardRequest(request: Request, options: RequestGuardOption
 
   const suffix = options.bucketKeySuffix?.trim();
   const bucket = suffix ? `${options.bucketPrefix}:${ip}:${suffix}` : `${options.bucketPrefix}:${ip}`;
-  const limit = checkRateLimit({
+  const limit = await checkRateLimitDistributed({
     bucket,
     maxRequests: options.maxRequests,
     windowMs: options.windowMs
