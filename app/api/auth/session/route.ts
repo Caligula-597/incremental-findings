@@ -3,7 +3,7 @@ import { getServerSessionUser } from '@/lib/session';
 import { getEditorialRole } from '@/lib/editor-workspace-service';
 
 export async function GET() {
-  const user = getServerSessionUser();
+  const user = await getServerSessionUser();
   if (!user) {
     return NextResponse.json({ data: null }, { status: 401 });
   }
