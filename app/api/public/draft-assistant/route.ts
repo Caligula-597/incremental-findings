@@ -12,7 +12,6 @@ interface DraftRequestBody {
   section_count?: number;
   provider?: Provider;
   api_key?: string;
-  base_url?: string;
   model?: string;
 }
 
@@ -50,14 +49,12 @@ export async function POST(request: Request) {
     const provider = (body.provider ?? 'openai') as Provider;
     const apiKey = String(body.api_key ?? process.env.OPENAI_API_KEY ?? '').trim();
     const model = String(body.model ?? process.env.OPENAI_DRAFT_MODEL ?? '').trim();
-    const baseUrl = String(body.base_url ?? process.env.OPENAI_BASE_URL ?? '').trim();
 
     if (apiKey) {
       const structured = await generateStructuredDraftByProvider({
         provider,
         apiKey,
         model: model || undefined,
-        baseUrl: baseUrl || undefined,
         prompt: buildPrompt(normalized)
       });
 

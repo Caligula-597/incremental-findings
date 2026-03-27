@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { SiteHeader } from '@/components/header';
 import { SectionTitle } from '@/components/ui-kit';
 import { getSiteLang } from '@/lib/site-copy';
@@ -14,6 +14,13 @@ interface DraftResponse {
   markdown: string;
 }
 
+const modelOptions: Record<Provider, string[]> = {
+  openai: ['gpt-4.1-mini', 'gpt-4.1', 'gpt-4o-mini'],
+  deepseek: ['deepseek-chat', 'deepseek-reasoner'],
+  anthropic: ['claude-3-5-sonnet-latest', 'claude-3-7-sonnet-latest'],
+  gemini: ['gemini-1.5-pro', 'gemini-1.5-flash']
+};
+
 export default function WritePage({ searchParams }: { searchParams?: { lang?: string } }) {
   const lang = useMemo(() => getSiteLang(searchParams?.lang), [searchParams?.lang]);
   const [topic, setTopic] = useState('');
@@ -22,8 +29,7 @@ export default function WritePage({ searchParams }: { searchParams?: { lang?: st
 
   const [provider, setProvider] = useState<Provider>('openai');
   const [apiKey, setApiKey] = useState('');
-  const [baseUrl, setBaseUrl] = useState('');
-  const [model, setModel] = useState('');
+  const [model, setModel] = useState(modelOptions.openai[0]);
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -32,6 +38,10 @@ export default function WritePage({ searchParams }: { searchParams?: { lang?: st
   const [collabInput, setCollabInput] = useState('');
   const [collabLoading, setCollabLoading] = useState(false);
   const [collabOutput, setCollabOutput] = useState('');
+
+  useEffect(() => {
+    setModel(modelOptions[provider][0]);
+  }, [provider]);
 
   async function generateDraft(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -55,7 +65,6 @@ export default function WritePage({ searchParams }: { searchParams?: { lang?: st
         section_count: 6,
         provider,
         api_key: apiKey,
-        base_url: baseUrl,
         model
       })
     });
@@ -87,7 +96,6 @@ export default function WritePage({ searchParams }: { searchParams?: { lang?: st
         message: collabInput,
         provider,
         api_key: apiKey,
-        base_url: baseUrl,
         model
       })
     });
@@ -110,8 +118,8 @@ export default function WritePage({ searchParams }: { searchParams?: { lang?: st
         title={lang === 'zh' ? '论文写作工作台（Beta）' : 'Paper Writing Studio (Beta)'}
         subtitle={
           lang === 'zh'
-            ? '输入你的品牌模型 API（OpenAI/DeepSeek/Anthropic/Gemini）后，可直接协作写作。'
-            : 'Bring your own model API (OpenAI/DeepSeek/Anthropic/Gemini) and collaborate on writing directly.'
+            ? '选择模型品牌和模型名，输入 API Key 后即可协作写作。'
+            : 'Select provider + model and input your API key to collaborate on writing.'
         }
       />
 
@@ -127,21 +135,21 @@ export default function WritePage({ searchParams }: { searchParams?: { lang?: st
             </select>
           </div>
           <div>
-            <label className="text-sm font-medium">Model (optional)</label>
-            <input className="mt-1 w-full rounded border border-zinc-300 px-3 py-2" value={model} onChange={(e) => setModel(e.target.value)} placeholder="gpt-4.1-mini / deepseek-chat / claude..." />
+            <label className="text-sm font-medium">Model</label>
+            <select className="mt-1 w-full rounded border border-zinc-300 px-3 py-2" value={model} onChange={(e) => setModel(e.target.value)}>
+              {modelOptions[provider].map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </select>
           </div>
-          <div>
+          <div className="md:col-span-2">
             <label className="text-sm font-medium">API Key</label>
             <input type="password" className="mt-1 w-full rounded border border-zinc-300 px-3 py-2" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="sk-..." />
           </div>
-          <div>
-            <label className="text-sm font-medium">Base URL (optional)</label>
-            <input className="mt-1 w-full rounded border border-zinc-300 px-3 py-2" value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://api.openai.com/v1" />
-          </div>
           <p className="text-xs text-zinc-500 md:col-span-2">
             {lang === 'zh'
-              ? '提示：密钥仅用于当前请求，不会写入数据库。'
-              : 'Note: keys are used only for the current request and are not persisted by this page.'}
+              ? '提示：密钥仅用于当前请求，不会写入数据库。Base URL 由服务端统一配置。'
+              : 'Note: keys are used only for the current request and are not persisted. Base URL is server-configured.'}
           </p>
         </div>
 
