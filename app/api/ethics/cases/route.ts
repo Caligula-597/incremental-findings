@@ -5,7 +5,7 @@ import { getSupabaseServerClient } from '@/lib/supabase';
 import { runtimeEthicsCases } from '@/lib/runtime-store';
 
 export async function GET() {
-  const sessionUser = getServerSessionUser();
+  const sessionUser = await getServerSessionUser();
   if (!sessionUser || sessionUser.role !== 'editor') {
     return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
   }
@@ -22,7 +22,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const sessionUser = getServerSessionUser();
+  const sessionUser = await getServerSessionUser();
   if (!sessionUser || sessionUser.role !== 'editor') {
     return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
   }

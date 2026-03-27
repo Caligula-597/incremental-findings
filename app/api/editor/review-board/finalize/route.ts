@@ -9,7 +9,7 @@ const allowed = new Set<EditorRecommendation>(['accept', 'major_revision', 'mino
 
 export async function POST(request: Request) {
   try {
-    const user = getServerSessionUser();
+    const user = await getServerSessionUser();
     if (!user || user.role !== 'editor') {
       return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
     }

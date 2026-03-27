@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@/lib/supabase';
 import { runtimeUsers } from '@/lib/runtime-store';
 import { hashPassword, needsPasswordRehash, verifyPassword } from '@/lib/auth-security';
-import { buildSessionToken, setSessionCookie } from '@/lib/session';
+import { issueSessionToken, setSessionCookie } from '@/lib/session';
 import { guardRequest } from '@/lib/request-guard';
 import { getEmailVerification } from '@/lib/email-verification';
 
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
         }
 
         const sessionUser = buildSessionUser(account);
-        setSessionCookie(buildSessionToken(sessionUser));
+        setSessionCookie(await issueSessionToken(sessionUser));
         return NextResponse.json({
           data: { ...sessionUser, username: account.username ?? null },
           mode: 'supabase'
@@ -116,7 +116,7 @@ export async function POST(request: Request) {
     }
 
     const sessionUser = buildSessionUser(user);
-    setSessionCookie(buildSessionToken(sessionUser));
+    setSessionCookie(await issueSessionToken(sessionUser));
     return NextResponse.json({
       data: { ...sessionUser, username: user.username ?? null },
       mode: 'memory'

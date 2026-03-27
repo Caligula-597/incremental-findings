@@ -5,7 +5,7 @@ import { markProofReady } from '@/lib/production-service';
 
 export async function POST(request: Request, context: { params: { id: string } }) {
   try {
-    const user = getServerSessionUser();
+    const user = await getServerSessionUser();
     if (!user || user.role !== 'editor') {
       return NextResponse.json({ error: 'Editor authorization required' }, { status: 403 });
     }
