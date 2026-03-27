@@ -9,25 +9,8 @@ import { createSubmission } from '@/lib/submission-repository';
 import { getSupabaseServerClient } from '@/lib/supabase';
 import { getServerSessionUser } from '@/lib/session';
 import { isSubmissionTrack } from '@/lib/submission-track';
+import { validateFileUploadPolicy } from '@/lib/upload-security';
 
-const MAX_MANUSCRIPT_BYTES = 50 * 1024 * 1024;
-const MAX_SUPPORTING_BYTES = 100 * 1024 * 1024;
-
-function validateUploadedFile(file: File, kind: 'manuscript' | 'cover_letter' | 'supporting') {
-  if (kind === 'manuscript' && file.type !== 'application/pdf') {
-    return 'Manuscript must be a PDF file';
-  }
-
-  if ((kind === 'manuscript' || kind === 'cover_letter') && file.size > MAX_MANUSCRIPT_BYTES) {
-    return `${kind} file exceeds 50MB limit`;
-  }
-
-  if (kind === 'supporting' && file.size > MAX_SUPPORTING_BYTES) {
-    return 'Supporting file exceeds 100MB limit';
-  }
-
-  return null;
-}
 
 
 
@@ -150,12 +133,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Cover letter is required' }, { status: 400 });
     }
 
-    const manuscriptValidation = validateUploadedFile(manuscript, 'manuscript');
+    const manuscriptValidation = validateFileUploadPolicy(manuscript, 'manuscript');
     if (manuscriptValidation) {
       return NextResponse.json({ error: manuscriptValidation }, { status: 400 });
     }
 
-    const coverValidation = validateUploadedFile(coverLetter, 'cover_letter');
+    const coverValidation = validateFileUploadPolicy(coverLetter, 'cover_letter');
     if (coverValidation) {
       return NextResponse.json({ error: coverValidation }, { status: 400 });
     }
@@ -209,7 +192,7 @@ export async function POST(request: Request) {
 
     for (const item of supporting) {
       if (item instanceof File && item.size > 0) {
-        const supportValidation = validateUploadedFile(item, 'supporting');
+        const supportValidation = validateFileUploadPolicy(item, 'supporting');
         if (supportValidation) {
           warnings.push(`${item.name}: ${supportValidation}`);
           continue;
