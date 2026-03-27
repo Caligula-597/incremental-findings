@@ -190,3 +190,45 @@ export async function generateChatByProvider(input: {
   const payload = (await response.json().catch(() => null)) as { output_text?: string } | null;
   return payload?.output_text ?? null;
 }
+
+
+export async function listModelsByProvider(input: {
+  provider: ProviderConfig['provider'];
+  apiKey: string;
+  baseUrl?: string;
+}) {
+  const provider = input.provider;
+  const apiKey = input.apiKey.trim();
+  if (!apiKey) return [] as string[];
+
+  const baseUrl = buildBaseUrl(provider, input.baseUrl);
+
+  if (provider === 'anthropic') {
+    const response = await fetch(`${baseUrl}/models`, {
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      }
+    });
+    if (!response.ok) return [];
+    const payload = (await response.json().catch(() => null)) as { data?: Array<{ id?: string }> } | null;
+    return (payload?.data ?? []).map((m) => String(m.id ?? '').trim()).filter(Boolean);
+  }
+
+  if (provider === 'gemini') {
+    const response = await fetch(`${baseUrl}/models?key=${encodeURIComponent(apiKey)}`);
+    if (!response.ok) return [];
+    const payload = (await response.json().catch(() => null)) as { models?: Array<{ name?: string }> } | null;
+    return (payload?.models ?? [])
+      .map((m) => String(m.name ?? '').trim())
+      .filter((name) => name.startsWith('models/'))
+      .map((name) => name.replace('models/', ''));
+  }
+
+  const response = await fetch(`${baseUrl}/models`, {
+    headers: { Authorization: `Bearer ${apiKey}` }
+  });
+  if (!response.ok) return [];
+  const payload = (await response.json().catch(() => null)) as { data?: Array<{ id?: string }> } | null;
+  return (payload?.data ?? []).map((m) => String(m.id ?? '').trim()).filter(Boolean);
+}

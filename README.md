@@ -106,6 +106,7 @@ When `REQUIRE_SUPABASE=true`, write/read APIs will fail fast instead of silently
 - `GET /api/public/supabase-health` (current runtime mode + key config diagnostics)
 - `POST /api/public/draft-assistant` (multi-provider draft generator; supports OpenAI/DeepSeek/Anthropic/Gemini with user key)
 - `POST /api/public/ai-collab` (multi-provider writing collaboration/chat endpoint)
+- `POST /api/public/ai-models` (query provider model list with user API key; fallback model catalog)
 - `GET /api/public/operations-governance` (migration/audit retention/preservation governance snapshot)
 - `GET/POST /api/ethics/cases` (editor ethics case queue)
 - `PATCH /api/ethics/cases/:id` (editor ethics case status/resolution update)

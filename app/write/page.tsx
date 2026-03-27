@@ -14,7 +14,7 @@ interface DraftResponse {
   markdown: string;
 }
 
-const modelOptions: Record<Provider, string[]> = {
+const fallbackModelOptions: Record<Provider, string[]> = {
   openai: ['gpt-4.1-mini', 'gpt-4.1', 'gpt-4o-mini'],
   deepseek: ['deepseek-chat', 'deepseek-reasoner'],
   anthropic: ['claude-3-5-sonnet-latest', 'claude-3-7-sonnet-latest'],
@@ -29,7 +29,8 @@ export default function WritePage({ searchParams }: { searchParams?: { lang?: st
 
   const [provider, setProvider] = useState<Provider>('openai');
   const [apiKey, setApiKey] = useState('');
-  const [model, setModel] = useState(modelOptions.openai[0]);
+  const [availableModels, setAvailableModels] = useState<string[]>(fallbackModelOptions.openai);
+  const [model, setModel] = useState(fallbackModelOptions.openai[0]);
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -40,8 +41,27 @@ export default function WritePage({ searchParams }: { searchParams?: { lang?: st
   const [collabOutput, setCollabOutput] = useState('');
 
   useEffect(() => {
-    setModel(modelOptions[provider][0]);
-  }, [provider]);
+    let alive = true;
+
+    async function loadModels() {
+      const response = await fetch('/api/public/ai-models', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider, api_key: apiKey })
+      });
+
+      const body = await response.json().catch(() => ({ data: null }));
+      const models = (body?.data?.models as string[] | undefined) ?? fallbackModelOptions[provider];
+      if (!alive) return;
+      setAvailableModels(models.length > 0 ? models : fallbackModelOptions[provider]);
+      setModel((current) => (models.includes(current) ? current : (models[0] ?? fallbackModelOptions[provider][0])));
+    }
+
+    void loadModels();
+    return () => {
+      alive = false;
+    };
+  }, [provider, apiKey]);
 
   async function generateDraft(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -137,7 +157,7 @@ export default function WritePage({ searchParams }: { searchParams?: { lang?: st
           <div>
             <label className="text-sm font-medium">Model</label>
             <select className="mt-1 w-full rounded border border-zinc-300 px-3 py-2" value={model} onChange={(e) => setModel(e.target.value)}>
-              {modelOptions[provider].map((item) => (
+              {availableModels.map((item) => (
                 <option key={item} value={item}>{item}</option>
               ))}
             </select>
