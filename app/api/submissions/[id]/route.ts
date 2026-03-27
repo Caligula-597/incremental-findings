@@ -8,7 +8,7 @@ import { writeRuntimeAuditLogs, writeRuntimeSubmissionFiles } from '@/lib/runtim
 
 export async function DELETE(_request: Request, context: { params: { id: string } }) {
   try {
-    const user = getServerSessionUser();
+    const user = await getServerSessionUser();
     if (!user) {
       return NextResponse.json({ error: 'Login required' }, { status: 401 });
     }
