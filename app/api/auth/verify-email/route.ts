@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@/lib/supabase';
 import { runtimeUsers } from '@/lib/runtime-store';
-import { buildSessionToken, setSessionCookie } from '@/lib/session';
+import { issueSessionToken, setSessionCookie } from '@/lib/session';
 import { verifyEmailCode } from '@/lib/email-verification';
 import { guardRequest } from '@/lib/request-guard';
 
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
           email: String(accountResult.data.email),
           name: String(accountResult.data.name ?? accountResult.data.email)
         });
-        setSessionCookie(buildSessionToken(sessionUser));
+        setSessionCookie(await issueSessionToken(sessionUser));
         return NextResponse.json({ data: sessionUser, mode: 'supabase', already_verified: verification.alreadyVerified });
       }
     }
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     }
 
     const sessionUser = buildSessionUser(account);
-    setSessionCookie(buildSessionToken(sessionUser));
+    setSessionCookie(await issueSessionToken(sessionUser));
     return NextResponse.json({ data: sessionUser, mode: 'memory', already_verified: verification.alreadyVerified });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
