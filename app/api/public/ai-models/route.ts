@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { listModelsByProvider } from '@/lib/ai-provider-client';
+import { guardRequest } from '@/lib/request-guard';
 
 type Provider = 'openai' | 'deepseek' | 'anthropic' | 'gemini';
+const PROVIDERS: Provider[] = ['openai', 'deepseek', 'anthropic', 'gemini'];
 
 interface ModelsBody {
   provider?: Provider;
@@ -10,8 +12,18 @@ interface ModelsBody {
 
 export async function POST(request: Request) {
   try {
+    const guard = await guardRequest(request, {
+      route: '/api/public/ai-models',
+      bucketPrefix: 'public:ai-models',
+      maxRequests: 30,
+      windowMs: 60_000,
+      limitError: 'Too many model-list requests. Please try again later.'
+    });
+
+    if (guard.response) return guard.response;
+
     const body = (await request.json().catch(() => ({}))) as ModelsBody;
-    const provider = (body.provider ?? 'openai') as Provider;
+    const provider = PROVIDERS.includes(body.provider as Provider) ? (body.provider as Provider) : 'openai';
     const apiKey = String(body.api_key ?? '').trim();
 
     if (!apiKey) {
@@ -40,7 +52,6 @@ export async function POST(request: Request) {
       }
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unexpected error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: 'Unexpected server error' }, { status: 500 });
   }
 }
