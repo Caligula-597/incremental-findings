@@ -5,6 +5,9 @@ interface ProviderConfig {
   model?: string;
 }
 
+const PROVIDER_TIMEOUT_MS = 20_000;
+const MAX_PROVIDER_TEXT_LENGTH = 20_000;
+
 function buildBaseUrl(provider: ProviderConfig['provider'], custom?: string) {
   if (custom?.trim()) return custom.trim().replace(/\/$/, '');
   if (provider === 'anthropic') return 'https://api.anthropic.com/v1';
@@ -23,6 +26,22 @@ function extractJsonObject(text: string) {
   }
 }
 
+function safeText(value: unknown) {
+  return String(value ?? '').trim().slice(0, MAX_PROVIDER_TEXT_LENGTH);
+}
+
+async function fetchJsonWithTimeout(
+  url: string,
+  init?: RequestInit
+) {
+  const response = await fetch(url, {
+    ...init,
+    signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS)
+  });
+  const payload = (await response.json().catch(() => null)) as Record<string, unknown> | null;
+  return { response, payload };
+}
+
 export async function generateStructuredDraftByProvider(input: {
   provider: ProviderConfig['provider'];
   apiKey: string;
@@ -38,7 +57,7 @@ export async function generateStructuredDraftByProvider(input: {
 
   if (provider === 'anthropic') {
     const model = input.model?.trim() || 'claude-3-5-sonnet-latest';
-    const response = await fetch(`${baseUrl}/messages`, {
+    const { response, payload } = await fetchJsonWithTimeout(`${baseUrl}/messages`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -53,14 +72,14 @@ export async function generateStructuredDraftByProvider(input: {
     });
 
     if (!response.ok) return null;
-    const payload = (await response.json().catch(() => null)) as { content?: Array<{ type: string; text?: string }> } | null;
-    const text = payload?.content?.find((x) => x.type === 'text')?.text ?? '';
+    const content = Array.isArray(payload?.content) ? payload.content : [];
+    const text = safeText(content.find((x) => x && typeof x === 'object' && 'type' in x && (x as { type?: string }).type === 'text')?.text);
     return extractJsonObject(text);
   }
 
   if (provider === 'gemini') {
     const model = input.model?.trim() || 'gemini-1.5-pro';
-    const response = await fetch(`${baseUrl}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+    const { response, payload } = await fetchJsonWithTimeout(`${baseUrl}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -70,15 +89,14 @@ export async function generateStructuredDraftByProvider(input: {
     });
 
     if (!response.ok) return null;
-    const payload = (await response.json().catch(() => null)) as {
-      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-    } | null;
-    const text = payload?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    const candidates = Array.isArray(payload?.candidates) ? payload.candidates : [];
+    const first = candidates[0] as { content?: { parts?: Array<{ text?: string }> } } | undefined;
+    const text = safeText(first?.content?.parts?.[0]?.text);
     return extractJsonObject(text);
   }
 
   const model = input.model?.trim() || (provider === 'deepseek' ? 'deepseek-chat' : 'gpt-4.1-mini');
-  const response = await fetch(`${baseUrl}/responses`, {
+  const { response, payload } = await fetchJsonWithTimeout(`${baseUrl}/responses`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -119,9 +137,9 @@ export async function generateStructuredDraftByProvider(input: {
   });
 
   if (!response.ok) return null;
-  const payload = (await response.json().catch(() => null)) as { output_text?: string } | null;
-  if (!payload?.output_text) return null;
-  return extractJsonObject(payload.output_text);
+  const outputText = safeText(payload?.output_text);
+  if (!outputText) return null;
+  return extractJsonObject(outputText);
 }
 
 export async function generateChatByProvider(input: {
@@ -139,7 +157,7 @@ export async function generateChatByProvider(input: {
 
   if (provider === 'anthropic') {
     const model = input.model?.trim() || 'claude-3-5-sonnet-latest';
-    const response = await fetch(`${baseUrl}/messages`, {
+    const { response, payload } = await fetchJsonWithTimeout(`${baseUrl}/messages`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -154,13 +172,14 @@ export async function generateChatByProvider(input: {
     });
 
     if (!response.ok) return null;
-    const payload = (await response.json().catch(() => null)) as { content?: Array<{ type: string; text?: string }> } | null;
-    return payload?.content?.find((x) => x.type === 'text')?.text ?? null;
+    const content = Array.isArray(payload?.content) ? payload.content : [];
+    const text = safeText(content.find((x) => x && typeof x === 'object' && 'type' in x && (x as { type?: string }).type === 'text')?.text);
+    return text || null;
   }
 
   if (provider === 'gemini') {
     const model = input.model?.trim() || 'gemini-1.5-pro';
-    const response = await fetch(`${baseUrl}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+    const { response, payload } = await fetchJsonWithTimeout(`${baseUrl}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -170,14 +189,13 @@ export async function generateChatByProvider(input: {
     });
 
     if (!response.ok) return null;
-    const payload = (await response.json().catch(() => null)) as {
-      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-    } | null;
-    return payload?.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
+    const candidates = Array.isArray(payload?.candidates) ? payload.candidates : [];
+    const first = candidates[0] as { content?: { parts?: Array<{ text?: string }> } } | undefined;
+    return safeText(first?.content?.parts?.[0]?.text) || null;
   }
 
   const model = input.model?.trim() || (provider === 'deepseek' ? 'deepseek-chat' : 'gpt-4.1-mini');
-  const response = await fetch(`${baseUrl}/responses`, {
+  const { response, payload } = await fetchJsonWithTimeout(`${baseUrl}/responses`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -187,8 +205,7 @@ export async function generateChatByProvider(input: {
   });
 
   if (!response.ok) return null;
-  const payload = (await response.json().catch(() => null)) as { output_text?: string } | null;
-  return payload?.output_text ?? null;
+  return safeText(payload?.output_text) || null;
 }
 
 
@@ -204,31 +221,31 @@ export async function listModelsByProvider(input: {
   const baseUrl = buildBaseUrl(provider, input.baseUrl);
 
   if (provider === 'anthropic') {
-    const response = await fetch(`${baseUrl}/models`, {
+    const { response, payload } = await fetchJsonWithTimeout(`${baseUrl}/models`, {
       headers: {
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01'
       }
     });
     if (!response.ok) return [];
-    const payload = (await response.json().catch(() => null)) as { data?: Array<{ id?: string }> } | null;
-    return (payload?.data ?? []).map((m) => String(m.id ?? '').trim()).filter(Boolean);
+    const data = Array.isArray(payload?.data) ? payload.data : [];
+    return data.map((m) => safeText((m as { id?: string })?.id)).filter(Boolean);
   }
 
   if (provider === 'gemini') {
-    const response = await fetch(`${baseUrl}/models?key=${encodeURIComponent(apiKey)}`);
+    const { response, payload } = await fetchJsonWithTimeout(`${baseUrl}/models?key=${encodeURIComponent(apiKey)}`);
     if (!response.ok) return [];
-    const payload = (await response.json().catch(() => null)) as { models?: Array<{ name?: string }> } | null;
-    return (payload?.models ?? [])
-      .map((m) => String(m.name ?? '').trim())
+    const models = Array.isArray(payload?.models) ? payload.models : [];
+    return models
+      .map((m) => safeText((m as { name?: string })?.name))
       .filter((name) => name.startsWith('models/'))
       .map((name) => name.replace('models/', ''));
   }
 
-  const response = await fetch(`${baseUrl}/models`, {
+  const { response, payload } = await fetchJsonWithTimeout(`${baseUrl}/models`, {
     headers: { Authorization: `Bearer ${apiKey}` }
   });
   if (!response.ok) return [];
-  const payload = (await response.json().catch(() => null)) as { data?: Array<{ id?: string }> } | null;
-  return (payload?.data ?? []).map((m) => String(m.id ?? '').trim()).filter(Boolean);
+  const data = Array.isArray(payload?.data) ? payload.data : [];
+  return data.map((m) => safeText((m as { id?: string })?.id)).filter(Boolean);
 }
