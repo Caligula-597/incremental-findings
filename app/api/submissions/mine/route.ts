@@ -27,7 +27,7 @@ function parseMetaB64(detail: string | undefined) {
 
 export async function GET(request: NextRequest) {
   try {
-    const sessionUser = getServerSessionUser();
+    const sessionUser = await getServerSessionUser();
     if (!sessionUser) {
       return NextResponse.json({ error: 'Login required' }, { status: 401 });
     }

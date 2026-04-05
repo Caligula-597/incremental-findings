@@ -13,7 +13,7 @@ import { getRuntimeModeSnapshot } from '@/lib/runtime-mode';
 
 export async function GET(_request: Request, context: { params: { id: string } }) {
   try {
-    const sessionUser = getServerSessionUser();
+    const sessionUser = await getServerSessionUser();
     if (!sessionUser) {
       return NextResponse.json({ error: 'Login required' }, { status: 401 });
     }

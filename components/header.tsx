@@ -96,6 +96,9 @@ export function SiteHeader() {
           <Link className="btn btn-secondary" href={withLang('/community')}>
             {copy.nav.community}
           </Link>
+          <Link className="btn btn-secondary" href={withLang('/write')}>
+            {lang === 'zh' ? '写作台' : 'Writing'}
+          </Link>
           <Link className="btn btn-secondary" href={withLang('/editor')}>
             {copy.nav.editor}
           </Link>
